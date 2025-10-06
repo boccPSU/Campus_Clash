@@ -1,29 +1,28 @@
-import { enablePromise, openDatabase } from "react-native-sqlite-storage"
+import * as state from statements.js
 
-// Enable promise for SQLite
-enablePromise(true)
+let mysql = require('mysql')
 
 export const connectToDatabase = async () => {
-  return openDatabase(
-    { name: "campus_clash.db", location: "default" },
-    () => {},
-    error => {
-      console.error(error)
-      throw Error("Could not connect to database")
-    }
-  )
+  let con = mysql.createConnection({
+    host: 'localhost',
+    user: 'username',
+    password: 'password'
+  });
+
+  try {
+    con.connect(function(err) {
+      console.log('Connected!');
+  });
+  } catch (error) {
+    console.error(error)
+    throw Error('Failed to connect to Database')
+  }
+  return con;
 }
 
 export const createTables = async db => {
-  const usersQuery = `
-     CREATE TABLE IF NOT EXISTS Users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        firstName TEXT,
-        lastName TEXT,
-     )
-    `
   try {
-    await db.executeSql(usersQuery)
+    await db.executeSql(statements.create)
   } catch (error) {
     console.error(error)
     throw Error(`Failed to create tables`)

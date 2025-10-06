@@ -1,6 +1,5 @@
 import logo from './logo.svg';
 import './App.css';
-import * as db from "./db/db.js"
 
 function App() {
   return (
@@ -21,13 +20,6 @@ function App() {
       </header>
     </div>
   );
-}
-
-try {
-  const dbName = await db.connectToDatabase()
-  await db.createTables(dbName)
-} catch (error) {
-  console.error(error)
 }
 
 export default App;
