@@ -4,7 +4,8 @@ import React from "react";
 import { Container, Card, Button } from "react-bootstrap";
 import CourseCard from "../components/CourseCard";
 import BottomNav from "../components/BottomNav";
-
+import InfoBox from "../components/InfoBox";
+import { Info } from "react-bootstrap-icons";
 function HomeScreen() {
 
     //placeholder course data for dispaly test purposes
@@ -31,12 +32,14 @@ function HomeScreen() {
           <h3 className="mb-1">GPA <span className="float-end">3.7</span></h3>
           <div className="text-muted">Major: Computer Science</div>
         </Card>
-        
-        {/* Map each course to a CourseCard component */}
-        <h5>Courses</h5>
-        {courses.map((c, i) => (
-          <CourseCard key={i} {...c} />
+        <InfoBox className="bg-secondary">
+            {/* Map each course to a CourseCard component */}
+            <h5>Courses</h5>
+            {courses.map((c, i) => (
+            <CourseCard key={i} {...c} />
         ))}
+        </InfoBox>
+        
 
         {/* adds the addition buttons for progress report and study plan */}
         <div className="d-flex justify-content-between mt-3">

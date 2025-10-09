@@ -4,6 +4,7 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import CanvasDisplay from './components/CanvasDisplay';
+import './index.scss'
 //import './style/colors.scss';
 //import 'bootstrap/scss/bootstrap.scss';
 const root = ReactDOM.createRoot(document.getElementById('root'));

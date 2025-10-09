@@ -1,0 +1,21 @@
+//Global style sheet for our components
+@import "~bootstrap/scss/bootstrap";
+
+// Color Tokens
+$primary: #1B50C4;
+$secondary: #22C55E;
+$light: #F8FAFC;
+$dark: #2D2D2D; 
+
+.infoBox {
+    //@extend allows us to add in bootsrap styles into our css
+    @extend .mx-auto;       // centers horizontally
+    @extend .my-3;          // adds vertical margins
+    @extend .p-3;           // adds padding
+    @extend .text-center;   // centers text
+    //@extend .rounded;       // rounded corners
+    @extend .shadow-sm;     // small shadow
+    background-color: $dark;
+    color: $light;    //Text Color
+    border-radius: 20px;
+}
