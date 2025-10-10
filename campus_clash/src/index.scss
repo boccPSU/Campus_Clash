@@ -13,9 +13,38 @@ $dark: #2D2D2D;
     @extend .my-3;          // adds vertical margins
     @extend .p-3;           // adds padding
     @extend .text-center;   // centers text
-    //@extend .rounded;       // rounded corners
     @extend .shadow-sm;     // small shadow
     background-color: $dark;
     color: $light;    //Text Color
     border-radius: 20px;
 }
+
+.navButton{
+    background-color: $light;
+    border: $dark solid ;
+    border-radius: 80px;
+    width: 80px;
+    height: 60px;
+    text-align: center;
+}
+
+.button{
+    @extend .btn;
+    background-color: $primary;
+    color: $light;  //Text color
+}
+.navLabel{
+     font-size: "0.75rem"; 
+     color: "#ff0000ff";
+}
+
+.footer {
+    @extend .justify-content-around; 
+    @extend .fixed-bottom; 
+    @extend .border-top; 
+    @extend .py-2;
+
+    background-color: $primary;
+
+}
+

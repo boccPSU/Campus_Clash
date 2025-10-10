@@ -13,7 +13,7 @@ import {
 // Footer section with all navigation buttons
 function BottomNav() {
   return (
-    <Nav className="justify-content-around bg-primary fixed-bottom border-top py-2">
+    <Nav className="footer">
     
       <NavButton to="/leaderboard" icon={BarChartFill} label="Leaderboard" />
       <NavButton to="/events" icon={CalendarEventFill} label="Events" />

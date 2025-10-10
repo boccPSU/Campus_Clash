@@ -6,6 +6,7 @@ import CourseCard from "../components/CourseCard";
 import BottomNav from "../components/BottomNav";
 import InfoBox from "../components/InfoBox";
 import { Info } from "react-bootstrap-icons";
+import AlertCard from "../components/AlertCard";
 function HomeScreen() {
 
     //placeholder course data for dispaly test purposes
@@ -32,22 +33,23 @@ function HomeScreen() {
           <h3 className="mb-1">GPA <span className="float-end">3.7</span></h3>
           <div className="text-muted">Major: Computer Science</div>
         </Card>
-        <InfoBox className="bg-secondary">
+        <InfoBox title={"Courses"} >
             {/* Map each course to a CourseCard component */}
-            <h5>Courses</h5>
             {courses.map((c, i) => (
             <CourseCard key={i} {...c} />
         ))}
         </InfoBox>
         
-
         {/* adds the addition buttons for progress report and study plan */}
         <div className="d-flex justify-content-between mt-3">
-          <Button variant="outline-primary">Progress Report</Button>
-          <Button variant="primary">Study Plan</Button>
+          <Button class="button">Progress Report</Button>
+          <Button class="button">Study Plan</Button>
         </div>
 
         {/* adds the alert box */}
+        <InfoBox title={"Alerts"}>
+            <AlertCard alertTitle={"Alert Title Here jfdkaljf"} alertInfo={"Info here infofojdfhjka fjklasdfkldasjfkljdasklf j"}></AlertCard>
+        </InfoBox>
         <Card className="p-2 mt-4">
           <h6>Alerts</h6>
           <p className="mb-0 small">Upcoming Exam in PHYS 212 worth 15% of your grade</p>
