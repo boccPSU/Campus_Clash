@@ -1,15 +1,13 @@
-// creates the home screen using staic numbers and visuals for now until data is integrated
-
 import React from "react";
 import { Container, Card, Button } from "react-bootstrap";
 import CourseCard from "../components/CourseCard";
 import BottomNav from "../components/BottomNav";
 import InfoBox from "../components/InfoBox";
-import { Info } from "react-bootstrap-icons";
 import AlertCard from "../components/AlertCard";
-function HomeScreen() {
+import HeaderBar from "../components/HeaderBar";
 
-    //placeholder course data for dispaly test purposes
+function HomeScreen() {
+  // placeholder course data for display test purposes
   const courses = [
     { name: "CMPSC 421", percent: 86, grade: "B" },
     { name: "CMPSC 475", percent: 95, grade: "A" },
@@ -18,42 +16,37 @@ function HomeScreen() {
     { name: "STAT 318", percent: 50, grade: "F" },
   ];
 
+  const currentXP = 10500;
+
   return (
     <>
-    {/* creates the header */}
-      <div className="bg-primary text-white text-center py-2">
-        <h5 className="m-0">Term: Spring 25/26</h5>
-        <div className="small">XP: 10,500 points</div>
-      </div>
+      <HeaderBar title="Home" xp={currentXP} />
 
-{/* Container centers content and gives left/right padding */}
       <Container className="py-3">
-        {/* Card gives a white box with shadow and padding */}
         <Card className="p-3 mb-3 shadow-sm">
-          <h3 className="mb-1">GPA <span className="float-end">3.7</span></h3>
+          <h3 className="mb-1">
+            GPA <span className="float-end">3.7</span>
+          </h3>
           <div className="text-muted">Major: Computer Science</div>
         </Card>
-        <InfoBox title={"Courses"} >
-            {/* Map each course to a CourseCard component */}
-            {courses.map((c, i) => (
+
+        <InfoBox title="Courses">
+          {courses.map((c, i) => (
             <CourseCard key={i} {...c} />
-        ))}
+          ))}
         </InfoBox>
-        
-        {/* adds the addition buttons for progress report and study plan */}
+
         <div className="d-flex justify-content-between mt-3">
-          <Button class="button">Progress Report</Button>
-          <Button class="button">Study Plan</Button>
+          <Button className="button">Progress Report</Button>
+          <Button className="button">Study Plan</Button>
         </div>
 
-        {/* adds the alert box */}
-        <InfoBox title={"Alerts"}>
-            <AlertCard alertTitle={"Alert Title Here jfdkaljf"} alertInfo={"Info here infofojdfhjka fjklasdfkldasjfkljdasklf j"}></AlertCard>
+        <InfoBox title="Alerts">
+          <AlertCard
+            alertTitle="Alert Title Here"
+            alertInfo="Upcoming Exam in PHYS 212 worth 15% of your grade"
+          />
         </InfoBox>
-        <Card className="p-2 mt-4">
-          <h6>Alerts</h6>
-          <p className="mb-0 small">Upcoming Exam in PHYS 212 worth 15% of your grade</p>
-        </Card>
       </Container>
 
       <BottomNav />

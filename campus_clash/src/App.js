@@ -3,23 +3,32 @@ import React from "react";
 // import routing tools to switch between pages
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
-//needed to use bootstrap components
+// needed to use bootstrap components
 import "bootstrap/dist/css/bootstrap.min.css";
 
 // import all currently finished screens
 import HomeScreen from "./screens/HomeScreen";
 import EventsScreen from "./screens/EventsScreen";
+import LeaderboardScreen from "./screens/LeaderboardScreen";
+import TournamentScreen from "./screens/TournamentScreen";
 
 function App() {
   return (
-    // defines the routes for navigation through the app, currently only home and events screen are working
+    // defines the routes for navigation through the app
     <Router>
-      {/*sets each screen to a distict url within the app */}
+      {/* sets each screen to a distinct URL within the app */}
       <Routes>
-        {/* sets the home screen to the default path */}
+        {/* default path -> Home */}
         <Route path="/" element={<HomeScreen />} />
-        {/* sets the /events path to the events page*/}
+
+        {/* /events path -> Events screen */}
         <Route path="/events" element={<EventsScreen />} />
+        
+        {/* /tournaments path -> Tournament screen */}
+        <Route path="/tournament" element={<TournamentScreen />} />
+
+        {/* /leaderboard path -> Leaderboard screen */}
+        <Route path="/leaderboard" element={<LeaderboardScreen />} />
       </Routes>
     </Router>
   );

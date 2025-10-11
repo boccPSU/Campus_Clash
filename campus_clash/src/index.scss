@@ -48,3 +48,13 @@ $dark: #2D2D2D;
 
 }
 
+body {
+  background-color: $light;
+  overflow-x: hidden;
+  padding-top: 70px; // reserve space for fixed header
+  padding-bottom: 80px; // reserve space for bottom nav
+}
+
+main, .screen-container {
+  padding-top: 1rem;
+}
