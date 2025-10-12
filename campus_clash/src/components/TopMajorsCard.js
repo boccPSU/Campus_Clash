@@ -1,5 +1,6 @@
 import React from "react";
 import "../index.scss";
+import InfoBox from "./InfoBox";
 
 function TopMajorsCard({ topMajors = [] }) {
   const [first, second, third] = topMajors.length
@@ -11,9 +12,7 @@ function TopMajorsCard({ topMajors = [] }) {
       ];
 
   return (
-    <div className="shadow-sm rounded-4 p-3 mb-3 border border-primary text-center bg-dark text-light">
-      <h5 className="fw-bold mb-3 text-light">Top 3 Majors</h5>
-
+    <InfoBox title={"Top 3 Majors"}>
       <div className="d-flex justify-content-center align-items-end" style={{ height: "160px" }}>
         {/* 2nd Place */}
         <div className="mx-2 d-flex flex-column align-items-center">
@@ -54,7 +53,7 @@ function TopMajorsCard({ topMajors = [] }) {
           </div>
         </div>
       </div>
-    </div>
+    </InfoBox>
   );
 }
 

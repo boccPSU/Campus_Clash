@@ -4,13 +4,13 @@ import { ArrowRight } from "react-bootstrap-icons";
 
 function EventCard({ title, subtitle, date, location, xp }) {
   return (
-    <Card className="mb-3 shadow-sm bg-dark text-white">
+    <Card className="eventCard">
       <Card.Body>
-        <Card.Title>{title}</Card.Title>
-        <Card.Text className="mb-1 small">{subtitle}</Card.Text>
-        <Card.Text className="small mb-1">{date}</Card.Text>
-        <Card.Text className="small mb-2">{location}</Card.Text>
-        <div className="d-flex justify-content-between align-items-center">
+        <Card.Title className = "eventCardTitle">{title}</Card.Title>
+        <Card.Text className="eventCardSubtitle">{subtitle}</Card.Text>
+        <Card.Text className="eventCardDate">{date}</Card.Text>
+        <Card.Text className="eventCardLocation">{location}</Card.Text>
+        <div className="eventCardXp">
           <span className="small">+ {xp} XP</span>
           <ArrowRight />
         </div>

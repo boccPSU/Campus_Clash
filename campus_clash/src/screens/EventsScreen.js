@@ -3,6 +3,7 @@ import { Container, ButtonGroup, ToggleButton } from "react-bootstrap";
 import EventCard from "../components/EventCard";
 import BottomNav from "../components/BottomNav";
 import HeaderBar from "../components/HeaderBar";
+import InfoBox from "../components/InfoBox";
 
 function EventsScreen() {
   const events = [
@@ -35,7 +36,7 @@ function EventsScreen() {
   return (
     <>
       <HeaderBar title="Campus Events" xp={currentXP} />
-
+      
       <Container className="py-3 mb-5">
         <ButtonGroup className="mb-3 w-100">
           {filters.map((f, i) => (
@@ -50,10 +51,12 @@ function EventsScreen() {
             </ToggleButton>
           ))}
         </ButtonGroup>
-
-        {events.map((e, i) => (
+        <InfoBox>
+          {events.map((e, i) => (
           <EventCard key={i} {...e} />
-        ))}
+          ))}
+        </InfoBox>
+          
       </Container>
 
       <BottomNav />

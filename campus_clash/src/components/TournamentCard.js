@@ -1,11 +1,11 @@
 import React from "react";
 import { Card, Button } from "react-bootstrap";
 import "../index.scss";
+import InfoBox from "./InfoBox";
 
 function TournamentCard({ title, topics, endDate, reward }) {
   return (
-    <Card className="shadow-sm rounded-4 p-3 mb-4 border border-primary bg-dark text-light text-center">
-      <h5 className="fw-bold mb-2 text-light">{title}</h5>
+    <InfoBox title={title}>
       <div className="small mb-1">
         <span className="fw-semibold">Topics:</span> {topics}
       </div>
@@ -23,7 +23,7 @@ function TournamentCard({ title, topics, endDate, reward }) {
           Join
         </Button>
       </div>
-    </Card>
+    </InfoBox>
   );
 }
 

@@ -1,5 +1,6 @@
 import React from "react";
 import "../index.scss";
+import InfoBox from "./InfoBox";
 
 function LeaderboardTable({ data = [] }) {
   const leaderboardData =
@@ -12,7 +13,7 @@ function LeaderboardTable({ data = [] }) {
         ];
 
   return (
-    <div className="shadow-sm rounded-4 p-3 mb-5 border border-primary bg-dark text-light">
+    <InfoBox title={"Major Leaderboard"}>
       {/* Added visual section header */}
       <h4 className="fw-bold text-center mb-4 text-light">Major Leaderboard</h4>
 
@@ -27,7 +28,7 @@ function LeaderboardTable({ data = [] }) {
           <span className="fw-semibold">{item.xp.toLocaleString()} XP</span>
         </div>
       ))}
-    </div>
+    </InfoBox>
   );
 }
 

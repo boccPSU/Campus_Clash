@@ -8,7 +8,7 @@ function NavButton({ icon: Icon, to, label, size = 22, exact = false }) {
   const baseStyle = { fontSize: "0.65rem", color: "#000000ff" };
 
   return (
-    <Nav.Item class = "navButton">
+    <Nav.Item className = "navButton">
       <Nav.Link
         as={NavLink}
         to={to}       // Location to navigate to

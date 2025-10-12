@@ -7,6 +7,7 @@ $secondary: #22C55E;
 $light: #F8FAFC;
 $dark: #2D2D2D; 
 
+// Main container that wraps content sections
 .infoBox {
     //@extend allows us to add in bootsrap styles into our css
     @extend .mx-auto;       // centers horizontally
@@ -19,25 +20,9 @@ $dark: #2D2D2D;
     border-radius: 20px;
 }
 
-.navButton{
-    background-color: $light;
-    border: $dark solid ;
-    border-radius: 80px;
-    width: 80px;
-    height: 60px;
-    text-align: center;
-}
-
-.button{
-    @extend .btn;
-    background-color: $primary;
-    color: $light;  //Text color
-}
-.navLabel{
-     font-size: "0.75rem"; 
-     color: "#ff0000ff";
-}
-
+//---------------
+// Footer Section
+// --------------
 .footer {
     @extend .justify-content-around; 
     @extend .fixed-bottom; 
@@ -47,6 +32,109 @@ $dark: #2D2D2D;
     background-color: $primary;
 
 }
+
+.navButton{
+    background-color: $light;
+    border: $dark solid ;
+    border-radius: 80px;
+    width: 80px;
+    height: 60px;
+    text-align: center;
+}
+
+.navLabel{
+     font-size: "0.75rem"; 
+     color: "#ff0000ff";
+}
+
+// Non navigational buttons
+.button{
+    @extend .btn;
+    background-color: $primary;
+    color: $light;  //Text color
+}
+
+//----------------
+// Header Section
+//----------------
+
+.headerBar {
+    @extend .navbar;          
+    @extend .navbar-dark;
+    @extend .bg-primary;
+    @extend .py-2;
+    @extend .shadow-sm;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 1030;
+}
+
+// Profile and Notification Icon
+.headerIcon{
+    color: $light;
+}
+
+.headerTitle{
+    @extend .fw-bold;
+    @extend .fs-5;
+    color: $light;
+}
+
+.headerXp{
+    @extend .small;
+    color: $light;
+}
+
+.headerCenterText {
+    @extend .text-center;
+    @extend .text-white;
+    flex-grow: 1;
+}
+
+//-------------------
+// Event Card Styles
+//-------------------
+.eventCard{
+    @extend .mb-3;
+    @extend .shadow-sm;
+    @extend .text-white;
+    background-color: $light;
+    color: $dark;
+}
+
+.eventCardXp{
+    @extend .d-flex;
+    @extend .justify-content-between;
+    @extend .align-items-center;
+    color: $dark;
+
+    
+    
+}
+
+.eventCardTitle{
+    color: $dark;
+}
+
+.eventCardSubtitle{
+    @extend .mb-1;
+    @extend .small;
+    color: $dark;
+}
+
+.eventCardDate{
+    @extend .small;
+    @extend .mb-1;
+    color: $dark;
+}
+
+.eventCardLocation{
+    @extend .small;
+    @extend .mb-2;
+    color: $dark;
+}
+
 
 body {
   background-color: $light;
