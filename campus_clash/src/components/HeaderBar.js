@@ -2,20 +2,21 @@ import React from "react";
 import { Navbar, Container } from "react-bootstrap";
 import { PersonCircle, Bell } from "react-bootstrap-icons";
 
+// Top header bar shown across multiple screens
 function HeaderBar({ title = "Screen", xp = 0 }) {
   return (
-    <Navbar className = "headerBar">
+    <Navbar className="headerBar">
       <Container className="d-flex justify-content-between align-items-center">
-        {/* Profile Icon */}
+        {/* Left: User profile icon */}
         <PersonCircle size={28} className="headerIcon" />
 
-        {/* Center: Screen Title + XP */}
+        {/* Center: Screen title and XP display */}
         <div className="text-center text-white flex-grow-1">
           <div className="headerTitle">{title}</div>
           <div className="headerXp">XP: {xp.toLocaleString()}</div>
         </div>
 
-        {/* Notification Icon */}
+        {/* Right: Notifications icon */}
         <Bell size={22} className="headerIcon" />
       </Container>
     </Navbar>

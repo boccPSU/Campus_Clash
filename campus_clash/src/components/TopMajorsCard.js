@@ -2,7 +2,9 @@ import React from "react";
 import "../index.scss";
 import InfoBox from "./InfoBox";
 
+// Component that visually displays the top 3 majors
 function TopMajorsCard({ topMajors = [] }) {
+  // Destructure top 3 majors, with fallback values
   const [first, second, third] = topMajors.length
     ? topMajors
     : [
@@ -13,7 +15,9 @@ function TopMajorsCard({ topMajors = [] }) {
 
   return (
     <InfoBox title={"Top 3 Majors"}>
+      {/* Bar-style visualization of top 3 majors */}
       <div className="d-flex justify-content-center align-items-end" style={{ height: "160px" }}>
+        
         {/* 2nd Place */}
         <div className="mx-2 d-flex flex-column align-items-center">
           <div className="fw-semibold small mb-1 text-light text-center" style={{ maxWidth: "90px" }}>
