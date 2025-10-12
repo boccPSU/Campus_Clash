@@ -11,6 +11,7 @@ import HomeScreen from "./screens/HomeScreen";
 import EventsScreen from "./screens/EventsScreen";
 import LeaderboardScreen from "./screens/LeaderboardScreen";
 import TournamentScreen from "./screens/TournamentScreen";
+import StudyPlan from "./screens/StudyPlan";
 
 function App() {
   return (
@@ -29,6 +30,9 @@ function App() {
 
         {/* /leaderboard path -> Leaderboard screen */}
         <Route path="/leaderboard" element={<LeaderboardScreen />} />
+
+        {/* /Study path -> Study Plan screen */}
+        <Route path="/studyPlan" element={<StudyPlan />} />
       </Routes>
     </Router>
   );

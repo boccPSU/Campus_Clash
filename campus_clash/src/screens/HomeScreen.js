@@ -1,12 +1,15 @@
 import React from "react";
 import { Container, Card, Button } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
 import CourseCard from "../components/CourseCard";
 import BottomNav from "../components/BottomNav";
 import InfoBox from "../components/InfoBox";
 import AlertCard from "../components/AlertCard";
 import HeaderBar from "../components/HeaderBar";
+import NavButton from "../components/NavButton";
 
 function HomeScreen() {
+    const navigate = useNavigate(); //Used for regular buttons to navigate to other screens
   // placeholder course data for display test purposes
   const courses = [
     { name: "CMPSC 421", percent: 86, grade: "B" },
@@ -38,7 +41,7 @@ function HomeScreen() {
 
         <div className="d-flex justify-content-between mt-3">
           <Button className="button">Progress Report</Button>
-          <Button className="button">Study Plan</Button>
+          <Button className="button" onClick={() => navigate("/studyPlan")}>Study Plan</Button>
         </div>
 
         <InfoBox title="Alerts">

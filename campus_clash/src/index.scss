@@ -135,6 +135,50 @@ $dark: #2D2D2D;
     color: $dark;
 }
 
+//------------------
+// Study Card Styles
+//------------------
+.studyCardTitle{
+    @extend .text-center; 
+    @extend .p-3; 
+    @extend .mb-4;  
+    @extend .rounded-4; 
+    
+    background-color: $light;
+    
+    .title{
+        @extend .fw-bold; 
+        @extend .mb-1;
+        color: $dark;
+    }
+
+    .gpaImpact{
+        @extend .small;
+        color: $dark;
+    }
+}
+
+.studyCardTask{
+    @extend .my-2;
+    @extend .p-3;
+    @extend .position-relative;
+    border: solid $dark;
+    background-color: $dark;
+
+    .title{
+        @extend .text-start;
+        @extend .fw-semibold;
+        @extend .mb-1;
+        color:$light;
+    }
+
+    .description{
+        @extend .text-start;
+        @extend .small;
+        @extend .mb-0;     
+        color:$light;
+    }
+}
 
 body {
   background-color: $light;
