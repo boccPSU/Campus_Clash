@@ -40,7 +40,7 @@ function HomeScreen() {
         </InfoBox>
 
         <div className="d-flex justify-content-between mt-3">
-          <Button className="button">Progress Report</Button>
+          <Button className="button" onClick={() => navigate("/progressReport")}>Progress Report</Button>
           <Button className="button" onClick={() => navigate("/studyPlan")}>Study Plan</Button>
         </div>
 

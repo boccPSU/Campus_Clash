@@ -12,6 +12,7 @@ import EventsScreen from "./screens/EventsScreen";
 import LeaderboardScreen from "./screens/LeaderboardScreen";
 import TournamentScreen from "./screens/TournamentScreen";
 import StudyPlan from "./screens/StudyPlan";
+import ProgressReport from "./screens/ProgressReport";
 
 function App() {
   return (
@@ -31,8 +32,11 @@ function App() {
         {/* /leaderboard path -> Leaderboard screen */}
         <Route path="/leaderboard" element={<LeaderboardScreen />} />
 
-        {/* /Study path -> Study Plan screen */}
+        {/* /studyPlan -> Study Plan screen */}
         <Route path="/studyPlan" element={<StudyPlan />} />
+
+        {/* /progressReport -> Study Plan screen */}
+        <Route path="/progressReport" element={<ProgressReport />} />
       </Routes>
     </Router>
   );

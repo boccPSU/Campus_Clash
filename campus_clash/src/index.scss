@@ -180,6 +180,30 @@ $dark: #2D2D2D;
     }
 }
 
+//------------------------
+// Progress Report Styles
+//-----------------------
+.progressSummaryCard{
+    @extend .d-flex;
+    @extend .flex-row;
+    @extend .justify-content-between;
+    @extend .align-items-center;
+    @extend .py-1;
+    @extend .px-3;
+    @extend .fs-5;
+    
+    background-color: $light;
+
+    .description{
+        @extend .fw-bolder;
+        color:$dark;
+    }
+
+    .value{
+        color:$dark;
+    }
+}
+
 body {
   background-color: $light;
   overflow-x: hidden;
