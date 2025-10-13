@@ -22,7 +22,7 @@ function App() {
       {/* sets each screen to a distinct URL within the app */}
       <Routes>
         {/* default path -> Home */}
-        <Route path="/" element={<RegisterScreen />} />
+        <Route path="/" element={<HomeScreen />} />
 
         {/* /events path -> Events screen */}
         <Route path="/events" element={<EventsScreen />} />
