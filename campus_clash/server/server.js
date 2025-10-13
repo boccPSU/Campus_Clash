@@ -22,22 +22,6 @@ if(!TOKEN) throw new Error("Missing TOKEN in .env");
 //create the app instance to represent HTTP server and routes
 const app = express();
 
-//Create a connection to the SQL Database
-try {
-    const dbPool = mysql.createPool({
-        host: 'localhost',
-        user: 'clash_admin',
-        password: 'password',
-        database: 'campus_clash'
-    });
-    dbPool.query('SELECT * FROM users', (err, rows) => {
-        console.log(rows);
-    });
-} catch (err) {
-    console.log("Failed to connect to DB");
-    throw Error(err);
-}
-
 //app.use registers middleware that runs for every incoming requires
 //Tells browser that our react app can make requests to our server running on different ports preventing CORS issues
 //CHECK PORT HERE
@@ -83,12 +67,6 @@ app.get("/health", (req, res) => res.json({ok: true, service: "canvas-proxy"}))
 app.get('/api',(req, res)=>{
     res.send("From Server")
 });
-app.use(bodyParser.json())
-app.post('/api/register',(req, res)=>{
-    console.log(req.body);
-    res.json({"message":"Form Submitted"})
-})
-
 app.use(bodyParser.json())
 app.post('/api/register',(req, res)=>{
     let {firstName, lastName, username, password} = req.body
