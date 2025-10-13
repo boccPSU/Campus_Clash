@@ -13,6 +13,7 @@ import LeaderboardScreen from "./screens/LeaderboardScreen";
 import TournamentScreen from "./screens/TournamentScreen";
 import StudyPlan from "./screens/StudyPlan";
 import ProgressReport from "./screens/ProgressReport";
+import RegisterScreen from "./screens/RegisterScreen";
 
 function App() {
   return (
@@ -21,7 +22,7 @@ function App() {
       {/* sets each screen to a distinct URL within the app */}
       <Routes>
         {/* default path -> Home */}
-        <Route path="/" element={<HomeScreen />} />
+        <Route path="/" element={<RegisterScreen />} />
 
         {/* /events path -> Events screen */}
         <Route path="/events" element={<EventsScreen />} />
@@ -37,6 +38,8 @@ function App() {
 
         {/* /progressReport -> Study Plan screen */}
         <Route path="/progressReport" element={<ProgressReport />} />
+        {/* /Register path -> Register screen ||| For Testing*/}
+        <Route path="/register" element={<RegisterScreen />} />
       </Routes>
     </Router>
   );

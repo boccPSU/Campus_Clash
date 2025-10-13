@@ -7,6 +7,8 @@ require("dotenv").config(); //Loads dotenv library allowing vars in .env to be a
 
 const express = require("express"); //Importing express framework for defining routes and starting HTTP server
 const cors = require("cors"); //Importing cors middleware to allow frontend http:/localhost:3000 to call backend http://localhost:3001 
+const mysql = require("mysql");
+const bodyParser = require("body-parser");
 
 //Getting base and token vars from .env file
 const BASE = process.env.CANVAS_BASE;
@@ -19,10 +21,26 @@ if(!TOKEN) throw new Error("Missing TOKEN in .env");
 //create the app instance to represent HTTP server and routes
 const app = express();
 
+//Create a connection to the SQL Database
+try {
+    const dbPool = mysql.createPool({
+        host: 'localhost',
+        user: 'clash_admin',
+        password: 'password',
+        database: 'campus_clash'
+    });
+    dbPool.query('SELECT * FROM users', (err, rows) => {
+        console.log(rows);
+    });
+} catch (err) {
+    console.log("Failed to connect to DB");
+    throw Error(err);
+}
+
 //app.use registers middleware that runs for every incoming requires
 //Tells browser that our react app can make requests to our server running on different ports preventing CORS issues
 //CHECK PORT HERE
-app.use(cors({ origin: "http://localhost:3000" }));
+app.use(cors({ origin: "http://localhost:5000" }));
 
 // Registers get endpoint at /health to check if server is up
 // (req, res) is route handler req: incoming obj, res outgoing response obj
@@ -31,34 +49,43 @@ app.get("/health", (req, res) => res.json({ok: true, service: "canvas-proxy"}))
 
 //Main GET route that is hit whnever path starts with /api/ 
 ///^\/api\/.*/ is regex syntax to match any request that is /api/*
-app.get(/^\/api\/.*/, async(req, res) =>{
-    try{
-        //main url we want to hit, .reaplace is removing /api/ from our url
-        //upstream stands for orions server proxy talks to(canvas)
-        //downstream is client behind the proxy (our browser / react app)
-        const upstreamUrl  = BASE + req.originalUrl;
-        //onsole.log("upstreamUrl:", upstreamUrl);
+// app.get(/^\/api\/.*/, async(req, res) =>{
+//     try{
+//         //main url we want to hit, .replace is removing /api/ from our url
+//         //upstream stands for orions server proxy talks to(canvas)
+//         //downstream is client behind the proxy (our browser / react app)
+//         const upstreamUrl  = BASE + req.originalUrl;
+//         //onsole.log("upstreamUrl:", upstreamUrl);
 
-        //get response from canvas
-        const upstream = await fetch(upstreamUrl, {
-            method: "GET",
-            headers:{
-                Authorization: `Bearer ${TOKEN}`,
-                Accept: "application/json",
-            },
-        });
+//         //get response from canvas
+//         const upstream = await fetch(upstreamUrl, {
+//             method: "GET",
+//             headers:{
+//                 Authorization: `Bearer ${TOKEN}`,
+//                 Accept: "application/json",
+//             },
+//         });
 
         
-        const bodyText = await upstream.text();
-        //Get the type of content that is being sent back from canvas (json)
-        const contentType = upstream.headers.get("content-type");
+//         const bodyText = await upstream.text();
+//         //Get the type of content that is being sent back from canvas (json)
+//         const contentType = upstream.headers.get("content-type");
 
-        //return status code, content type, and full response body as text
-        res.status(upstream.status).type(contentType).send(bodyText);
-    } catch (e){
-        //return error string
-        res.status(500).type("text/plain").send(String(e));
-    }
+//         //return status code, content type, and full response body as text
+//         res.status(upstream.status).type(contentType).send(bodyText);
+//     } catch (e){
+//         //return error string
+//         res.status(500).type("text/plain").send(String(e));
+//     }
+// })
+
+app.get('/api',(req, res)=>{
+    res.send("From Server")
+});
+app.use(bodyParser.json())
+app.post('/api/register',(req, res)=>{
+    console.log(req.body);
+    res.json({"message":"Form Submitted"})
 })
 
 //Start listening to start HTTP server
