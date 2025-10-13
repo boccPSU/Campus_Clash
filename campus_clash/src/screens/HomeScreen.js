@@ -7,9 +7,11 @@ import InfoBox from "../components/InfoBox";
 import AlertCard from "../components/AlertCard";
 import HeaderBar from "../components/HeaderBar";
 import NavButton from "../components/NavButton";
+import GpaDisplay from "../components/GpaDisplay";
 
 function HomeScreen() {
     const navigate = useNavigate(); //Used for regular buttons to navigate to other screens
+
   // placeholder course data for display test purposes
   const courses = [
     { name: "CMPSC 421", percent: 86, grade: "B" },
@@ -23,36 +25,34 @@ function HomeScreen() {
 
   return (
     <>
-      <HeaderBar title="Home" xp={currentXP} />
+        {/*Header Section */}
+        <HeaderBar title="Home" xp={currentXP} />
 
-      <Container className="py-3">
-        <Card className="p-3 mb-3 shadow-sm">
-          <h3 className="mb-1">
-            GPA <span className="float-end">3.7</span>
-          </h3>
-          <div className="text-muted">Major: Computer Science</div>
-        </Card>
+        {/*Screen Body*/}
+        <Container className="py-3">
 
-        <InfoBox title="Courses">
-          {courses.map((c, i) => (
-            <CourseCard key={i} {...c} />
-          ))}
+            <GpaDisplay></GpaDisplay>
+
+            <InfoBox title="Courses">
+                {courses.map((c, i) => (
+                <CourseCard key={i} {...c} />
+                ))}
+            </InfoBox>
+
+            <div className="d-flex justify-content-between mt-3">
+                <Button className="button" onClick={() => navigate("/progressReport")}>Progress Report</Button>
+                <Button className="button" onClick={() => navigate("/studyPlan")}>Study Plan</Button>
+            </div>
+
+            <InfoBox title="Alerts">
+                <AlertCard
+                    alertTitle="Upcoming Exam in PHYS 212 Worth 15% of Your Grade"
+                    alertInfo="Need > 78% grade to maintain a C"
+                />
         </InfoBox>
-
-        <div className="d-flex justify-content-between mt-3">
-          <Button className="button" onClick={() => navigate("/progressReport")}>Progress Report</Button>
-          <Button className="button" onClick={() => navigate("/studyPlan")}>Study Plan</Button>
-        </div>
-
-        <InfoBox title="Alerts">
-          <AlertCard
-            alertTitle="Alert Title Here"
-            alertInfo="Upcoming Exam in PHYS 212 worth 15% of your grade"
-          />
-        </InfoBox>
-      </Container>
-
-      <BottomNav />
+        </Container>
+    
+        <BottomNav />
     </>
   );
 }
