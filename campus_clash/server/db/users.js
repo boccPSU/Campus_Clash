@@ -1,7 +1,7 @@
 export const addUser = async (con, user) => {
-    const values = [user.firstName, user.lastName]
+    const values = [user.firstName, user.lastName, user.username, user.password]
     try {
-        return con.query('EXEC add_user fName = ?, lName = ?', values);
+        return con.query('call add_user(?, ?, ?, ?)', values);
     } catch (error) {
         console.error(error)
         throw Error("Failed to add User")

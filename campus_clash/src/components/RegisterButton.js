@@ -1,11 +1,11 @@
 import {useEffect, useState} from 'react';
 import Button from 'react-bootstrap/Button';
 
-function RegisterButton() {
+function RegisterButton({fName, lName, uName, password}) {
     const [isLoading, setLoading] = useState(false);
 
     useEffect(() => {
-        function registerNewUser(fName, lName, uName, password) {
+        function registerNewUser() {
             let userData = {
                 firstName:fName,
                 lastName:lName,

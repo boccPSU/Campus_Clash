@@ -9,6 +9,7 @@ const express = require("express"); //Importing express framework for defining r
 const cors = require("cors"); //Importing cors middleware to allow frontend http:/localhost:3000 to call backend http://localhost:3001 
 const mysql = require("mysql");
 const bodyParser = require("body-parser");
+const pool = require('./db/db.js');
 
 //Getting base and token vars from .env file
 const BASE = process.env.CANVAS_BASE;
@@ -84,6 +85,16 @@ app.get('/api',(req, res)=>{
 });
 app.use(bodyParser.json())
 app.post('/api/register',(req, res)=>{
+    console.log(req.body);
+    res.json({"message":"Form Submitted"})
+})
+
+app.use(bodyParser.json())
+app.post('/api/register',(req, res)=>{
+    let {firstName, lastName, username, password} = req.body
+    let query = `CALL add_user(${firstName}, ${lastName}, ${username}, ${password})`;
+    console.log(query)
+    pool.query(query);
     console.log(req.body);
     res.json({"message":"Form Submitted"})
 })
