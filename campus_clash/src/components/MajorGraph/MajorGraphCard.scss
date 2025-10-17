@@ -1,0 +1,41 @@
+@use "../../css/tokens.scss" as *;
+
+.majorGraphTitle {
+  @extend .fw-bold;
+  @extend .mb-3;
+  @extend .text-light;
+  @extend .text-center;
+}
+
+.graphBox {
+  @extend .rounded-3;
+  @extend .d-flex;
+  @extend .flex-column;
+  @extend .justify-content-center;
+  @extend .align-items-center;
+  @extend .border;
+  @extend .border-primary;
+  @extend .bg-dark;
+  height: 220px; 
+}
+
+.graphText {
+  @extend .text-light;
+  @extend .mb-1;
+}
+
+.graphSub {
+  @extend .text-secondary;
+}
+
+.enlargeBtn {
+  @extend .btn;
+  @extend .btn-primary;
+  @extend .mt-3;
+  @extend .px-4;
+  @extend .py-1;
+  @extend .rounded-pill;
+  @extend .fw-semibold;
+  @extend .d-block;         // ← add this
+  @extend .mx-auto;
+}

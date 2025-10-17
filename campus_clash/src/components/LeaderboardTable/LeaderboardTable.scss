@@ -1,0 +1,41 @@
+@use "../../css/tokens.scss" as *;
+
+.row {
+  @extend .row;
+  @extend .align-items-center;
+  @extend .gx-0;
+  @extend .mb-2;
+  @extend .rounded-3;
+}
+
+.left {
+  @extend .col;
+  @extend .py-2;
+  @extend .px-3;
+}
+
+.right {
+  @extend .col-auto;
+  @extend .py-2;
+  @extend .px-3;
+  @extend .text-end;
+}
+
+.topMajor {
+  @extend .bg-primary;
+  @extend .text-white;
+}
+
+.normalMajor {
+  @extend .bg-dark;
+  @extend .border;
+  @extend .border-secondary;
+}
+
+.rankMajor {
+  @extend .fw-bold;
+}
+
+.xp {
+  @extend .fw-semibold;
+}

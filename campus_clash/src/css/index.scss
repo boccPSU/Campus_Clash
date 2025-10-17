@@ -17,6 +17,15 @@
 @import "../components/HeaderBar/HeaderBar.scss";
 @import "../components/GpaDisplay/GpaDisplay.scss";
 @import "../components/InfoBox/InfoBox.scss";
+@import "../components/EventCard/EventCard.scss";
+@import "../components/LeaderboardTable/LeaderboardTable.scss";
+@import "../components/MajorGraph/MajorGraphCard.scss";
+@import "../components/NavButton/NavButton.scss";
+@import "../components/ProgressSummaryCard/ProgressSummaryCard.scss";
+@import "../components/StudyPlanTitle/StudyPlanTitle.scss";
+@import "../components/StudyTaskCard/StudyTaskCard.scss";
+@import "../components/TopMajorsCard/TopMajorsCard.scss";
+@import "../components/TournamentCard/TournamentCard.scss";
 // Main container that wraps content sections
 
 /*
@@ -91,49 +100,11 @@
     @extend .text-white;
     flex-grow: 1;
 }
-*/
+
 //-------------------
 // Event Card Styles
 //-------------------
-.eventCard{
-    @extend .mb-3;
-    @extend .shadow-sm;
-    @extend .text-white;
-    background-color: $light;
-    color: $dark;
-}
 
-.eventCardXp{
-    @extend .d-flex;
-    @extend .justify-content-between;
-    @extend .align-items-center;
-    color: $dark;
-
-    
-    
-}
-
-.eventCardTitle{
-    color: $dark;
-}
-
-.eventCardSubtitle{
-    @extend .mb-1;
-    @extend .small;
-    color: $dark;
-}
-
-.eventCardDate{
-    @extend .small;
-    @extend .mb-1;
-    color: $dark;
-}
-
-.eventCardLocation{
-    @extend .small;
-    @extend .mb-2;
-    color: $dark;
-}
 
 //------------------
 // Study Card Styles

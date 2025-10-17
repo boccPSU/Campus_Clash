@@ -1,0 +1,21 @@
+@use "../../css/tokens.scss" as *;
+
+.studyCardTitle{
+    @extend .text-center; 
+    @extend .p-3; 
+    @extend .mb-4;  
+    @extend .rounded-4; 
+    
+    background-color: $light;
+    
+    .title{
+        @extend .fw-bold; 
+        @extend .mb-1;
+        color: $dark;
+    }
+
+    .gpaImpact{
+        @extend .small;
+        color: $dark;
+    }
+}

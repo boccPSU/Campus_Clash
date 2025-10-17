@@ -23,17 +23,23 @@ function LeaderboardTable({ data = [] }) {
       {leaderboardData.map((item, i) => (
         <div
           key={i}
-          className={`d-flex justify-content-between align-items-center py-2 px-3 mb-2 rounded-3 ${
+          className={`row ${
             i === 0
-              ? "bg-primary text-white" // Highlight top-ranked major
-              : "bg-dark border border-secondary" // Default style for others
+              ? "topMajor" // Highlight top-ranked major
+              : "normalMajor" // Default style for others
           }`}
         >
           {/* Major name and rank */}
-          <span className="fw-bold">{`${item.rank}: ${item.major}`}</span>
+          <div className="left">
+            <span className="rankMajor">{`${item.rank}: ${item.major}`}</span>
+          </div>
+          
 
           {/* XP points, formatted with commas */}
-          <span className="fw-semibold">{item.xp.toLocaleString()} XP</span>
+          <div className="right">
+            <span className="xp">{item.xp.toLocaleString()} XP</span>
+          </div>
+          
         </div>
       ))}
     </InfoBox>

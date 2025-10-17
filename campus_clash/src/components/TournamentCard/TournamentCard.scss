@@ -1,0 +1,21 @@
+@use "../../css/tokens.scss" as *;
+
+.tMeta {
+  @extend .small;
+  @extend .mb-1;
+}
+
+.tReward {
+  @extend .small;
+  @extend .mb-3;
+}
+
+.tLabel {
+  @extend .fw-semibold;
+}
+
+.joinBtn {
+  @extend .px-4;
+  @extend .rounded-pill;
+  @extend .fw-semibold;
+}

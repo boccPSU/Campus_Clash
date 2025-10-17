@@ -5,10 +5,13 @@
     @extend .mx-auto;       // centers horizontally
     @extend .my-3;          // adds vertical margins
     @extend .p-3;           // adds padding
-    @extend .text-center;   // centers text
     @extend .shadow-sm;     // small shadow
     background-color: $dark;
     color: $light;    //Text Color
     border-radius: 20px;
+    
+    h2{
+        @extend .text-center;   // centers title
+    }
 
 }

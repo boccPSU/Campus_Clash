@@ -1,0 +1,41 @@
+@use "../../css/tokens.scss" as *;
+
+.eventCard{
+    @extend .mb-3;
+    @extend .shadow-sm;
+    @extend .text-white;
+    background-color: $light;
+    color: $dark;
+}
+
+.eventCardXp{
+    @extend .d-flex;
+    @extend .justify-content-between;
+    @extend .align-items-center;
+    color: $dark;
+
+    
+    
+}
+
+.eventCardTitle{
+    color: $dark;
+}
+
+.eventCardSubtitle{
+    @extend .mb-1;
+    @extend .small;
+    color: $dark;
+}
+
+.eventCardDate{
+    @extend .small;
+    @extend .mb-1;
+    color: $dark;
+}
+
+.eventCardLocation{
+    @extend .small;
+    @extend .mb-2;
+    color: $dark;
+}
