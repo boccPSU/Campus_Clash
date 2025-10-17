@@ -1,11 +1,11 @@
 // Displays all study plans students can take to increase grades in clases that they are struggling in
 import { useState, useEffect} from "react";
 import { Container } from "react-bootstrap";
-import HeaderBar from "../components/HeaderBar";
-import BottomNav from "../components/BottomNav";
-import InfoBox from "../components/InfoBox";
-import StudyPlanTitle from "../components/StudyPlanTitle";
-import StudyTaskCard from "../components/StudyTaskCard";
+import HeaderBar from "../components/HeaderBar/HeaderBar.js";
+import BottomNav from "../components/BottomNav/BottomNav.js";
+import InfoBox from "../components/InfoBox/InfoBox.js";
+import StudyPlanTitle from "../components/StudyPlanTitle/StudyPlanTitle.js";
+import StudyTaskCard from "../components/StudyTaskCard/StudyTaskCard.js";
 function StudyPlan(){
     // Important Use State Vars
     const [xp, setXp] = useState(0);
@@ -25,7 +25,7 @@ function StudyPlan(){
         {
             header: "Turn in HW 02",
             description: "Getting a 100% on HW 02 will increase your grade by 3%"
-        }],
+            }],
     },
     {
         title: "CMPSC 474",

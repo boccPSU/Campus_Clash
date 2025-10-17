@@ -1,10 +1,10 @@
 // Progress report screen that displays statistics for the students acedemic week
 import { useState, useEffect} from "react";
 import { CardTitle, Container } from "react-bootstrap";
-import HeaderBar from "../components/HeaderBar";
-import BottomNav from "../components/BottomNav";
-import InfoBox from "../components/InfoBox";
-import ProgressSummaryCard from "../components/ProgressSummaryCard";
+import HeaderBar from "../components/HeaderBar/HeaderBar.js";
+import BottomNav from "../components/BottomNav/BottomNav.js";
+import InfoBox from "../components/InfoBox/InfoBox.js";
+import ProgressSummaryCard from "../components/ProgressSummaryCard/ProgressSummaryCard.js";
 function ProgressReport(){
     // Important Use State Vars
     const [xp, setXp] = useState(0);

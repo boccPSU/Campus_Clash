@@ -1,0 +1,20 @@
+@use "../../css/tokens.scss" as *;
+
+.gpaDiplayCard{
+    @extend .p-3;
+    @extend .mb-3;
+    @extend .shadow-sm;
+
+    h1{
+        @extend .mb-1;
+
+        span{
+           @extend .float-end; 
+        }
+    }
+
+    div{
+        @extend .text-muted;
+    }
+
+}

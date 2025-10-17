@@ -1,9 +1,9 @@
 import React from "react";
 import { Container, ButtonGroup, ToggleButton } from "react-bootstrap";
-import EventCard from "../components/EventCard";
-import BottomNav from "../components/BottomNav";
-import HeaderBar from "../components/HeaderBar";
-import InfoBox from "../components/InfoBox";
+import EventCard from "../components/EventCard/EventCard.js";
+import BottomNav from "../components/BottomNav/BottomNav.js";
+import HeaderBar from "../components/HeaderBar/HeaderBar.js";
+import InfoBox from "../components/InfoBox/InfoBox.js";
 
 function EventsScreen() {
   const events = [

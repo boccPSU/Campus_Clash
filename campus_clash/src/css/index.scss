@@ -1,25 +1,25 @@
-//Global style sheet for our components
-@import "~bootstrap/scss/bootstrap";
+// Use all tokens (Ex: Colors/Fonts)
+@use "./tokens.scss" as *;
 
-// Color Tokens
-$primary: #1B50C4;
-$secondary: #22C55E;
-$light: #F8FAFC;
-$dark: #2D2D2D; 
+// Use bootstrap classes
+@import "bootstrap/scss/bootstrap";
 
+// use all other scss syle sheets
+
+//Base page styles
+@import "./base.scss";
+
+
+
+@import "../components/AlertCard/AlertCard.scss";
+@import "../components/BottomNav/BottomNav.scss";
+@import "../components/CourseCard/CourseCard.scss";
+@import "../components/HeaderBar/HeaderBar.scss";
+@import "../components/GpaDisplay/GpaDisplay.scss";
+@import "../components/InfoBox/InfoBox.scss";
 // Main container that wraps content sections
-.infoBox {
-    //@extend allows us to add in bootsrap styles into our css
-    @extend .mx-auto;       // centers horizontally
-    @extend .my-3;          // adds vertical margins
-    @extend .p-3;           // adds padding
-    @extend .text-center;   // centers text
-    @extend .shadow-sm;     // small shadow
-    background-color: $dark;
-    color: $light;    //Text Color
-    border-radius: 20px;
-}
 
+/*
 //---------------
 // Footer Section
 // --------------
@@ -91,7 +91,7 @@ $dark: #2D2D2D;
     @extend .text-white;
     flex-grow: 1;
 }
-
+*/
 //-------------------
 // Event Card Styles
 //-------------------
@@ -203,7 +203,7 @@ $dark: #2D2D2D;
         color:$dark;
     }
 }
-
+/*
 body {
   background-color: $light;
   overflow-x: hidden;
@@ -213,4 +213,4 @@ body {
 
 main, .screen-container {
   padding-top: 1rem;
-}
+}*/

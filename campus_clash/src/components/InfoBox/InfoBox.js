@@ -5,7 +5,7 @@ function InfoBox({children, title}){
     return(
         <div className="infoBox">
             <h2>{title}</h2>
-            <div className="inner-content">{children}</div>
+            <div>{children}</div>
         </div>
     )
 }  

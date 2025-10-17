@@ -1,6 +1,6 @@
 import React from "react";
 import { Nav } from "react-bootstrap";
-import NavButton from "./NavButton";
+import NavButton from "../NavButton/NavButton";
 // Import needed Bootstrap icons
 import {
   HouseDoorFill,

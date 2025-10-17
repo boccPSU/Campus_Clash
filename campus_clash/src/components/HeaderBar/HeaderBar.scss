@@ -1,0 +1,35 @@
+@use "../../css/tokens.scss" as *;
+
+.headerBar {
+    @extend .navbar;          
+    @extend .navbar-dark;
+    @extend .bg-primary;
+    @extend .py-2;
+    @extend .shadow-sm;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 1030;
+}
+
+// Profile and Notification Icon
+.headerIcon{
+    color: $light;
+}
+
+.headerTitle{
+    @extend .fw-bold;
+    @extend .fs-5;
+    color: $light;
+}
+
+.headerXp{
+    @extend .small;
+    color: $light;
+}
+
+.headerCenterText {
+    @extend .text-center;
+    @extend .text-white;
+    flex-grow: 1;
+}

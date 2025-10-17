@@ -1,6 +1,5 @@
 import React from "react";
-import "../index.scss";
-import InfoBox from "./InfoBox";
+import InfoBox from "../InfoBox/InfoBox";
 
 // Card component for displaying a placeholder or preview of a major-related XP graph
 function MajorGraphCard() {

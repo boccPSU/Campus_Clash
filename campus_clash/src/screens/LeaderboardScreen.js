@@ -1,10 +1,10 @@
 import React from "react";
 import { Container } from "react-bootstrap";
-import BottomNav from "../components/BottomNav";
-import TopMajorsCard from "../components/TopMajorsCard";
-import MajorGraphCard from "../components/MajorGraphCard";
-import LeaderboardTable from "../components/LeaderboardTable";
-import HeaderBar from "../components/HeaderBar";
+import BottomNav from "../components/BottomNav/BottomNav.js";
+import TopMajorsCard from "../components/TopMajorsCard/TopMajorsCard.js";
+import MajorGraphCard from "../components/MajorGraph/MajorGraphCard.js";
+import LeaderboardTable from "../components/LeaderboardTable/LeaderboardTable.js";
+import HeaderBar from "../components/HeaderBar/HeaderBar.js";
 
 // Main screen component for displaying leaderboard data
 function LeaderboardScreen() {

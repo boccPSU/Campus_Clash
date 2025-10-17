@@ -1,9 +1,9 @@
 import React from "react";
 import { Container } from "react-bootstrap";
-import BottomNav from "../components/BottomNav";
-import TournamentCard from "../components/TournamentCard";
-import HeaderBar from "../components/HeaderBar";
-import "../index.scss";
+import BottomNav from "../components/BottomNav/BottomNav.js";
+import TournamentCard from "../components/TournamentCard/TournamentCard.js";
+import HeaderBar from "../components/HeaderBar/HeaderBar.js";
+//import "../index.scss.js";
 
 // Screen displaying available tournaments
 function TournamentScreen() {

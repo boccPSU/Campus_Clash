@@ -1,0 +1,14 @@
+@use "../../css/tokens.scss" as *;
+
+.infoBox {
+    //@extend allows us to add in bootsrap styles into our css
+    @extend .mx-auto;       // centers horizontally
+    @extend .my-3;          // adds vertical margins
+    @extend .p-3;           // adds padding
+    @extend .text-center;   // centers text
+    @extend .shadow-sm;     // small shadow
+    background-color: $dark;
+    color: $light;    //Text Color
+    border-radius: 20px;
+
+}

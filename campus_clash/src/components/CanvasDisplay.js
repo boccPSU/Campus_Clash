@@ -1,12 +1,11 @@
-//Main React Component
-
+// Used for testing Canvas API
 //Imports
 import {useEffect, useState} from "react"
 import {canvasGet} from "../api/canvas"
 
 //Component function
 export default function CanvasDisplay(){
-    //List of data we want form api
+    //List of data we want from api
     const [studentName, setStudentName] = useState(null);
 
     //Other important states to store

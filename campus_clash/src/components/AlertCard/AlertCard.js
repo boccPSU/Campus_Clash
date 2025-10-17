@@ -6,9 +6,9 @@ function AlertCard({ alertTitle, alertInfo}) {
 
   return (
     //creates a card for each course
-    <Card className="mb-2 shadow-sm">
-      <Card.Body className="p-2">
-        <Card.Title className="mb-1 fs-5" >{alertTitle}</Card.Title>
+    <Card className="alertCard">
+      <Card.Body className="alertBody">
+        <Card.Title className="alertTitle" >{alertTitle}</Card.Title>
         <Card.Body>{alertInfo}</Card.Body>
       </Card.Body>
     </Card>

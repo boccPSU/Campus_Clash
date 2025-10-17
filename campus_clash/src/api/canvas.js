@@ -1,4 +1,3 @@
-// src/api/canvas.js
 //Frontend helper function to talk to backend proxy
 const BACKEND_BASE = "http://localhost:3001";
 
@@ -8,12 +7,17 @@ function toQuery(params) {
   //if no params are passed return empty string
   if(!params){return "";}
 
-  const usp = new URLSearchParams();  //browser API that safely encodes search pearams allows key value pairs to be stored as key=value
+  //browser API that safely encodes search pearams allows key value pairs to be stored as key=value
+  const usp = new URLSearchParams(); 
+
+  // Goinng through every parameter and adding the parameter name and value to the usp string
   for (const [k, v] of Object.entries(params)) {
     if (v !== undefined && v !== null) usp.append(k, String(v));
   }
+
   const qs = usp.toString();
-  //if qs exists, return querry string 
+
+  //if qs exists, return querry string, else return empty string
   return qs ? `?${qs}` : "";
 }
 

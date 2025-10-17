@@ -1,6 +1,6 @@
 import React from "react";
-import "../index.scss";
-import InfoBox from "./InfoBox";
+//import "../index.scss";
+import InfoBox from "../InfoBox/InfoBox";
 
 // Component displaying a leaderboard of majors ranked by XP
 function LeaderboardTable({ data = [] }) {

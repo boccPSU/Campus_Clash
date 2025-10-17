@@ -10,8 +10,8 @@ function CourseCard({ name, grade, percent }) {
 
   return (
     //creates a card for each course
-    <Card className="mb-2 shadow-sm">
-      <Card.Body className="p-2">
+    <Card className="courseCard">
+      <Card.Body className="courseTitle">
         <Card.Title className="mb-1" style={{ fontSize: "1rem" }}>{name}</Card.Title>
         <ProgressBar now={percent} variant={variant} label={`${percent}% ${grade}`} />
       </Card.Body>

@@ -1,0 +1,11 @@
+@use "../../css/tokens.scss" as *;
+
+.courseCard {
+    @extend .mb-2;
+    @extend .shadow-sm;
+}
+
+.courseTitle{
+    @extend .mb-1;
+}
+

@@ -1,7 +1,7 @@
 import React from "react";
 import { Button } from "react-bootstrap";
-import "../index.scss";
-import InfoBox from "./InfoBox";
+//import "../index.scss";
+import InfoBox from "../InfoBox/InfoBox";
 
 // Reusable component representing a single tournament card
 function TournamentCard({ title, topics, endDate, reward }) {

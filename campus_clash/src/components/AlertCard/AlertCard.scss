@@ -1,0 +1,15 @@
+@use "../../css/tokens.scss";
+
+.alertCard{
+    @extend .mb-2;
+    @extend .shadow-sm;
+}
+
+.alertBody{
+    @extend .p-2;
+}
+
+.alertTitle{
+    @extend .mb-1;
+    @extend .fs-5;
+}

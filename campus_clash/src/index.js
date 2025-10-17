@@ -3,8 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import CanvasDisplay from './components/CanvasDisplay';
-import './index.scss'
-//import './style/colors.scss';
+import './css/index.scss'
 //import 'bootstrap/scss/bootstrap.scss';
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

@@ -1,6 +1,6 @@
 import React from "react";
-import "../index.scss";
-import InfoBox from "./InfoBox";
+//import "../index.scss";
+import InfoBox from "../InfoBox/InfoBox";
 
 // Component that visually displays the top 3 majors
 function TopMajorsCard({ topMajors = [] }) {
