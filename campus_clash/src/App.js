@@ -16,33 +16,33 @@ import ProgressReport from "./screens/ProgressReport";
 import RegisterScreen from "./screens/RegisterScreen";
 
 function App() {
-  return (
-    // defines the routes for navigation through the app
-    <Router>
-      {/* sets each screen to a distinct URL within the app */}
-      <Routes>
-        {/* default path -> Home */}
-        <Route path="/" element={<HomeScreen />} />
+    return (
+        // defines the routes for navigation through the app
+        <Router>
+            {/* sets each screen to a distinct URL within the app */}
+            <Routes>
+                {/* default path -> Home */}
+                <Route path="/" element={<HomeScreen />} />
 
-        {/* /events path -> Events screen */}
-        <Route path="/events" element={<EventsScreen />} />
-        
-        {/* /tournaments path -> Tournament screen */}
-        <Route path="/tournament" element={<TournamentScreen />} />
+                {/* /events path -> Events screen */}
+                <Route path="/events" element={<EventsScreen />} />
 
-        {/* /leaderboard path -> Leaderboard screen */}
-        <Route path="/leaderboard" element={<LeaderboardScreen />} />
+                {/* /tournaments path -> Tournament screen */}
+                <Route path="/tournament" element={<TournamentScreen />} />
 
-        {/* /studyPlan -> Study Plan screen */}
-        <Route path="/studyPlan" element={<StudyPlan />} />
+                {/* /leaderboard path -> Leaderboard screen */}
+                <Route path="/leaderboard" element={<LeaderboardScreen />} />
 
-        {/* /progressReport -> Study Plan screen */}
-        <Route path="/progressReport" element={<ProgressReport />} />
-        {/* /Register path -> Register screen ||| For Testing*/}
-        <Route path="/register" element={<RegisterScreen />} />
-      </Routes>
-    </Router>
-  );
+                {/* /studyPlan -> Study Plan screen */}
+                <Route path="/studyPlan" element={<StudyPlan />} />
+
+                {/* /progressReport -> Study Plan screen */}
+                <Route path="/progressReport" element={<ProgressReport />} />
+                {/* /Register path -> Register screen ||| For Testing*/}
+                <Route path="/register" element={<RegisterScreen />} />
+            </Routes>
+        </Router>
+    );
 }
 
 export default App;

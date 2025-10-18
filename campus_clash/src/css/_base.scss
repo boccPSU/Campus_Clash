@@ -1,12 +1,13 @@
 @use "./tokens" as *;
 
 body {
-  background-color: $light;
-  overflow-x: hidden;
-  padding-top: 70px;   
-  padding-bottom: 80px; 
+    background-color: $light;
+    overflow-x: hidden;
+    padding-top: 70px;
+    padding-bottom: 80px;
 }
 
-main, .screen-container {
-  padding-top: 1rem;
+main,
+.screen-container {
+    padding-top: 1rem;
 }

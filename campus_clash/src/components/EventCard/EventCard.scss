@@ -1,6 +1,6 @@
 @use "../../css/tokens.scss" as *;
 
-.eventCard{
+.eventCard {
     @extend .mb-3;
     @extend .shadow-sm;
     @extend .text-white;
@@ -8,33 +8,30 @@
     color: $dark;
 }
 
-.eventCardXp{
+.eventCardXp {
     @extend .d-flex;
     @extend .justify-content-between;
     @extend .align-items-center;
     color: $dark;
-
-    
-    
 }
 
-.eventCardTitle{
+.eventCardTitle {
     color: $dark;
 }
 
-.eventCardSubtitle{
+.eventCardSubtitle {
     @extend .mb-1;
     @extend .small;
     color: $dark;
 }
 
-.eventCardDate{
+.eventCardDate {
     @extend .small;
     @extend .mb-1;
     color: $dark;
 }
 
-.eventCardLocation{
+.eventCardLocation {
     @extend .small;
     @extend .mb-2;
     color: $dark;

@@ -1,6 +1,6 @@
 @use "../../css/tokens.scss" as *;
 
-.progressSummaryCard{
+.progressSummaryCard {
     @extend .d-flex;
     @extend .flex-row;
     @extend .justify-content-between;
@@ -8,15 +8,15 @@
     @extend .py-1;
     @extend .px-3;
     @extend .fs-5;
-    
+
     background-color: $light;
 
-    .description{
+    .description {
         @extend .fw-bolder;
-        color:$dark;
+        color: $dark;
     }
 
-    .value{
-        color:$dark;
+    .value {
+        color: $dark;
     }
 }

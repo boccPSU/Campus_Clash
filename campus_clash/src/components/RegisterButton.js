@@ -1,34 +1,37 @@
-import {useEffect, useState} from 'react';
-import Button from 'react-bootstrap/Button';
+import { useEffect, useState } from "react";
+import Button from "react-bootstrap/Button";
 
-function RegisterButton({fName, lName, uName, password}) {
+function RegisterButton({ fName, lName, uName, password }) {
     const [isLoading, setLoading] = useState(false);
 
     useEffect(() => {
         function registerNewUser() {
             let userData = {
-                firstName:fName,
-                lastName:lName,
-                username:uName,
-                password:password
-            }
-            return fetch('/api/register', {
-                method:'post',
-                headers:{
-                    "Content-Type":"application/json"
+                firstName: fName,
+                lastName: lName,
+                username: uName,
+                password: password,
+            };
+            return fetch("/api/register", {
+                method: "post",
+                headers: {
+                    "Content-Type": "application/json",
                 },
-                body:JSON.stringify(userData)
-            }).then(response => response.json()).then(data=>{
-                console.log(data);
-            }).then(() => {
-                setLoading(false);
-            });
+                body: JSON.stringify(userData),
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    console.log(data);
+                })
+                .then(() => {
+                    setLoading(false);
+                });
         }
 
         if (isLoading) {
             registerNewUser().then(() => {
-                 setLoading(false);
-             });
+                setLoading(false);
+            });
         }
     }, [isLoading]);
 

@@ -1,15 +1,16 @@
-@use "../../css/tokens.scss";
+@use "../../css/tokens.scss" as *;
 
-.alertCard{
+.alertCard {
     @extend .mb-2;
     @extend .shadow-sm;
+    @extend .text-center;
 }
 
-.alertBody{
+.alertBody {
     @extend .p-2;
 }
 
-.alertTitle{
+.alertTitle {
     @extend .mb-1;
     @extend .fs-5;
 }

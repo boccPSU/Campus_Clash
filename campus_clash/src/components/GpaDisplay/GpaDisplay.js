@@ -1,9 +1,9 @@
 //Displays students GPA and Major
 
-import { useState, useEffect} from "react";
-import {Card} from "react-bootstrap";
+import { useState, useEffect } from "react";
+import { Card } from "react-bootstrap";
 
-function GpaDisplay(){
+function GpaDisplay() {
     const [gpa, setGpa] = useState(0.0);
     const [major, setMajor] = useState("");
     //Fetch GPA and Major via api later, temp value for now
@@ -12,13 +12,14 @@ function GpaDisplay(){
         setMajor("Computer Science");
     }, []);
 
-    return(
+    return (
         <Card className="gpaDisplayCard">
-          <h3 className="">GPA <span className="">{gpa}</span></h3>
-          <div className="">Major: {major}</div>
+            <h3 className="">
+                GPA <span className="">{gpa}</span>
+            </h3>
+            <div className="">Major: {major}</div>
         </Card>
-    )
+    );
 }
-
 
 export default GpaDisplay;

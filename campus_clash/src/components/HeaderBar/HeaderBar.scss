@@ -1,7 +1,7 @@
 @use "../../css/tokens.scss" as *;
 
 .headerBar {
-    @extend .navbar;          
+    @extend .navbar;
     @extend .navbar-dark;
     @extend .bg-primary;
     @extend .py-2;
@@ -13,17 +13,17 @@
 }
 
 // Profile and Notification Icon
-.headerIcon{
+.headerIcon {
     color: $light;
 }
 
-.headerTitle{
+.headerTitle {
     @extend .fw-bold;
     @extend .fs-5;
     color: $light;
 }
 
-.headerXp{
+.headerXp {
     @extend .small;
     color: $light;
 }

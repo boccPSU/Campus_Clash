@@ -1,44 +1,42 @@
 // Used for testing Canvas API
 //Imports
-import {useEffect, useState} from "react"
-import {canvasGet} from "../api/canvas"
+import { useEffect, useState } from "react";
+import { canvasGet } from "../api/canvas";
 
 //Component function
-export default function CanvasDisplay(){
+export default function CanvasDisplay() {
     //List of data we want from api
     const [studentName, setStudentName] = useState(null);
 
     //Other important states to store
-    const [loading, setLoading] = useState(true)
+    const [loading, setLoading] = useState(true);
     //useEffect function
-    useEffect(()=>{
+    useEffect(() => {
         (async () => {
-            try{
+            try {
                 const student = await canvasGet("/v1/users/self");
-                console.log("Student: " , student)
+                console.log("Student: ", student);
                 setStudentName(student);
-            }
-            catch (e){
+            } catch (e) {
                 console.error("Error: " + e);
-            }
-            finally{
+            } finally {
                 setLoading(false);
             }
         })();
-        
-        return ()=>{}
-    }, [])
+
+        return () => {};
+    }, []);
 
     //Show loading screen while loading
-    if(loading){
-        return <p>Page Loading . . .</p>
+    if (loading) {
+        return <p>Page Loading . . .</p>;
     }
 
     //If not loading, return data
-    return(
+    return (
         <div>
             <h1>Student Name: </h1>
             <p>{JSON.stringify(studentName, null, 2)}</p>
         </div>
-    )
+    );
 }

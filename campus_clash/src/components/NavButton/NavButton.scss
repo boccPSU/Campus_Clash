@@ -1,15 +1,15 @@
 @use "../../css/tokens.scss" as *;
 
-.navButton{
+.navButton {
     background-color: $light;
-    border: $dark solid ;
+    border: $dark solid;
     border-radius: 80px;
     width: 80px;
     height: 60px;
     text-align: center;
 }
 
-.navLabel{
-     font-size: "0.75rem"; 
-     color: "#ff0000ff";
+.navLabel {
+    font-size: "0.75rem";
+    color: "#ff0000ff";
 }

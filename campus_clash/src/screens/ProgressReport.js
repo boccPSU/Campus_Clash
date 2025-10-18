@@ -1,11 +1,11 @@
 // Progress report screen that displays statistics for the students acedemic week
-import { useState, useEffect} from "react";
+import { useState, useEffect } from "react";
 import { CardTitle, Container } from "react-bootstrap";
 import HeaderBar from "../components/HeaderBar/HeaderBar.js";
 import BottomNav from "../components/BottomNav/BottomNav.js";
 import InfoBox from "../components/InfoBox/InfoBox.js";
 import ProgressSummaryCard from "../components/ProgressSummaryCard/ProgressSummaryCard.js";
-function ProgressReport(){
+function ProgressReport() {
     // Important Use State Vars
     const [xp, setXp] = useState(0);
 
@@ -14,23 +14,22 @@ function ProgressReport(){
         setXp(10500);
     }, []);
 
-    return(
-    <>
-        {/*Header Section*/}
-        <HeaderBar title = "Progress Report" xp = {xp}></HeaderBar>
+    return (
+        <>
+            {/*Header Section*/}
+            <HeaderBar title="Progress Report" xp={xp}></HeaderBar>
 
-        {/*Container to give screen body padding */}
-        <Container className="py-3 mb-5">
-            <InfoBox title={"Summary"}>
-                
-                <ProgressSummaryCard></ProgressSummaryCard>
-            </InfoBox>
-        </Container>
-        
-        {/*Footer Section*/}
-        <BottomNav></BottomNav>
-    </>
-    )
+            {/*Container to give screen body padding */}
+            <Container className="py-3 mb-5">
+                <InfoBox title={"Summary"}>
+                    <ProgressSummaryCard></ProgressSummaryCard>
+                </InfoBox>
+            </Container>
+
+            {/*Footer Section*/}
+            <BottomNav></BottomNav>
+        </>
+    );
 }
 
 export default ProgressReport;

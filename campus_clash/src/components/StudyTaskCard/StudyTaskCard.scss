@@ -1,21 +1,21 @@
-.studyCardTask{
+.studyCardTask {
     @extend .my-2;
     @extend .p-3;
     @extend .position-relative;
     border: solid $dark;
     background-color: $dark;
 
-    .title{
+    .title {
         @extend .text-start;
         @extend .fw-semibold;
         @extend .mb-1;
-        color:$light;
+        color: $light;
     }
 
-    .description{
+    .description {
         @extend .text-start;
         @extend .small;
-        @extend .mb-0;     
-        color:$light;
+        @extend .mb-0;
+        color: $light;
     }
 }

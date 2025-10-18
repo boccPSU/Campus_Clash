@@ -1,42 +1,48 @@
 @use "../../css/tokens.scss" as *;
 
 .topMajorsWrap {
-  @extend .d-flex;
-  @extend .justify-content-center;
-  @extend .align-items-end;
-  height: 160px; /* was inline */
+    @extend .d-flex;
+    @extend .justify-content-center;
+    @extend .align-items-end;
+    height: 160px; /* was inline */
 }
 
 .tmCol {
-  @extend .mx-2;
-  @extend .d-flex;
-  @extend .flex-column;
-  @extend .align-items-center;
+    @extend .mx-2;
+    @extend .d-flex;
+    @extend .flex-column;
+    @extend .align-items-center;
 }
 
 .tmTitle {
-  @extend .fw-semibold;
-  @extend .small;
-  @extend .mb-1;
-  @extend .text-light;
-  @extend .text-center;
-  max-width: 90px; /* was inline */
+    @extend .fw-semibold;
+    @extend .small;
+    @extend .mb-1;
+    @extend .text-light;
+    @extend .text-center;
+    max-width: 90px; /* was inline */
 }
 
 .tmBarBase {
-  @extend .d-flex;
-  @extend .justify-content-center;
-  @extend .align-items-end;
-  @extend .bg-primary;
-  @extend .text-white;
-  @extend .rounded-top;
-  width: 70px; /* was inline */
+    @extend .d-flex;
+    @extend .justify-content-center;
+    @extend .align-items-end;
+    @extend .bg-primary;
+    @extend .text-white;
+    @extend .rounded-top;
+    width: 70px; /* was inline */
 }
 
-.tmBarFirst  { height: 120px; } /* was inline */
-.tmBarSecond { height: 90px;  } /* was inline */
-.tmBarThird  { height: 75px;  } /* was inline */
+.tmBarFirst {
+    height: 120px;
+} /* was inline */
+.tmBarSecond {
+    height: 90px;
+} /* was inline */
+.tmBarThird {
+    height: 75px;
+} /* was inline */
 
 .tmMedal {
-  @extend .fw-bold;
+    @extend .fw-bold;
 }

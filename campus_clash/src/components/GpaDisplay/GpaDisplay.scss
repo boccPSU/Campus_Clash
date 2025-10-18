@@ -1,20 +1,19 @@
 @use "../../css/tokens.scss" as *;
 
-.gpaDiplayCard{
+.gpaDiplayCard {
     @extend .p-3;
     @extend .mb-3;
     @extend .shadow-sm;
 
-    h1{
+    h1 {
         @extend .mb-1;
 
-        span{
-           @extend .float-end; 
+        span {
+            @extend .float-end;
         }
     }
 
-    div{
+    div {
         @extend .text-muted;
     }
-
 }

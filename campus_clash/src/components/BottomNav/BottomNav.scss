@@ -1,23 +1,23 @@
 @use "../../css/tokens.scss" as *;
 
 .footer {
-  @extend .justify-content-around;
-  @extend .fixed-bottom;
-  @extend .border-top;
-  @extend .py-2;
-  background-color: $primary;
+    @extend .justify-content-around;
+    @extend .fixed-bottom;
+    @extend .border-top;
+    @extend .py-2;
+    background-color: $primary;
 }
 
 .navButton {
-  background-color: $light;
-  border: $dark solid;
-  border-radius: 80px;
-  width: 80px;
-  height: 60px;
-  text-align: center;
+    background-color: $light;
+    border: $dark solid;
+    border-radius: 80px;
+    width: 80px;
+    height: 60px;
+    text-align: center;
 }
 
 .navLabel {
-  font-size: 0.75rem;   
-  color: #ff0000ff;     
+    font-size: 0.75rem;
+    color: #ff0000ff;
 }

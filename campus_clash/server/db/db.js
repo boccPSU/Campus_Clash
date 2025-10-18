@@ -1,15 +1,15 @@
-let mysql = require('mysql')
+let mysql = require("mysql");
 
 //Create a connection to the SQL Database
 
 const dbPool = mysql.createPool({
-      host: 'localhost',
-      user: 'clash_admin',
-      password: 'password',
-      database: 'campus_clash'
+    host: "localhost",
+    user: "clash_admin",
+    password: "password",
+    database: "campus_clash",
 });
-dbPool.query('SELECT * FROM users', (err, rows) => {
-      console.log(rows);
+dbPool.query("SELECT * FROM users", (err, rows) => {
+    console.log(rows);
 });
 module.exports = dbPool;
 

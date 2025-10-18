@@ -1,6 +1,6 @@
-import {useState, useEffect} from "react";
+import { useState, useEffect } from "react";
 import RegisterButton from "../components/RegisterButton.js";
-import {Form, InputGroup} from 'react-bootstrap';
+import { Form, InputGroup } from "react-bootstrap";
 
 function RegisterScreen() {
     const [fName, setFName] = useState("");
@@ -21,8 +21,8 @@ function RegisterScreen() {
                     placeholder="First Name"
                     aria-label="First Name"
                     aria-describedby="basic-addon1"
-                    onChange={event => {
-                        setFName(event.target.value)
+                    onChange={(event) => {
+                        setFName(event.target.value);
                     }}
                 />
                 <Form.Control
@@ -30,12 +30,11 @@ function RegisterScreen() {
                     placeholder="Last Name"
                     aria-label="Last Name"
                     aria-describedby="basic-addon1"
-                    onChange={event => {
-                        setLName(event.target.value)
+                    onChange={(event) => {
+                        setLName(event.target.value);
                     }}
                 />
             </InputGroup>
-
 
             <Form.Label>Username</Form.Label>
             <InputGroup className="mb-3">
@@ -44,8 +43,8 @@ function RegisterScreen() {
                     placeholder="Username"
                     aria-label="Username"
                     aria-describedby="basic-addon1"
-                    onChange={event => {
-                        setUName(event.target.value)
+                    onChange={(event) => {
+                        setUName(event.target.value);
                     }}
                 />
             </InputGroup>
@@ -57,14 +56,17 @@ function RegisterScreen() {
                     placeholder="Password"
                     aria-label="Password"
                     aria-describedby="basic-addon1"
-                    onChange={event => {
-                        setpassword(event.target.value)
+                    onChange={(event) => {
+                        setpassword(event.target.value);
                     }}
                 />
             </InputGroup>
-            <RegisterButton fName={fName} lName={lName} uName={uName} password={password}>
-
-            </RegisterButton>
+            <RegisterButton
+                fName={fName}
+                lName={lName}
+                uName={uName}
+                password={password}
+            ></RegisterButton>
         </>
     );
 }

@@ -2,16 +2,15 @@
 
 .infoBox {
     //@extend allows us to add in bootsrap styles into our css
-    @extend .mx-auto;       // centers horizontally
-    @extend .my-3;          // adds vertical margins
-    @extend .p-3;           // adds padding
-    @extend .shadow-sm;     // small shadow
+    @extend .mx-auto; // centers horizontally
+    @extend .my-3; // adds vertical margins
+    @extend .p-3; // adds padding
+    @extend .shadow-sm; // small shadow
     background-color: $dark;
-    color: $light;    //Text Color
+    color: $light; //Text Color
     border-radius: 20px;
-    
-    h2{
-        @extend .text-center;   // centers title
-    }
 
+    h2 {
+        @extend .text-center; // centers title
+    }
 }
