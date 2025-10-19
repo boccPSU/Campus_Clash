@@ -21,9 +21,7 @@ function EventCard({ title, subtitle, date, location, xp }) {
         return(
             <Card className="eventCard">
             <Card.Body>
-                <Spinner animation="border" role="status" className="spinner">
-                    <span className="visually-hidden">Loading...</span>
-                </Spinner>
+                <Spinner animation="border" role="status" className="spinner" aria-label="Loading Event" />
             </Card.Body>
         </Card>
         )
@@ -39,7 +37,7 @@ function EventCard({ title, subtitle, date, location, xp }) {
                 <Card.Text className="eventCardLocation">{location}</Card.Text>
                 <div className="eventCardXp">
                     <span className="small">+ {xp} XP</span>
-                    <ArrowRight />
+                    <ArrowRight tabIndex={0} />
                 </div>
             </Card.Body>
         </Card>
