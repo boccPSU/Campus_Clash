@@ -1,7 +1,7 @@
 @use "../../css/tokens.scss" as *;
 
 .eventCard {
-    @extend .mb-3;
+    @extend .m-3;
     @extend .shadow-sm;
     background-color: $light;
     color: $dark;

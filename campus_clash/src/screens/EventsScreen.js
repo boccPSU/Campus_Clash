@@ -36,8 +36,7 @@ function EventsScreen() {
     return (
         <>
             <HeaderBar title="Campus Events" xp={currentXP} />
-
-            <Container className="py-3 mb-5">
+            <Container className="py-3 mb-5" tabIndex={-1}>
                 <ButtonGroup className="mb-3 w-100">
                     {filters.map((f, i) => (
                         <ToggleButton
@@ -51,7 +50,7 @@ function EventsScreen() {
                         </ToggleButton>
                     ))}
                 </ButtonGroup>
-                <InfoBox>
+                <InfoBox title="Events">
                     {events.map((e, i) => (
                         <EventCard key={i} {...e} />
                     ))}

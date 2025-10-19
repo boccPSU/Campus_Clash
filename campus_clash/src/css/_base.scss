@@ -21,27 +21,12 @@ main,
 /* src/styles/focus.css */
 /* Make the default focus ring thicker and higher contrast */
 
-:focus-visible,
-:focus {
-  outline: 3px solid #ff0000 !important;
+:focus-visible {
+  outline: 3px solid $secondary !important;
   outline-offset: 3px !important;
   border-radius: 8px;
 }
 
-
-/* Stronger global Bootstrap focus ring */
-:root {
-  --bs-focus-ring-width: .2rem;
-  --bs-focus-ring-opacity: 1;
-  --bs-focus-ring-color: rgba(255, 0, 0, 0.7); // vivid blue
-}
-
-/* Keyboard-only, super-visible focus outline for any focusable element */
-:focus-visible {
-  outline: 10px solid #ff0000;  /* pick your color */
-  outline-offset: 10px;
-  border-radius: 8px;
-}
 
 
 

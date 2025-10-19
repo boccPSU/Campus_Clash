@@ -1,11 +1,13 @@
 // Shows alerts, can be deleted by clicking red trash icon
 import React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useId } from "react";
 import Spinner from 'react-bootstrap/Spinner';
 import { Card, ProgressBar } from "react-bootstrap";
 
 function AlertCard({ alertTitle, alertInfo}) {
-    //Alert card loading state
+    const titleId = useId();
+
+    // Loading state
     const [loading, setLoading] = useState(true);
 
     // On page loading
@@ -20,8 +22,8 @@ function AlertCard({ alertTitle, alertInfo}) {
     // If loading data, show spinner
     if(loading){
         return(
-            <Card className="alertCard">
-            <Card.Body className="alertBody">
+            <Card className="alertCard" aria-label="Loading Alert" aria-busy="true" tabIndex={0}>
+            <Card.Body className="alertBody" >
                 <Spinner animation="border" role="status" className="spinner">
                     <span className="visually-hidden">Loading...</span>
                 </Spinner>
@@ -33,9 +35,9 @@ function AlertCard({ alertTitle, alertInfo}) {
 
     return (
         //creates a card for each course
-        <Card className="alertCard">
+        <Card className="alertCard" aria-labelledby={titleId} tabIndex={0}>
         <Card.Body className="alertBody">
-            <Card.Title className="alertTitle" >{alertTitle}</Card.Title>
+            <Card.Title id={titleId} className="alertTitle" >{alertTitle}</Card.Title>
             <Card.Body>{alertInfo}</Card.Body>
         </Card.Body>
         </Card>

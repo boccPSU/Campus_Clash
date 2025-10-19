@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import Spinner from 'react-bootstrap/Spinner';
 import { Card } from "react-bootstrap";
 import { ArrowRight } from "react-bootstrap-icons";
+import InfoBox from "../InfoBox/InfoBox";
 
 function EventCard({ title, subtitle, date, location, xp }) {
     // Loading state
@@ -30,17 +31,17 @@ function EventCard({ title, subtitle, date, location, xp }) {
 
     return (
         <Card className="eventCard">
-            <Card.Body>
+            <Card.Body tabIndex={0}>
                 <Card.Title className="eventCardTitle">{title}</Card.Title>
                 <Card.Text className="eventCardSubtitle">{subtitle}</Card.Text>
                 <Card.Text className="eventCardDate">{date}</Card.Text>
                 <Card.Text className="eventCardLocation">{location}</Card.Text>
                 <div className="eventCardXp">
                     <span className="small">+ {xp} XP</span>
-                    <ArrowRight tabIndex={0} />
+                    <ArrowRight tabIndex={0} aria-label="Enter Event" role="button" />
                 </div>
             </Card.Body>
-        </Card>
+        </Card>    
     );
 }
 

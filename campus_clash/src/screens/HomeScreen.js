@@ -26,7 +26,7 @@ function HomeScreen() {
     return (
         <>
             {/*Header Section */}
-            <HeaderBar title="Home" xp={currentXP} />
+            <HeaderBar aria-label="Home" xp={currentXP} />
 
             {/*Screen Body*/}
             <Container className="py-3">

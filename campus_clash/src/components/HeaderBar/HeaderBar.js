@@ -11,10 +11,9 @@ function HeaderBar({ title = "Screen", xp = 0 }) {
     }, []);
 
     return (
-        <Navbar className="headerBar">
-            <Container className="d-flex justify-content-between align-items-center">
-                <PersonCircle size={28} className="headerIcon" tabIndex={0} />
-
+        <Navbar className="headerBar" role="banner" aria-label="Home Header">
+            <Container>
+                <PersonCircle size={28} className="headerIcon" tabIndex={0} aria-label="Profile" role="button" />
                 <div className="text-center text-white flex-grow-1">
                     <div className="headerTitle">{title}</div>
 
@@ -43,7 +42,7 @@ function HeaderBar({ title = "Screen", xp = 0 }) {
                     </div>
                 </div>
 
-                <Bell size={22} className="headerIcon" tabIndex={0}/>
+                <Bell size={22} className="headerIcon" tabIndex={0} aria-label="Notifications" role="button"/>
             </Container>
         </Navbar>
     );

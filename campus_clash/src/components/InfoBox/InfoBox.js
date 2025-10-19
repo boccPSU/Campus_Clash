@@ -3,7 +3,7 @@
 // Note: React will pass any tags between <InfoBox> ... </InfoBox> as a prop named children, InfoBox parameter must be named children
 function InfoBox({ children, title }) {
     return (
-        <div className="infoBox">
+        <div className="infoBox" tabIndex={0} aria-label={title}>
             <h2>{title}</h2>
             <div>{children}</div>
         </div>
