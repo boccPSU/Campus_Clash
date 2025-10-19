@@ -1,11 +1,34 @@
 //shows information about a course and will be reusable for the home page
-import React from "react";
+import { useState, useEffect } from "react";
+import Spinner from 'react-bootstrap/Spinner';
 import { Card, ProgressBar } from "react-bootstrap";
 
 function CourseCard({ name, grade, percent }) {
+	//Loading state
+	const [loading, setLoading] = useState(true);
     //sets the color based on current grade
-    const variant =
-        percent >= 85 ? "success" : percent >= 70 ? "warning" : "danger";
+    const variant = percent >= 85 ? "success" : percent >= 70 ? "warning" : "danger";
+
+	// On page loading
+	useEffect(()=>{
+		//Simulating latency 1000ms to see spinner
+		const timer = setTimeout(()=>{
+			setLoading(false);
+		}, 1000)
+	}, [])
+	
+	// If loading data, show spinner
+    if(loading){
+        return(
+			<Card className="courseCard">
+            <Card.Body className="courseTitle">
+                <Spinner animation="border" role="status" className="spinner">
+                    <span className="visually-hidden">Loading...</span>
+                </Spinner>
+            </Card.Body>
+        </Card>     
+        )
+    }
 
     return (
         //creates a card for each course

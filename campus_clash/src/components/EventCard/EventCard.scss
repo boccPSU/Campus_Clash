@@ -3,7 +3,6 @@
 .eventCard {
     @extend .mb-3;
     @extend .shadow-sm;
-    @extend .text-white;
     background-color: $light;
     color: $dark;
 }

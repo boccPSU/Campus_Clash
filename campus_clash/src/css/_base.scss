@@ -11,3 +11,9 @@ main,
 .screen-container {
     padding-top: 1rem;
 }
+
+// Style for all spinners
+.spinner{
+    @extend .d-block;
+    @extend .mx-auto;
+}
