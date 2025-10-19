@@ -1,0 +1,52 @@
+@use "../../css/tokens.scss" as *;
+
+.ptrIndicator {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba($primary, 0.08);
+  color: $primary;
+  z-index: 2;
+  transition: height 150ms ease, opacity 150ms ease;
+  pointer-events: none;
+}
+
+.ptrIndicator.is-refreshing {
+  background: rgba($primary, 0.12);
+}
+
+.ptrArrow {
+  width: 10px;
+  height: 10px;
+  border-left: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 150ms ease, border-color 150ms ease;
+}
+
+.ptrArrow.up {
+  transform: rotate(135deg);
+}
+
+/* When refreshing, arrow should use secondary color */
+.is-refreshing .ptrArrow {
+  border-left-color: $secondary;
+  border-bottom-color: $secondary;
+}
+
+.ptrLabel {
+  font-size: 0.9rem;
+  color: $dark;
+}
+
+.is-refreshing .ptrLabel {
+  color: $primary;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ptrIndicator {
+    transition: none !important;
+  }
+}
