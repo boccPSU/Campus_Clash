@@ -11,7 +11,7 @@ function HeaderBar({ title = "Screen", xp = 0 }) {
     }, []);
 
     return (
-        <Navbar className="headerBar" role="banner" aria-label="Home Header">
+        <Navbar className="headerBar" role="banner" aria-label={`${title} Header`}>
             <Container>
                 <PersonCircle size={28} className="headerIcon" tabIndex={0} aria-label="Profile" role="button" />
                 <div className="text-center text-white flex-grow-1">

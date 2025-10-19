@@ -6,7 +6,6 @@ import BottomNav from "../components/BottomNav/BottomNav.js";
 import InfoBox from "../components/InfoBox/InfoBox.js";
 import AlertCard from "../components/AlertCard/AlertCard.js";
 import HeaderBar from "../components/HeaderBar/HeaderBar.js";
-import NavButton from "../components/NavButton/NavButton.js";
 import GpaDisplay from "../components/GpaDisplay/GpaDisplay.js";
 
 function HomeScreen() {
@@ -26,7 +25,7 @@ function HomeScreen() {
     return (
         <>
             {/*Header Section */}
-            <HeaderBar aria-label="Home" xp={currentXP} />
+            <HeaderBar title="Home" aria-label="Home" xp={currentXP} />
 
             {/*Screen Body*/}
             <Container className="py-3">
