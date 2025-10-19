@@ -1,0 +1,19 @@
+/* Scroll container for screens (component-scoped styles) */
+:root {
+    --header-h-expanded: 64px; /* matches HeaderBar spacer; has fallback in calc() */
+  }
+  
+  /* Internal scrollable area: reliable pull-to-refresh + momentum */
+  .screenScroll {
+    position: relative;
+    height: calc(100vh - var(--header-h-expanded, 64px));
+    overflow-y: auto;
+    overscroll-behavior-y: contain;   /* keep overscroll inside this element */
+    -webkit-overflow-scrolling: touch;/* smooth momentum on iOS */
+    will-change: transform;           /* smoother during pull-to-refresh translate */
+  }
+  
+  @media (prefers-reduced-motion: reduce) {
+    .screenScroll { transition: none !important; }
+  }
+  

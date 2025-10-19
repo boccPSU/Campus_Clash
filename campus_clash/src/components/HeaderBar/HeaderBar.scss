@@ -1,35 +1,65 @@
+/* src/components/HeaderBar/HeaderBar.scss */
+
+/* Tokens */
 @use "../../css/tokens.scss" as *;
 
+/* Heights for collapse states (kept component-scoped; has fallbacks) */
+:root {
+  --header-h-expanded: 64px;
+  --header-h-compact: 44px;
+}
+
+/* ===================== Base Header Bar ===================== */
 .headerBar {
-    @extend .navbar;
-    @extend .navbar-dark;
-    @extend .bg-primary;
-    @extend .py-2;
-    @extend .shadow-sm;
-    position: fixed;
-    top: 0;
-    width: 100%;
-    z-index: 1030;
-}
+  /* Bootstrap look & layout */
+  @extend .navbar;
+  @extend .navbar-dark;
+  @extend .py-2;
+  @extend .shadow-sm;
 
-// Profile and Notification Icon
-.headerIcon {
+  /* Make it fixed and on top */
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 1030;
+
+  /* Safety: force visible background even if extends don’t load in time */
+  background-color: $primary !important;
+
+  /* Smooth transitions when collapsing */
+  height: var(--header-h-expanded);
+  transition: height 200ms ease, padding 200ms ease, box-shadow 200ms ease;
+
+  .headerIcon,
+  .headerTitle,
+  .headerXp {
+    transition: transform 200ms ease, opacity 200ms ease, font-size 200ms ease;
     color: $light;
+  }
 }
 
-.headerTitle {
-    @extend .fw-bold;
-    @extend .fs-5;
-    color: $light;
+/* ===================== Collapsed State ===================== */
+.headerBar.is-collapsed {
+  height: var(--header-h-compact);
+  padding-top: .25rem !important;
+  padding-bottom: .25rem !important;
+
+  .headerTitle { font-size: 1rem; transform: translateY(-1px); }
+  .headerXp { opacity: 0; transform: translateY(-6px) scale(0.98); height: 0; margin: 0; pointer-events: none; }
+  .headerIcon { transform: translateY(-2px) scale(0.95); opacity: 0.9; }
 }
 
-.headerXp {
-    @extend .small;
-    color: $light;
+/* ===================== Spacer Under Header ===================== */
+.headerSpacer {
+  height: var(--header-h-expanded);
+  transition: height 200ms ease;
+}
+.headerSpacer.is-collapsed {
+  height: var(--header-h-compact);
 }
 
-.headerCenterText {
-    @extend .text-center;
-    @extend .text-white;
-    flex-grow: 1;
+/* Motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .headerBar, .headerBar * { transition: none !important; }
+  .headerSpacer { transition: none !important; }
 }
