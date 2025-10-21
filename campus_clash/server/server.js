@@ -25,7 +25,7 @@ const app = express();
 //app.use registers middleware that runs for every incoming requires
 //Tells browser that our react app can make requests to our server running on different ports preventing CORS issues
 //CHECK PORT HERE
-app.use(cors({ origin: "http://localhost:5000" }));
+app.use(cors({ origin: "http://localhost:3000" }));
 
 // Registers get endpoint at /health to check if server is up
 // (req, res) is route handler req: incoming obj, res outgoing response obj
@@ -36,47 +36,83 @@ app.get("/health", (req, res) =>
 
 //Main GET route that is hit whnever path starts with /api/
 ///^\/api\/.*/ is regex syntax to match any request that is /api/*
-// app.get(/^\/api\/.*/, async(req, res) =>{
-//     try{
-//         //main url we want to hit, .replace is removing /api/ from our url
-//         //upstream stands for orions server proxy talks to(canvas)
-//         //downstream is client behind the proxy (our browser / react app)
-//         const upstreamUrl  = BASE + req.originalUrl;
-//         //onsole.log("upstreamUrl:", upstreamUrl);
+app.get(/^\/api\/.*/, async(req, res) =>{
+    try{
+        console.log("Api Caught");
+        //main url we want to hit, .replace is removing /api/ from our url
+        //upstream stands for orions server proxy talks to(canvas)
+        //downstream is client behind the proxy (our browser / react app)
+        const upstreamUrl  = BASE + req.originalUrl;
+        //onsole.log("upstreamUrl:", upstreamUrl);
 
-//         //get response from canvas
-//         const upstream = await fetch(upstreamUrl, {
-//             method: "GET",
-//             headers:{
-//                 Authorization: `Bearer ${TOKEN}`,
-//                 Accept: "application/json",
-//             },
-//         });
+        //get response from canvas
+        const upstream = await fetch(upstreamUrl, {
+            method: "GET",
+            headers:{
+                Authorization: `Bearer ${TOKEN}`,
+                Accept: "application/json",
+            },
+        });
 
-//         const bodyText = await upstream.text();
-//         //Get the type of content that is being sent back from canvas (json)
-//         const contentType = upstream.headers.get("content-type");
+        
+        const bodyText = await upstream.text();
+        //Get the type of content that is being sent back from canvas (json)
+        const contentType = upstream.headers.get("content-type");
 
-//         //return status code, content type, and full response body as text
-//         res.status(upstream.status).type(contentType).send(bodyText);
-//     } catch (e){
-//         //return error string
-//         res.status(500).type("text/plain").send(String(e));
-//     }
-// })
+        //return status code, content type, and full response body as text
+        res.status(upstream.status).type(contentType).send(bodyText);
+    } catch (e){
+        //return error string
+        res.status(500).type("text/plain").send(String(e));
+    }
+})
 
-app.get("/api", (req, res) => {
-    res.send("From Server");
-});
-app.use(bodyParser.json());
-app.post("/api/register", (req, res) => {
-    let { firstName, lastName, username, password } = req.body;
-    let query = `CALL add_user(${firstName}, ${lastName}, ${username}, ${password})`;
-    console.log(query);
-    pool.query(query);
-    console.log(req.body);
-    res.json({ message: "Form Submitted" });
-});
+app.use(bodyParser.json())
+app.post('/api/register',(req, res)=>{
+    console.log("Api Register");
+    let {firstName, lastName, username, password} = req.body;
+    pool.query(`call get_user_by_username(\'${username}\')`, function(err, results, fields) {
+        if (err) {
+            console.log(err);
+            res.json({"successful":false});
+        }
+        console.log(results)
+        if (results[0].length == 0) {
+            console.log('new user');
+            let query = `CALL add_user(\'${firstName}\', \'${lastName}\', \'${username}\', \'${password}\')`;
+            pool.query(query, function(err, results, fields) {
+                if (err) {
+                    console.log(err);
+                    res.json({"successful":false});
+                }
+                console.log(results);
+            });
+            res.json({"successful":true});
+        } else {
+            console.log('old user');
+            res.json({"successful":false});
+        }
+    });
+})
+
+app.post('/api/login',(req, res)=>{
+    console.log("Api Login");
+    let {username, password} = req.body;
+    pool.query(`call login(\'${username}\', \'${password}\')`, function(err, results, fields) {
+        if (err) {
+            console.log(err);
+            res.json({"successful":false});
+        }
+        console.log(results)
+        if (results[0].length == 0) {
+            console.log("Incorrect Username or Password. Try Again");
+            res.json({"successful":false})
+        } else {
+            console.log('Login Successful!');
+            res.json({"successful":true});
+        }
+    });
+})
 
 //Start listening to start HTTP server
 //.listen takes port and callback functioun that runs when sever starts

@@ -1,10 +1,8 @@
 import { useState} from "react";
-import RegisterButton from "../components/RegisterButton.js";
+import LoginButton from "../components/LoginButton.js";
 import { Form, InputGroup } from "react-bootstrap";
 
-function RegisterScreen() {
-    const [fName, setFName] = useState("");
-    const [lName, setLName] = useState("");
+function LoginScreen() {
     const [uName, setUName] = useState("");
     const [password, setpassword] = useState("");
 
@@ -13,29 +11,7 @@ function RegisterScreen() {
             <div className="register template d-flex justify-content-center align-items-center 100-w vh-100 bg-primary">
                 <div className='40-w p-5 rounded bg-light'>
                     <form>
-                        <h3>Register</h3>
-                        <Form.Label>Name</Form.Label>
-                        <InputGroup className="mb-3">
-                            <Form.Control
-                                value={fName}
-                                placeholder="First Name"
-                                aria-label="First Name"
-                                aria-describedby="basic-addon1"
-                                onChange={(event) => {
-                                    setFName(event.target.value);
-                                }}
-                            />
-                            <Form.Control
-                                value={lName}
-                                placeholder="Last Name"
-                                aria-label="Last Name"
-                                aria-describedby="basic-addon1"
-                                onChange={(event) => {
-                                    setLName(event.target.value);
-                                }}
-                            />
-                        </InputGroup>
-
+                        <h3>Login</h3>
                         <Form.Label>Username</Form.Label>
                         <InputGroup className="mb-3">
                             <Form.Control
@@ -61,12 +37,10 @@ function RegisterScreen() {
                                 }}
                             />
                         </InputGroup>
-                        <RegisterButton
-                            fName={fName}
-                            lName={lName}
+                        <LoginButton
                             uName={uName}
                             password={password}
-                        ></RegisterButton>
+                        ></LoginButton>
                     </form>
                 </div>
             </div>
@@ -74,4 +48,4 @@ function RegisterScreen() {
     );
 }
 
-export default RegisterScreen;
+export default LoginScreen;

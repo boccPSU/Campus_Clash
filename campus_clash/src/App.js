@@ -14,6 +14,7 @@ import TournamentScreen from "./screens/TournamentScreen";
 import StudyPlan from "./screens/StudyPlan";
 import ProgressReport from "./screens/ProgressReport";
 import RegisterScreen from "./screens/RegisterScreen";
+import LoginScreen from "./screens/LoginScreen"
 
 function App() {
     return (
@@ -38,8 +39,12 @@ function App() {
 
                 {/* /progressReport -> Study Plan screen */}
                 <Route path="/progressReport" element={<ProgressReport />} />
-                {/* /Register path -> Register screen ||| For Testing*/}
+                
+                {/* /register -> Register screen*/}
                 <Route path="/register" element={<RegisterScreen />} />
+
+                {/* /login -> Login screen*/}
+                <Route path="/login" element={<LoginScreen />} />
             </Routes>
         </Router>
     );

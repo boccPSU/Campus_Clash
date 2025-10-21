@@ -2,19 +2,17 @@ import { useEffect, useState } from "react";
 import Button from "react-bootstrap/Button";
 import { useNavigate } from "react-router-dom";
 
-function RegisterButton({ fName, lName, uName, password }) {
+function LoginButton({uName, password }) {
     const [isLoading, setLoading] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
         function registerNewUser() {
             let userData = {
-                firstName: fName,
-                lastName: lName,
                 username: uName,
                 password: password,
             };
-            return fetch("/api/register", {
+            return fetch("/api/login", {
                 method: "post",
                 headers: {
                     "Content-Type": "application/json",
@@ -51,9 +49,9 @@ function RegisterButton({ fName, lName, uName, password }) {
             disabled={isLoading}
             onClick={!isLoading ? handleClick : null}
         >
-            {isLoading ? "Loading..." : "Register"}
+            {isLoading ? "Loading..." : "Login"}
         </Button>
     );
 }
 
-export default RegisterButton;
+export default LoginButton;
