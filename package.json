@@ -1,7 +1,32 @@
 {
-  "dependencies": {
-    "cors": "^2.8.5",
-    "dotenv": "^17.2.3",
-    "express": "^5.1.0"
+  "name": "campus_clash",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "install": "concurrently -n \"FRONTEND,BACKEND\" -c \"blue,green\" \"npm run install:frontend\" \"npm run install:backend\"",
+    "install:frontend": "cd frontend && npm install",
+    "install:backend": "cd backend && npm install",
+    "build": "concurrently -n \"FRONTEND,BACKEND\" -c \"blue,green\" \"npm run build:frontend\" \"npm run build:backend\"",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "cd backend && npm run build",
+    "start": "concurrently -n \"FRONTEND,BACKEND\" -c \"blue,green\" \"npm run start:frontend\" \"npm run start:backend\"",
+    "start:frontend": "cd frontend && npm start",
+    "start:backend": "cd backend && npm start",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/boccPSU/Campus_Clash.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/boccPSU/Campus_Clash/issues"
+  },
+  "homepage": "https://github.com/boccPSU/Campus_Clash#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }
