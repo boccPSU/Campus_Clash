@@ -1,15 +1,28 @@
 @use "../../css/tokens.scss" as *;
 
 .navButton {
-    background-color: $light;
-    border: $dark solid;
-    border-radius: 80px;
-    width: 80px;
-    height: 60px;
-    text-align: center;
+  flex: 1 1 0;            // each button shares equal width
+  max-width: 100px;       // optional: cap on large screens
+  min-width: 0;           // allow shrinking
+  height: auto;           // adapt height to content
+  margin: 0 2px;          // small spacing between buttons
+
+  background-color: $light;
+  border: $dark solid 1px;
+  border-radius: 50px;
+  text-align: center;
+
+  // keep icon + label stacked
+  .nav-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+  }
 }
 
 .navLabel {
-    font-size: "0.75rem";
-    color: "#ff0000ff";
+  font-size: 0.75rem;
+  color: #ff0000ff;
 }
