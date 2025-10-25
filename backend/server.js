@@ -123,7 +123,7 @@ app.post('/api/login',(req, res)=>{
                 res.json({"successful":true, token});
             } else {
                 console.log('Incorrect Password. Try Again');
-                req.json({"successful": false});
+                res.json({"successful": false});
             }
         }
     });

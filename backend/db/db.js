@@ -1,5 +1,10 @@
 let mysql = require("mysql");
 
+const host = process.env.MYSQL_HOST;
+const username = process.env.MYSQL_USERNAME;
+const password = process.env.MYSQL_PASSWORD;
+const database = process.env.MYSQL_DB;
+
 let dropQueries = [
     `DROP TABLE IF EXISTS users`,
     `DROP PROCEDURE IF EXISTS get_user_by_first_name`,
@@ -47,10 +52,10 @@ let createQueries = [
 //Create a connection to the SQL Database
 
 const dbPool = mysql.createPool({
-    host: "localhost",
-    user: "clash_admin",
-    password: "password",
-    database: "campus_clash",
+    host: host,
+    user: username,
+    password: password,
+    database: database,
 });
 dbPool.query("SELECT * FROM users", (err, rows) => {
     if(err) {
