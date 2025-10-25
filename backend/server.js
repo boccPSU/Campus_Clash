@@ -10,6 +10,7 @@ const cors = require("cors"); //Importing cors middleware to allow frontend http
 const mysql = require("mysql");
 const bodyParser = require("body-parser");
 const pool = require("./db/db.js");
+const auth = require("./db/authentication.js");
 
 //Getting base and token vars from .env file
 const BASE = process.env.CANVAS_BASE;
@@ -79,7 +80,12 @@ app.post('/api/register',(req, res)=>{
         console.log(results)
         if (results[0].length == 0) {
             console.log('new user');
-            let query = `CALL add_user(\'${firstName}\', \'${lastName}\', \'${username}\', \'${password}\')`;
+            let hashedPassword = auth.encryptPassword(password);
+            console.log(hashedPassword);
+            if (!hashedPassword) {
+                res.json({"successful":false});
+            }
+            let query = `CALL register(\'${firstName}\', \'${lastName}\', \'${username}\', \'${hashedPassword}\')`;
             pool.query(query, function(err, results, fields) {
                 if (err) {
                     console.log(err);
@@ -87,7 +93,8 @@ app.post('/api/register',(req, res)=>{
                 }
                 console.log(results);
             });
-            res.json({"successful":true});
+            const token = auth.generateToken(username);
+            res.json({"successful":true, token});
         } else {
             console.log('old user');
             res.json({"successful":false});
@@ -97,21 +104,39 @@ app.post('/api/register',(req, res)=>{
 
 app.post('/api/login',(req, res)=>{
     console.log("Api Login");
-    let {username, password} = req.body;
-    pool.query(`call login(\'${username}\', \'${password}\')`, function(err, results, fields) {
+    const {username, password} = req.body;
+    pool.query(`call get_user_by_username(\'${username}\')`, function(err, results, fields) {
         if (err) {
             console.log(err);
             res.json({"successful":false});
         }
-        console.log(results)
-        if (results[0].length == 0) {
-            console.log("Incorrect Username or Password. Try Again");
+        rows = results[0];
+        console.log(rows)
+        if (rows.length == 0) {
+            console.log("Incorrect Username. Try Again");
             res.json({"successful":false})
         } else {
-            console.log('Login Successful!');
-            res.json({"successful":true});
+            console.log(rows[0]);
+            if (auth.verifyPassword(password, rows[0].password)) {
+                const token = auth.generateToken(username);
+                console.log('Login Successful!');
+                res.json({"successful":true, token});
+            } else {
+                console.log('Incorrect Password. Try Again');
+                req.json({"successful": false});
+            }
         }
     });
+})
+
+app.post('/api/auth', (req, res) => {
+    const tokenHeaderKey = 'jwt-token';
+    const token = req.headers[tokenHeaderKey];
+    if (auth.verifyToken(token)) {
+        res.json({"successful": true});
+    } else {
+        res.json({"successful": false});
+    }
 })
 
 //Start listening to start HTTP server

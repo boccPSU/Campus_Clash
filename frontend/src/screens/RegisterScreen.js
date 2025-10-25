@@ -1,12 +1,42 @@
 import { useState} from "react";
 import RegisterButton from "../components/RegisterButton.js";
 import { Form, InputGroup } from "react-bootstrap";
+import { useNavigate, Link} from "react-router-dom";
 
-function RegisterScreen() {
+function RegisterScreen({setToken}) {
     const [fName, setFName] = useState("");
     const [lName, setLName] = useState("");
     const [uName, setUName] = useState("");
     const [password, setpassword] = useState("");
+
+    const navigate = useNavigate();
+
+    const registerNewUser = () => {
+        let userData = {
+            firstName: fName,
+            lastName: lName,
+            username: uName,
+            password: password,
+        };
+        return fetch("/api/register", {
+            method: "post",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(userData),
+        })
+        .then((response) => response.json())
+        .then((data) => {
+            console.log(data)
+            if (data.successful) {
+                console.log("Success!");
+                setToken({"token": data.token});
+                navigate("/");
+            } else {
+                console.log("Failure.");
+            }
+        })
+    }
 
     return (
         <>
@@ -62,12 +92,12 @@ function RegisterScreen() {
                             />
                         </InputGroup>
                         <RegisterButton
-                            fName={fName}
-                            lName={lName}
-                            uName={uName}
-                            password={password}
+                            registerNewUser = {registerNewUser}
                         ></RegisterButton>
                     </form>
+                    <div>
+                        <a>Already have an account? </a><Link to="/login">Log In.</Link>
+                    </div>
                 </div>
             </div>
         </>

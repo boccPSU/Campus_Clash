@@ -1,10 +1,38 @@
 import { useState} from "react";
 import LoginButton from "../components/LoginButton.js";
 import { Form, InputGroup } from "react-bootstrap";
+import { useNavigate, Link} from "react-router-dom";
 
-function LoginScreen() {
+function LoginScreen({setToken}) {
     const [uName, setUName] = useState("");
     const [password, setpassword] = useState("");
+    
+    const navigate = useNavigate();
+
+    const login = () => {
+        let userData = {
+            username: uName,
+            password: password,
+        };
+        return fetch("/api/login", {
+            method: "post",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(userData),
+        })
+            .then((response) => response.json())
+            .then((data) => {
+                console.log(data)
+                if (data.successful) {
+                    console.log("Success!");
+                    setToken({"token": data.token});
+                    navigate("/");
+                } else {
+                    console.log("Failure.");
+                }
+            })
+    }
 
     return (
         <>
@@ -38,10 +66,13 @@ function LoginScreen() {
                             />
                         </InputGroup>
                         <LoginButton
-                            uName={uName}
-                            password={password}
+                            login = {login}
                         ></LoginButton>
                     </form>
+                    <div>
+                        <Link to="" >Forgot Password?</Link><br />
+                        <a>Don't have an account? </a><Link to="/register">Sign Up.</Link>
+                    </div>
                 </div>
             </div>
         </>

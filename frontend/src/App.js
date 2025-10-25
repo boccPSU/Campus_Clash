@@ -1,7 +1,8 @@
 import React from "react";
 
 // import routing tools to switch between pages
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import {Routes, Route, useLocation} from "react-router-dom";
+import {useEffect, useState} from 'react';
 
 // needed to use bootstrap components
 //import "bootstrap/dist/css/bootstrap.min.css";
@@ -14,14 +15,26 @@ import TournamentScreen from "./screens/TournamentScreen";
 import StudyPlan from "./screens/StudyPlan";
 import ProgressReport from "./screens/ProgressReport";
 import RegisterScreen from "./screens/RegisterScreen";
-import LoginScreen from "./screens/LoginScreen"
+import LoginScreen from "./screens/LoginScreen";
+
+import useToken from "./api/userTokens";
 
 function App() {
+    const {token, setToken} = useToken();
+    const location = useLocation();
+
+    const [pathName, setPathName] = useState(location.pathName);
+
+    useEffect(() => {
+        if (!token && !(location.pathname === "/register")) {
+            setPathName("/login");
+        } else {
+            setPathName(location.pathname);
+        }
+    }, [location]);
+
     return (
-        // defines the routes for navigation through the app
-        <Router>
-            {/* sets each screen to a distinct URL within the app */}
-            <Routes>
+            <Routes location={pathName}>
                 {/* default path -> Home */}
                 <Route path="/" element={<HomeScreen />} />
 
@@ -41,12 +54,11 @@ function App() {
                 <Route path="/progressReport" element={<ProgressReport />} />
                 
                 {/* /register -> Register screen*/}
-                <Route path="/register" element={<RegisterScreen />} />
+                <Route path="/register" element={<RegisterScreen setToken={setToken} />} />
 
                 {/* /login -> Login screen*/}
-                <Route path="/login" element={<LoginScreen />} />
+                <Route path="/login" element={<LoginScreen setToken={setToken}/>} />
             </Routes>
-        </Router>
     );
 }
 

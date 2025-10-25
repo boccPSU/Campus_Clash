@@ -3,12 +3,16 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 import CanvasDisplay from "./components/CanvasDisplay";
+import {BrowserRouter as Router} from "react-router-dom";
 import "./css/index.scss";
 //import 'bootstrap/scss/bootstrap.scss';
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
     <React.StrictMode>
-        <App />
+        {/* sets each screen to a distinct URL within the app */}
+        <Router>
+            <App />
+        </Router>
     </React.StrictMode>,
 );
 
