@@ -14,7 +14,6 @@ import {
 function BottomNav() {
     return (
         <Nav className="footer">
-            <h1>Testing</h1>
             <NavButton
                 to="/leaderboard"
                 icon={BarChartFill}
