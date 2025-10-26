@@ -6,6 +6,7 @@ const BACKEND_BASE = "http://localhost:5000";
 
 //Helper function to build query strings, for example ?enrollment_state=active
 //input is object like { a: 1, b: "x" } -> "?a=1&b=x"
+
 function toQuery(params) {
     //if no params are passed return empty string
     if (!params) {
@@ -85,6 +86,7 @@ function hasAnyGrade(enrollment) {
 // Helper: choose a readable name with simple fallback.
 // (Deliberately simple—no heavy cleanup to keep this file minimal.)
 // ------------------------------------------------------------
+
 function pickSimpleCourseName(course, fallbackId) {
   // Try common Canvas name fields in order.
   const raw =
@@ -98,6 +100,7 @@ function pickSimpleCourseName(course, fallbackId) {
   const s = raw != null ? String(raw).trim() : "";
   return s.length > 0 ? s : `Course ${fallbackId}`;
 }
+
 // Fetch a single course by id when include[]=course is missing.
 async function fetchCourseById(courseId) {
   try {
@@ -208,4 +211,119 @@ export async function getMySemesterCoursesWithGrades() {
   );
 
   return cards;
+}
+// Format a due date for display (local timezone).
+function formatDueLocal(iso) {
+  if (!iso) return "No due date";
+  const d = new Date(iso);
+  // Example: Thu, Oct 30, 2025, 11:59 PM
+  return d.toLocaleString(undefined, {
+    weekday: "short",
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+// Reuse the classifier you already added earlier:
+function classifyAssignmentType(a) {
+  if (a?.is_quiz_assignment || a?.quiz_id != null) return "Quiz";
+  if (Array.isArray(a?.submission_types) && a.submission_types.includes("discussion_topic")) {
+    return "Discussion";
+  }
+  return "Assignment";
+}
+
+// Fetch assignments for one course and client-filter by due date range.
+async function fetchAssignmentsForCourse(courseId, { dueAfter, dueBefore } = {}) {
+  const params = {
+    per_page: 100,
+    order_by: "due_at",
+    "include[]": "submission",
+  };
+  const list = await canvasGet(`/v1/courses/${courseId}/assignments`, params);
+  return Array.isArray(list) ? list.filter((a) => {
+    const due = parseIsoDate(a?.due_at);
+    if (!due) return false;                 // only items with a real due date
+    if (dueAfter && due < dueAfter) return false;
+    if (dueBefore && due > dueBefore) return false;
+    if (a?.published === false) return false;
+    return true;
+  }) : [];
+}
+
+/**
+ * Get upcoming assignment alerts (UI-ready).
+ * - Only for courses returned by getMySemesterCoursesWithGrades().
+ * - Returns array of { id, courseId, courseName, title, type, dueAtISO, dueLabel }.
+ * - Configure via daysAhead (default 14) and startAt (default now).
+ */
+export async function getUpcomingAssignmentAlerts({ daysAhead = 14, startAt = new Date() } = {}) {
+  const start = new Date(startAt);
+  const end = new Date(start.getTime() + daysAhead * 86400000);
+
+  // Selected courses (active, created after SEMESTER_START, with non-null letter grade).
+  const selected = await getMySemesterCoursesWithGrades();
+
+  const alerts = [];
+  for (const c of selected) {
+    const items = await fetchAssignmentsForCourse(c.id, { dueAfter: start, dueBefore: end });
+    for (const a of items) {
+      const type = classifyAssignmentType(a);
+      const dueAtISO = a?.due_at ?? null;
+      alerts.push({
+        id: `${c.id}:${a.id}`,               // stable key for React
+        courseId: c.id,
+        courseName: c.name ?? `Course ${c.id}`,
+        title: a?.name ?? "(untitled)",
+        type,
+        dueAtISO,
+        dueLabel: formatDueLocal(dueAtISO),
+      });
+    }
+  }
+
+  // Sort ascending by due date so soonest appears first.
+  alerts.sort((x, y) => (new Date(x.dueAtISO)) - (new Date(y.dueAtISO)));
+
+  return alerts;
+}
+
+/**
+ * Log upcoming assignment alerts for the user's selected courses.
+ * - Selected courses = those returned by getMySemesterCoursesWithGrades().
+ * - Configurable window: daysAhead (default 14). You can also pass a custom "startAt".
+ * - Logs: assignment name, assignment type, due date (ISO).
+ */
+export async function logUpcomingAssignmentsForSelectedCourses({ daysAhead = 14, startAt = new Date() } = {}) {
+  const start = new Date(startAt);                      // window start (usually now)
+  const end = new Date(start.getTime() + daysAhead * 86400000); // window end
+
+  // Get filtered courses (active, created after SEMESTER_START, with non-null letter grade).
+  const selected = await getMySemesterCoursesWithGrades();
+  const courseIds = selected.map((c) => c.id);
+
+  console.log(`[assignments] window start=${start.toISOString()} end=${end.toISOString()} daysAhead=${daysAhead}`);
+  console.log(`[assignments] course_ids=${courseIds.join(", ") || "(none)"}`);
+
+  let total = 0;
+
+  for (const c of selected) {
+    const courseId = c.id;
+    // Fetch and client-filter assignments for this course.
+    const items = await fetchAssignmentsForCourse(courseId, { dueAfter: start, dueBefore: end });
+
+    // Log each assignment: name, type, due date.
+    for (const a of items) {
+      const t = classifyAssignmentType(a);
+      const dueIso = a?.due_at ?? "null";
+      const name = a?.name ?? "(untitled)";
+      console.log(`[assignments] course_id=${courseId} name="${name}" type=${t} due=${dueIso}`);
+      total++;
+    }
+  }
+
+  console.log(`[assignments] summary: courses=${courseIds.length} assignments_logged=${total}`);
 }
