@@ -1,91 +1,81 @@
-let mysql = require("mysql");
+// backend/db/db.js
+require('dotenv').config();
+const mysql = require('mysql2/promise');
 
-const host = process.env.MYSQL_HOST;
-const username = process.env.MYSQL_USERNAME;
-const password = process.env.MYSQL_PASSWORD;
-const database = process.env.MYSQL_DB;
-
-let dropQueries = [
-    `DROP TABLE IF EXISTS users`,
-    `DROP PROCEDURE IF EXISTS get_user_by_first_name`,
-    `DROP PROCEDURE IF EXISTS get_user_by_username`,
-    `DROP PROCEDURE IF EXISTS login`,
-    `DROP PROCEDURE IF EXISTS register`
-]
-
-let createQueries = [
-    `CREATE TABLE \`users\` (
-        \`pid\` int NOT NULL AUTO_INCREMENT,
-        \`firstName\` varchar(32) NOT NULL,
-        \`lastName\` varchar(32) NOT NULL,
-        \`username\` varchar(32) NOT NULL,
-        \`password\` char(60) NOT NULL,
-        PRIMARY KEY (\`pid\`)
-        ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-        `,
-    `DELIMITER $$
-        CREATE DEFINER=\`root\`@\`localhost\` PROCEDURE \`get_user_by_first_name\`(IN firstName varchar(32))
-        BEGIN
-            SELECT * FROM users WHERE firstName = firstName;
-        END$$
-        DELIMITER;`,
-    `DELIMITER $$
-        CREATE DEFINER=\`root\`@\`localhost\` PROCEDURE \`get_user_by_username\`(IN username varchar(32))
-        BEGIN
-            SELECT * FROM users WHERE username = username;
-        END$$
-        DELIMITER ;`,
-    `DELIMITER $$
-        CREATE DEFINER=\`root\`@\`localhost\` PROCEDURE \`login\`(IN username varchar(32), password char(60))
-        BEGIN
-            SELECT * FROM users WHERE username = username AND password = password;
-        END$$
-        DELIMITER ;`,
-    `DELIMITER $$
-        CREATE DEFINER=\`root\`@\`localhost\` PROCEDURE \`register\`(IN firstName varchar(32), lastName varchar(32), username varchar(32), password char(60))
-        BEGIN
-            INSERT INTO users (firstName, lastName, username, password) VALUES (firstName, lastName, username, password);
-        END$$
-        DELIMITER ;`,
-]
-
-//Create a connection to the SQL Database
-
-const dbPool = mysql.createPool({
-    host: host,
-    user: username,
-    password: password,
-    database: database,
+// Create the pool (no top-level await needed)
+const pool = mysql.createPool({
+  host: process.env.DB_HOST || process.env.MYSQL_HOST || 'localhost',
+  user: process.env.DB_USER || process.env.MYSQL_USERNAME || 'root',
+  password: process.env.DB_PASSWORD || process.env.MYSQL_PASSWORD || '',
+  database: process.env.DB_DATABASE || process.env.MYSQL_DB || 'campus_clash',
+  port: Number(process.env.DB_PORT || 3306),
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+  // multipleStatements: true, // not required for CREATE PROCEDURE via driver
 });
-dbPool.query("SELECT * FROM users", (err, rows) => {
-    if(err) {
-        dropQueries.forEach((query, index) => {
-            dbPool.query(query);
-        });
-        createQueries.forEach((query, index) => {
-            dbPool.query(query);
-        })
-        console.log("Remade Database");
-    }
-    console.log(rows);
-});
-module.exports = dbPool;
 
-// exports.execQuery=function(query, callback) {
-//   dbPool.getConnection(function(err, connection){
-//     if (err) {
-//       connection.release();
-//       throw err;
-//     }
-//     connection.query(query, function(err, rows){
-//       connection.release();
-//       if(!err) {
-//         callback(null, {rows: rows});
-//       }
-//     });
-//     connection.on('error', function(err) {
-//       throw err;
-//       return
-//     })
-//   })
-// }
+// Build/repair schema & procs
+async function initDb() {
+  // 1) users table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      pid INT NOT NULL AUTO_INCREMENT,
+      firstName VARCHAR(32) NOT NULL,
+      lastName  VARCHAR(32) NOT NULL,
+      username  VARCHAR(32) NOT NULL UNIQUE,
+      password  CHAR(60)    NOT NULL,
+      PRIMARY KEY (pid)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+  `);
+
+  // Drop procs if they exist
+  await pool.query(`DROP PROCEDURE IF EXISTS get_user_by_first_name`);
+  await pool.query(`DROP PROCEDURE IF EXISTS get_user_by_username`);
+  await pool.query(`DROP PROCEDURE IF EXISTS login`);
+  await pool.query(`DROP PROCEDURE IF EXISTS register`);
+
+  // NOTE: No DELIMITER needed when using drivers.
+  // Also: prefix params with p_ to avoid shadowing column names.
+
+  await pool.query(`
+    CREATE PROCEDURE get_user_by_first_name(IN p_firstName VARCHAR(32))
+    BEGIN
+      SELECT * FROM users WHERE firstName = p_firstName;
+    END
+  `);
+
+  await pool.query(`
+    CREATE PROCEDURE get_user_by_username(IN p_username VARCHAR(32))
+    BEGIN
+      SELECT * FROM users WHERE username = p_username;
+    END
+  `);
+
+  await pool.query(`
+    CREATE PROCEDURE login(IN p_username VARCHAR(32), IN p_password CHAR(60))
+    BEGIN
+      SELECT * FROM users
+      WHERE username = p_username AND password = p_password;
+    END
+  `);
+
+  await pool.query(`
+    CREATE PROCEDURE register(
+      IN p_firstName VARCHAR(32),
+      IN p_lastName  VARCHAR(32),
+      IN p_username  VARCHAR(32),
+      IN p_password  CHAR(60)
+    )
+    BEGIN
+      INSERT INTO users (firstName, lastName, username, password)
+      VALUES (p_firstName, p_lastName, p_username, p_password);
+    END
+  `);
+
+  // Sanity check
+  await pool.query(`SELECT 1`);
+  console.log('[DB] Schema OK');
+}
+
+module.exports = { pool, initDb };

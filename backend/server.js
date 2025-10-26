@@ -1,17 +1,14 @@
-//Express backend to serve as a proxy to Canvas, need this to avoid CORS in the browser
-//Need to cd to server directory and npm init -y to init server
-//Need to install express, dotenv, and cors using npm i express dotenv cors
-//.env file should have CANVAS_BASE=https://psu.instructure.com CANVAS_TOKEN PORT =3001 BACKEND_BASE=http://localhost:3001
-//Change token to git IGNORE!!!!!!!!
-require("dotenv").config(); //Loads dotenv library allowing vars in .env to be available by using process.env.VAR_NAME
+// server.js (CommonJS)
 
-const express = require("express"); //Importing express framework for defining routes and starting HTTP server
-const cors = require("cors"); //Importing cors middleware to allow frontend http:/localhost:3000 to call backend http://localhost:3001
-const mysql = require("mysql");
-const bodyParser = require("body-parser");
-const pool = require("./db/db.js");
-const auth = require("./db/authentication.js");
+require('dotenv').config();
 
+const express = require('express');
+const cors = require('cors');
+
+// IMPORTANT: this imports the actual pool + init function from db.js
+const { pool, initDb } = require('./db/db.js');
+const auth = require('./db/authentication.js');
+const PORT = process.env.PORT;
 //Getting base and token vars from .env file
 const BASE = process.env.CANVAS_BASE;
 const TOKEN = process.env.CANVAS_TOKEN;
@@ -22,6 +19,7 @@ if (!TOKEN) throw new Error("Missing TOKEN in .env");
 
 //create the app instance to represent HTTP server and routes
 const app = express();
+app.use(express.json());
 
 //app.use registers middleware that runs for every incoming requires
 //Tells browser that our react app can make requests to our server running on different ports preventing CORS issues
@@ -35,9 +33,10 @@ app.get("/health", (req, res) =>
     res.json({ ok: true, service: "canvas-proxy" }),
 );
 
+/*
 //Main GET route that is hit whnever path starts with /api/
-///^\/api\/.*/ is regex syntax to match any request that is /api/*
-app.get(/^\/api\/.*/, async(req, res) =>{
+ is regex syntax to match any request that is /api/*
+app.get(/^\/api\/., async(req, res) =>{
     try{
         console.log("Api Caught");
         //main url we want to hit, .replace is removing /api/ from our url
@@ -66,84 +65,104 @@ app.get(/^\/api\/.*/, async(req, res) =>{
         //return error string
         res.status(500).type("text/plain").send(String(e));
     }
-})
+})*/
+// POST /api/register
+app.post('/api/register', async (req, res) => {
+  console.log('Api Register');
+  const { firstName, lastName, username, password } = req.body;
 
-app.use(bodyParser.json())
-app.post('/api/register',(req, res)=>{
-    console.log("Api Register");
-    let {firstName, lastName, username, password} = req.body;
-    pool.query(`call get_user_by_username(\'${username}\')`, function(err, results, fields) {
-        if (err) {
-            console.log(err);
-            res.json({"successful":false});
-        }
-        console.log(results)
-        if (results[0].length == 0) {
-            console.log('new user');
-            let hashedPassword = auth.encryptPassword(password);
-            console.log(hashedPassword);
-            if (!hashedPassword) {
-                res.json({"successful":false});
-            }
-            let query = `CALL register(\'${firstName}\', \'${lastName}\', \'${username}\', \'${hashedPassword}\')`;
-            pool.query(query, function(err, results, fields) {
-                if (err) {
-                    console.log(err);
-                    res.json({"successful":false});
-                }
-                console.log(results);
-            });
-            const token = auth.generateToken(username);
-            res.json({"successful":true, token});
-        } else {
-            console.log('old user');
-            res.json({"successful":false});
-        }
-    });
-})
+  if (!firstName || !lastName || !username || !password) {
+    return res.status(400).json({ successful: false, error: 'Missing fields' });
+  }
 
-app.post('/api/login',(req, res)=>{
-    console.log("Api Login");
-    const {username, password} = req.body;
-    pool.query(`call get_user_by_username(\'${username}\')`, function(err, results, fields) {
-        if (err) {
-            console.log(err);
-            res.json({"successful":false});
-        }
-        rows = results[0];
-        console.log(rows)
-        if (rows.length == 0) {
-            console.log("Incorrect Username. Try Again");
-            res.json({"successful":false})
-        } else {
-            console.log(rows[0]);
-            if (auth.verifyPassword(password, rows[0].password)) {
-                const token = auth.generateToken(username);
-                console.log('Login Successful!');
-                res.json({"successful":true, token});
-            } else {
-                console.log('Incorrect Password. Try Again');
-                res.json({"successful": false});
-            }
-        }
-    });
-})
-
-app.post('/api/auth', (req, res) => {
-    const tokenHeaderKey = 'jwt-token';
-    const token = req.headers[tokenHeaderKey];
-    if (auth.verifyToken(token)) {
-        res.json({"successful": true});
-    } else {
-        res.json({"successful": false});
+  try {
+    // 1) Does user exist?
+    const [lookup] = await pool.query('CALL get_user_by_username(?)', [username]);
+    const rows = lookup?.[0] || [];
+    if (rows.length > 0) {
+      return res.status(409).json({ successful: false, error: 'Username taken' });
     }
-})
+
+    // 2) Hash password (your current auth uses bcrypt sync + returns hash)
+    const hashedPassword = auth.encryptPassword(password);
+    if (!hashedPassword) {
+      return res.status(500).json({ successful: false, error: 'Hashing failed' });
+    }
+
+    // 3) Insert user
+    await pool.query('CALL register(?, ?, ?, ?)', [
+      firstName,
+      lastName,
+      username,
+      hashedPassword,
+    ]);
+
+    // 4) Token
+    const token = auth.generateToken(username);
+    return res.status(201).json({ successful: true, token });
+  } catch (e) {
+    console.error('[BACKEND] register error:', e);
+    return res.status(500).json({ successful: false, error: 'DB error' });
+  }
+});
+
+
+// POST /api/login
+app.post('/api/login', async (req, res) => {
+  console.log('Api Login');
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ successful: false, error: 'Missing fields' });
+  }
+
+  try {
+    const [lookup] = await pool.query('CALL get_user_by_username(?)', [username]);
+    const rows = lookup?.[0] || [];
+    console.log('[LOGIN] lookup rows:', rows);
+    if (rows.length === 0) {
+      return res.status(401).json({ successful: false, error: 'Invalid username or password' });
+    }
+
+    const user = rows[0];
+    const ok = auth.verifyPassword(password, user.password);
+    if (!ok) {
+      return res.status(401).json({ successful: false, error: 'Invalid username or password' });
+    }
+
+    const token = auth.generateToken(username);
+    return res.json({ successful: true, token });
+  } catch (e) {
+    console.error('[BACKEND] login error:', e);
+    return res.status(500).json({ successful: false, error: 'DB error' });
+  }
+});
+
+
+// POST /api/auth
+app.post('/api/auth', (req, res) => {
+  const tokenHeaderKey = 'jwt-token'; // matches your frontend header
+  const token = req.headers[tokenHeaderKey];
+
+  try {
+    if (!token) return res.status(401).json({ successful: false, error: 'No token' });
+    const ok = auth.verifyToken(token);
+    return res.json({ successful: !!ok });
+  } catch {
+    return res.status(401).json({ successful: false });
+  }
+});
 
 //Start listening to start HTTP server
 //.listen takes port and callback functioun that runs when sever starts
-const PORT = process.env.PORT;
-app.listen(PORT, () => {
-    //log when proxy is running
-    console.log(`Canvas proxy listening on http://localhost:${PORT}`);
-    console.log(`Proxy upstream: ${BASE}`);
-});
+(async () => {
+  try {
+    await initDb(); // builds/verifies tables + procedures
+    app.listen(PORT, () => {
+      console.log(`API listening on http://localhost:${PORT}`);
+    });
+  } catch (e) {
+    console.error('[DB] init failed:', e);
+    process.exit(1);
+  }
+})();

@@ -28,5 +28,11 @@
   "homepage": "https://github.com/boccPSU/Campus_Clash#readme",
   "devDependencies": {
     "concurrently": "^9.2.1"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "dotenv": "^17.2.3",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.15.3"
   }
 }
