@@ -72,6 +72,8 @@ function pickDisplayName(course, fallbackId) {
   return cleaned || `Course ${fallbackId}`;
 }
 
+// Helper function to 
+
 /* Calls Express server at /api/*
    Uses /users/self/enrollments and fills missing names via /courses/:id.
 */
@@ -82,6 +84,7 @@ export function createCanvasProxyClient({ basePath = "/api" } = {}) {
       (e) => e.course_id
     );
 
+    
     return uniq.map((e) => {
       const course = e.course || {};
       const name = pickDisplayName(course, e.course_id);
@@ -104,7 +107,7 @@ export function createCanvasProxyClient({ basePath = "/api" } = {}) {
     const c = await res.json();
     return pickDisplayName(c, id);
   }
-
+  
   return {
     /**
      * Fetch the signed-in user's active student enrollments (with grades + course).
@@ -155,5 +158,8 @@ export function createCanvasProxyClient({ basePath = "/api" } = {}) {
 
       return cards;
     },
+
+    
   };
 }
+

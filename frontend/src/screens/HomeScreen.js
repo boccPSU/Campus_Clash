@@ -16,6 +16,7 @@ import ScreenScroll from "../components/ScreenScroll/ScreenScroll.js";
 import { createCanvasProxyClient } from "../api/canvasApi";
 import { computeGPAEqualCredits, percentToLetter } from "../utils/gpa";
 
+import { getMySemesterCoursesWithGrades } from "../api/canvas.js";
 function HomeScreen() {
   const navigate = useNavigate();
 
@@ -29,15 +30,15 @@ function HomeScreen() {
   const scrollerRef = useRef(null);
   const collapsed = useCollapseOnScroll(scrollerRef);
 
-  // Canvas client via backend proxy (no env needed on frontend)
-  const canvasClient = useMemo(() => createCanvasProxyClient(), []);
+  
 
   const loadCourses = async () => {
     setError("");
     setLoading(true);
     try {
-      // 1) Fetch raw from Canvas proxy: [{ id, name, percent(number|null), grade(letter|null) }, ...]
-      const raw = await canvasClient.getCoursesWithGrades();
+      // 1) Fetch filtered + deduped courses for THIS semester that HAVE grades.
+      //    Shape: [{ id, name, percent(number|null), grade(string|null), created_at }, ...]
+      const raw = await getMySemesterCoursesWithGrades();
 
       // 2) Compute GPA from RAW values (use precise percent if present)
       const nextGpa = computeGPAEqualCredits(

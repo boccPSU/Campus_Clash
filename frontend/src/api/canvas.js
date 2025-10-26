@@ -1,5 +1,8 @@
+// Hardcoded semester start (edit this date as needed)
+const SEMESTER_START = new Date("2025-01-10T00:00:00Z"); // Fall 2025
+
 //Frontend helper function to talk to backend proxy
-const BACKEND_BASE = "http://localhost:3001";
+const BACKEND_BASE = "http://localhost:5000";
 
 //Helper function to build query strings, for example ?enrollment_state=active
 //input is object like { a: 1, b: "x" } -> "?a=1&b=x"
@@ -45,4 +48,164 @@ export async function canvasGet(path, params) {
 
     // Return result as JSON
     return res.json();
+}
+
+// ------------------------------------------------------------
+// Helper: parse an ISO date safely.
+// Returns a Date or null if input is missing/invalid.
+// ------------------------------------------------------------
+function parseIsoDate(iso) {
+  // Guard against undefined/null/empty strings.
+  if (!iso) return null;
+  const t = Date.parse(iso); // Date.parse returns ms timestamp or NaN.
+  return Number.isFinite(t) ? new Date(t) : null; // Convert to Date if valid.
+}
+
+// ------------------------------------------------------------
+// Helper: does this enrollment have any grade info?
+// We accept either a numeric score or a letter grade as "has a grade".
+// ------------------------------------------------------------
+function hasAnyGrade(enrollment) {
+  // Canvas enrollments often carry both "current_*" and "final_*".
+  const g = enrollment?.grades || {};
+  const percent = g.current_score ?? g.final_score; // Prefer current_score, fallback to final_score.
+  const letter = g.current_grade ?? g.final_grade;  // Prefer current_grade, fallback to final_grade.
+
+  if(letter == null && percent == 0){
+    return false;
+  }
+  //if(letter == null) return false;
+  // If either is present, we treat it as graded.
+  const hasPercent = typeof percent === "number" && Number.isFinite(percent);
+  const hasLetter = letter != null && String(letter).trim().length > 0;
+  return hasPercent || hasLetter;
+}
+
+// ------------------------------------------------------------
+// Helper: choose a readable name with simple fallback.
+// (Deliberately simple—no heavy cleanup to keep this file minimal.)
+// ------------------------------------------------------------
+function pickSimpleCourseName(course, fallbackId) {
+  // Try common Canvas name fields in order.
+  const raw =
+    course?.name ??
+    course?.course_code ??
+    course?.short_name ??
+    course?.sis_course_id ??
+    null;
+
+  // If nothing usable, fallback to "Course {id}".
+  const s = raw != null ? String(raw).trim() : "";
+  return s.length > 0 ? s : `Course ${fallbackId}`;
+}
+// Fetch a single course by id when include[]=course is missing.
+async function fetchCourseById(courseId) {
+  try {
+    const c = await canvasGet(`/v1/courses/${courseId}`);
+    return c ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getMySemesterCoursesWithGrades() {
+  const params = {
+    "type[]": "StudentEnrollment",
+    "state[]": "active",
+    "include[]": "course",
+    per_page: 100,
+  };
+
+  const enrollments = await canvasGet("/v1/users/self/enrollments", params);
+  const total = Array.isArray(enrollments) ? enrollments.length : 0;
+
+  const seenCourseIds = new Set();
+  const metrics = {
+    total,
+    accepted: 0,
+    duplicateCourse: 0,
+    noCourseId: 0,
+    noCourseObj: 0,
+    tooOld: 0,
+    noGrade: 0,
+  };
+
+  const cards = [];
+
+  for (const e of Array.isArray(enrollments) ? enrollments : []) {
+    const courseId = e?.course_id;
+    if (typeof courseId !== "number") {
+      metrics.noCourseId++;
+      console.log(`[courses] reject: noCourseId`);
+      continue;
+    }
+
+    if (seenCourseIds.has(courseId)) {
+      metrics.duplicateCourse++;
+      console.log(`[courses] reject: duplicate course_id=${courseId}`);
+      continue;
+    }
+
+    // Ensure we have a course object; if missing, fetch it.
+    let course = e?.course ?? null;
+    if (!course) {
+      course = await fetchCourseById(courseId);
+    }
+    if (!course) {
+      metrics.noCourseObj++;
+      console.log(`[courses] reject: course_id=${courseId} reason=noCourseObj`);
+      continue;
+    }
+
+    // Created-at filter.
+    const created = parseIsoDate(course.created_at);
+    if (!created || created < SEMESTER_START) {
+      metrics.tooOld++;
+      const ca = course.created_at ?? "null";
+      console.log(
+        `[courses] reject: course_id=${courseId} name="${pickSimpleCourseName(course, courseId)}" created_at=${ca} reason=tooOld`
+      );
+      continue;
+    }
+
+    // Grade filter.
+    if (!hasAnyGrade(e)) {
+      metrics.noGrade++;
+      console.log(
+        `[courses] reject: course_id=${courseId} name="${pickSimpleCourseName(course, courseId)}" reason=noGrade`
+      );
+      continue;
+    }
+
+    // Passed all filters → accept.
+    seenCourseIds.add(courseId);
+    metrics.accepted++;
+
+    const g = e.grades || {};
+    const rawPercent = g.current_score ?? g.final_score ?? null;
+    const percent =
+      typeof rawPercent === "number" && Number.isFinite(rawPercent)
+        ? rawPercent
+        : null;
+    const letter = g.current_grade ?? g.final_grade ?? null;
+    const name = pickSimpleCourseName(course, courseId);
+
+    cards.push({
+      id: courseId,
+      name,
+      percent,
+      grade: letter ?? null,
+      created_at: course.created_at,
+    });
+
+    console.log(
+      `[courses] accept: course_id=${courseId} name="${name}" created_at=${course.created_at} percent=${percent ?? "null"} grade=${letter ?? "null"}`
+    );
+  }
+
+  console.log(
+    `[courses] summary: total=${metrics.total} accepted=${metrics.accepted} dup=${metrics.duplicateCourse} noCourseId=${metrics.noCourseId} noCourseObj=${metrics.noCourseObj} tooOld=${metrics.tooOld} noGrade=${metrics.noGrade}`
+  );
+
+  return cards;
 }

@@ -4,11 +4,11 @@ const mysql = require('mysql2/promise');
 
 // Create the pool (no top-level await needed)
 const pool = mysql.createPool({
-  host: process.env.DB_HOST || process.env.MYSQL_HOST || 'localhost',
-  user: process.env.DB_USER || process.env.MYSQL_USERNAME || 'root',
-  password: process.env.DB_PASSWORD || process.env.MYSQL_PASSWORD || '',
-  database: process.env.DB_DATABASE || process.env.MYSQL_DB || 'campus_clash',
-  port: Number(process.env.DB_PORT || 3306),
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD ,
+  database: process.env.DB_NAME,
+  port: Number(process.env.DB_PORT),
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
@@ -73,7 +73,7 @@ async function initDb() {
     END
   `);
 
-  // Sanity check
+  // DB check
   await pool.query(`SELECT 1`);
   console.log('[DB] Schema OK');
 }

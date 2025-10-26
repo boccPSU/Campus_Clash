@@ -1,14 +1,14 @@
 // server.js (CommonJS)
-
 require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
 
-// IMPORTANT: this imports the actual pool + init function from db.js
+// imports the actual pool + init function from db.js
 const { pool, initDb } = require('./db/db.js');
 const auth = require('./db/authentication.js');
-const PORT = process.env.PORT;
+
+
 //Getting base and token vars from .env file
 const BASE = process.env.CANVAS_BASE;
 const TOKEN = process.env.CANVAS_TOKEN;
@@ -20,10 +20,10 @@ if (!TOKEN) throw new Error("Missing TOKEN in .env");
 //create the app instance to represent HTTP server and routes
 const app = express();
 app.use(express.json());
+const PORT = process.env.PORT;
 
 //app.use registers middleware that runs for every incoming requires
 //Tells browser that our react app can make requests to our server running on different ports preventing CORS issues
-//CHECK PORT HERE
 app.use(cors({ origin: "http://localhost:3000" }));
 
 // Registers get endpoint at /health to check if server is up
@@ -33,40 +33,41 @@ app.get("/health", (req, res) =>
     res.json({ ok: true, service: "canvas-proxy" }),
 );
 
-/*
-//Main GET route that is hit whnever path starts with /api/
- is regex syntax to match any request that is /api/*
-app.get(/^\/api\/., async(req, res) =>{
-    try{
-        console.log("Api Caught");
-        //main url we want to hit, .replace is removing /api/ from our url
-        //upstream stands for orions server proxy talks to(canvas)
-        //downstream is client behind the proxy (our browser / react app)
-        const upstreamUrl  = BASE + req.originalUrl;
-        //onsole.log("upstreamUrl:", upstreamUrl);
+/**
+ * Canvas GET proxy
+ * Proxies any GET /api/v1/* to <BASE>/api/v1/* with Authorization: Bearer <TOKEN>
+ */
+app.get(/^\/api\/v1\/.*/, async (req, res) => {
+  try {
+    const upstreamUrl = `${BASE}${req.originalUrl}`; // '/api/v1/...' already present
+    console.log('[CanvasProxy] GET ->', upstreamUrl);
 
-        //get response from canvas
-        const upstream = await fetch(upstreamUrl, {
-            method: "GET",
-            headers:{
-                Authorization: `Bearer ${TOKEN}`,
-                Accept: "application/json",
-            },
-        });
+    const upstream = await fetch(upstreamUrl, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${TOKEN}`,
+        Accept: 'application/json'
+      }
+      // (No body on GET)
+    });
 
-        
-        const bodyText = await upstream.text();
-        //Get the type of content that is being sent back from canvas (json)
-        const contentType = upstream.headers.get("content-type");
+    const contentType = upstream.headers.get('content-type') || 'application/json';
+    const bodyText = await upstream.text();
 
-        //return status code, content type, and full response body as text
-        res.status(upstream.status).type(contentType).send(bodyText);
-    } catch (e){
-        //return error string
-        res.status(500).type("text/plain").send(String(e));
-    }
-})*/
+    // Optional: forward pagination headers (Canvas uses Link)
+    const linkHeader = upstream.headers.get('link');
+    if (linkHeader) res.set('Link', linkHeader);
+
+    res.status(upstream.status).type(contentType).send(bodyText);
+  } catch (e) {
+    console.error('[CanvasProxy] error:', e);
+    res.status(500).type('text/plain').send(String(e));
+  }
+});
+
+
 // POST /api/register
+// Registers new user to database
 app.post('/api/register', async (req, res) => {
   console.log('Api Register');
   const { firstName, lastName, username, password } = req.body;
@@ -137,7 +138,6 @@ app.post('/api/login', async (req, res) => {
     return res.status(500).json({ successful: false, error: 'DB error' });
   }
 });
-
 
 // POST /api/auth
 app.post('/api/auth', (req, res) => {

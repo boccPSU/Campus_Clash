@@ -5,6 +5,7 @@ import reportWebVitals from "./reportWebVitals";
 import CanvasDisplay from "./components/CanvasDisplay";
 import {BrowserRouter as Router} from "react-router-dom";
 import "./css/index.scss";
+
 //import 'bootstrap/scss/bootstrap.scss';
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
@@ -15,6 +16,8 @@ root.render(
         </Router>
     </React.StrictMode>,
 );
+
+
 
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))
