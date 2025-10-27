@@ -1,128 +1,154 @@
-import { useEffect, useMemo, useState } from "react";
-import Spinner from "react-bootstrap/Spinner";
-import InfoBox from "../InfoBox/InfoBox";
-import { BarChart } from "@mui/x-charts/BarChart";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Card, Button, Modal } from "react-bootstrap";
+import { BarChart } from "@mui/x-charts";
 
-function MajorGraphCard({ majors }) {
-  const [loading, setLoading] = useState(true);
+const nf = new Intl.NumberFormat("en-US");
 
+function useBoxWidth() {
+  const ref = useRef(null);
+  const [w, setW] = useState(360);
+  const measure = () => ref.current?.clientWidth && setW(ref.current.clientWidth);
+  useLayoutEffect(measure, []);
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 800); // simulate fetch
-    return () => clearTimeout(t);
+    const onResize = () => measure();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
-
-  //placeholder data if none passed in
-  const demoMajors = [
-    { major: "Computer Science", xp: 48000 },
-    { major: "Mechanical Engineering", xp: 46000 },
-    { major: "Electrical Engineering", xp: 45000 },
-    { major: "Business Administration", xp: 43000 },
-    { major: "Biology", xp: 41000 },
-    { major: "Psychology", xp: 40000 },
-    { major: "Nursing", xp: 38000 },
-    { major: "Chemistry", xp: 37000 },
-    { major: "Finance", xp: 35000 },
-    { major: "Political Science", xp: 34000 },
-    { major: "English Literature", xp: 32000 },
-    { major: "Mathematics", xp: 30000 },
-    { major: "Civil Engineering", xp: 29000 },
-    { major: "Education", xp: 27000 },
-    { major: "Marketing", xp: 26000 },
-    { major: "History", xp: 25000 },
-    { major: "Environmental Science", xp: 23500 },
-    { major: "Sociology", xp: 22000 },
-    { major: "Fine Arts", xp: 20000 },
-    { major: "Philosophy", xp: 18000 },
-  ];
-
-  // use provided majors or fallback; sort desc by XP for a ranking feel
-  const rows = useMemo(() => {
-    const src = majors?.length ? majors : demoMajors;
-    // normalize shape in case caller sends {rank, major, xp}
-    const mapped = src.map((r) => ({
-      major: r.major,
-      xp: Number(r.xp ?? 0),
-    }));
-    return mapped.sort((a, b) => b.xp - a.xp);
-  }, [majors]);
-
-  // compute height based on bar count so labels don't collide
-  const chartHeight = Math.max(260, rows.length * 26 + 90);
-
-  if (loading) {
-    return (
-      <InfoBox title={"Major Graph"}>
-        <div className="graphBox" style={{ height: 220, position: "relative" }}>
-          <Spinner animation="border" role="status" className="spinner">
-            <span className="visually-hidden">Loading...</span>
-          </Spinner>
-        </div>
-        <button className="enlargeBtn">Enlarge Graph</button>
-      </InfoBox>
-    );
-  }
-
-  return (
-    <InfoBox title={"Major Graph"}>
-      <div className="graphBox" style={{ height: chartHeight, padding: 6 }}>
-        <BarChart
-          height={chartHeight - 20}
-          // horizontal layout: numeric x, categorical y
-          layout="horizontal"
-          xAxis={[
-            {
-              label: "",
-              min: 0,
-              // allow the chart to auto-scale to max XP
-              tickLabelStyle: { fill: "rgba(255,255,255,0.8)", fontSize: 12 },
-            },
-          ]}
-          yAxis={[
-            {
-              data: rows.map((r) => r.major),
-              scaleType: "band",
-              tickLabelStyle: {
-                fill: "rgba(255,255,255,0.9)",
-                fontSize: 12,
-              },
-            },
-          ]}
-          series={[
-            {
-              label: "XP",
-              data: rows.map((r) => r.xp),
-              // compact bars
-              barLabel: (item) => `${item.value.toLocaleString()}`,
-              valueFormatter: (v) => v.toLocaleString(),
-            },
-          ]}
-          margin={{ top: 34, right: 16, bottom: 24, left: 150 }}
-          slotProps={{
-            legend: {
-              position: { vertical: "top", horizontal: "center" },
-              direction: "row",
-              padding: 0,
-            },
-          }}
-          sx={{
-            // dark card cosmetics
-            "& .MuiChartsAxis-line": { stroke: "rgba(255,255,255,0.18)" },
-            "& .MuiChartsAxis-tickLabel": { fill: "rgba(255,255,255,0.8)" },
-            "& .MuiChartsGrid-line": { stroke: "rgba(255,255,255,0.08)" },
-            "& .MuiBarElement-root": { rx: 4 }, // rounded bar ends
-            "& .MuiChartsLegend-series text": {
-              fill: "rgba(255,255,255,0.95)",
-            },
-            "& .MuiChartsBarLabel-root": {
-              fill: "rgba(255,255,255,0.9)",
-              fontSize: 11,
-            },
-          }}
-        />
-      </div>
-      <button className="enlargeBtn">Enlarge Graph</button>
-    </InfoBox>
-  );
+  return [ref, w];
 }
 
-export default MajorGraphCard;
+// abbreviated majors directly in dataset
+const DEFAULT_DATA = [
+  { major: "CS", xp: 48000 },
+  { major: "ME", xp: 45500 },
+  { major: "EE", xp: 44000 },
+  { major: "Bus", xp: 41800 },
+  { major: "Bio", xp: 40000 },
+  { major: "Psych", xp: 38500 },
+  { major: "Nurs", xp: 37000 },
+  { major: "Chem", xp: 35500 },
+  { major: "Fin", xp: 34000 },
+  { major: "Poli Sci", xp: 32500 },
+  { major: "Eng Lit", xp: 31000 },
+  { major: "Math", xp: 30000 },
+  { major: "CE", xp: 29000 },
+  { major: "Edu", xp: 27500 },
+  { major: "Mkt", xp: 26500 },
+  { major: "Hist", xp: 25000 },
+  { major: "Env Sci", xp: 23500 },
+  { major: "Soc", xp: 22000 },
+  { major: "Arts", xp: 19500 },
+  { major: "Phil", xp: 17000 },
+];
+
+export default function MajorGraphCard({
+  title = "Major Graph",
+  data = DEFAULT_DATA,
+}) {
+  const rows = [...data].sort((a, b) => b.xp - a.xp);
+
+  // card sizing
+  const [wrapRef, width] = useBoxWidth();
+  const isPhone = width < 430;
+  const chartHeight = isPhone ? 320 : 420;
+
+  // modal sizing
+  const [show, setShow] = useState(false);
+  const [modalRef, modalWidth] = useBoxWidth();
+
+  // axis/grid styles
+  const whiteAxisSX = {
+    backgroundColor: "transparent",
+    "& .MuiChartsAxis-tickLabel, & .MuiChartsLegend-label": { fill: "#ffffff" },
+    "& .MuiChartsAxis-label": { fill: "#ffffff" },
+    "& .MuiChartsAxis-line, & .MuiChartsAxis-tick": { stroke: "#ffffff" },
+    "& .MuiChartsGrid-line": { stroke: "rgba(255,255,255,0.2)" },
+  };
+
+  const darkAxisSX = {
+    backgroundColor: "transparent",
+    "& .MuiChartsAxis-tickLabel, & .MuiChartsLegend-label": { fill: "#1f2937" },
+    "& .MuiChartsAxis-label": { fill: "#1f2937" },
+    "& .MuiChartsAxis-line, & .MuiChartsAxis-tick": { stroke: "#1f2937" },
+    "& .MuiChartsGrid-line": { stroke: "rgba(31,41,55,0.18)" },
+  };
+
+  return (
+    <>
+      <Card className="shadow-sm rounded-4 bg-dark border border-primary">
+        <Card.Body>
+          <h2 className="text-center text-light fw-bold mb-2">{title}</h2>
+
+          <div ref={wrapRef} className="w-100">
+            <BarChart
+              dataset={rows}
+              layout="horizontal"
+              width={width}
+              height={chartHeight}
+              series={[{ dataKey: "xp", label: isPhone ? undefined : "XP" }]}
+              xAxis={[{
+                scaleType: "linear",
+                label: "XP",
+                valueFormatter: (v) => nf.format(v),
+                tickLabelStyle: { fontSize: isPhone ? 10 : 12, fill: "#ffffff" },
+                labelStyle: { fill: "#ffffff" },
+              }]}
+              yAxis={[{
+                scaleType: "band",
+                dataKey: "major",
+                tickLabelStyle: { fontSize: isPhone ? 10 : 12, fill: "#ffffff" },
+              }]}
+              margin={{ top: 0, right: 10, bottom: 28, left: 10 }}
+              grid={{ vertical: false, horizontal: true }}
+              slotProps={{ legend: { hidden: true }, tooltip: { trigger: "none" } }}
+              sx={whiteAxisSX} // white axes for dark card
+            />
+          </div>
+
+          <div className="d-flex justify-content-center">
+            <Button
+              variant="primary"
+              className="mt-3 rounded-pill px-4 fw-semibold"
+              onClick={() => setShow(true)}
+            >
+              Enlarge Graph
+            </Button>
+          </div>
+        </Card.Body>
+      </Card>
+
+      <Modal show={show} onHide={() => setShow(false)} size="lg" centered>
+        <Modal.Header closeButton>
+          <Modal.Title>{title}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div ref={modalRef} className="w-100">
+            <BarChart
+              dataset={rows}
+              layout="horizontal"
+              width={modalWidth}
+              height={600}
+              series={[{ dataKey: "xp", label: "XP" }]}
+              xAxis={[{
+                scaleType: "linear",
+                label: "XP",
+                valueFormatter: (v) => nf.format(v),
+                tickLabelStyle: { fontSize: 12, fill: "#1f2937" },
+                labelStyle: { fill: "#1f2937" },
+              }]}
+              yAxis={[{
+                scaleType: "band",
+                dataKey: "major",
+                tickLabelStyle: { fontSize: 12, fill: "#1f2937" },
+              }]}
+              margin={{ top: 20, right: 24, bottom: 40, left: 40 }}
+              grid={{ vertical: false, horizontal: true }}
+              slotProps={{ legend: { hidden: true }, tooltip: { trigger: "none" } }}
+              sx={darkAxisSX}
+            />
+          </div>
+        </Modal.Body>
+      </Modal>
+    </>
+  );
+}
