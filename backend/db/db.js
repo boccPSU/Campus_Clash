@@ -1,23 +1,24 @@
 // backend/db/db.js
 require('dotenv').config();
-const mysql = require('mysql2/promise');
+const mysql = require('mysql2/promise');	//mysql2 here!!!
 
-// Create the pool (no top-level await needed)
+// Connection pool for database
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD ,
+  password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   port: Number(process.env.DB_PORT),
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  // multipleStatements: true, // not required for CREATE PROCEDURE via driver
 });
 
-// Build/repair schema & procs
+// Build/repair schema & stored procedures
 async function initDb() {
-  // 1) users table
+  // ----------------------------
+  // users table
+  // ----------------------------
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       pid INT NOT NULL AUTO_INCREMENT,
@@ -26,18 +27,45 @@ async function initDb() {
       username  VARCHAR(32) NOT NULL UNIQUE,
       password  CHAR(60)    NOT NULL,
       PRIMARY KEY (pid)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+    ) ENGINE=InnoDB
+      DEFAULT CHARSET=utf8mb4
+      COLLATE=utf8mb4_0900_ai_ci;
   `);
 
-  // Drop procs if they exist
+  // ----------------------------
+  // events table
+  // ----------------------------
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS events (
+      eid         INT NOT NULL AUTO_INCREMENT,
+      title       VARCHAR(128) NOT NULL,
+      subtitle    VARCHAR(255) NULL,
+      description TEXT         NULL,
+      location    VARCHAR(128) NULL,
+      xp          INT          NOT NULL DEFAULT 0,
+      PRIMARY KEY (eid)
+    ) ENGINE=InnoDB
+      DEFAULT CHARSET=utf8mb4
+      COLLATE=utf8mb4_0900_ai_ci;
+  `);
+
+  // Ensure description exists for older deployments (MySQL 8.0+ supports IF NOT EXISTS)
+  await pool.query(`
+    ALTER TABLE events
+    ADD COLUMN IF NOT EXISTS description TEXT NULL AFTER subtitle
+  `).catch(() => {}); // ignore if unavailable/older MySQL
+
+  // ----------------------------
+  // Drop user procs (recreate cleanly)
+  // ----------------------------
   await pool.query(`DROP PROCEDURE IF EXISTS get_user_by_first_name`);
   await pool.query(`DROP PROCEDURE IF EXISTS get_user_by_username`);
   await pool.query(`DROP PROCEDURE IF EXISTS login`);
   await pool.query(`DROP PROCEDURE IF EXISTS register`);
 
-  // NOTE: No DELIMITER needed when using drivers.
-  // Also: prefix params with p_ to avoid shadowing column names.
-
+  // ----------------------------
+  // User procs
+  // ----------------------------
   await pool.query(`
     CREATE PROCEDURE get_user_by_first_name(IN p_firstName VARCHAR(32))
     BEGIN
@@ -73,9 +101,67 @@ async function initDb() {
     END
   `);
 
+  // ----------------------------
+  // Drop event procs 
+  // ----------------------------
+  await pool.query(`DROP PROCEDURE IF EXISTS create_event`);
+  await pool.query(`DROP PROCEDURE IF EXISTS get_event`);
+  await pool.query(`DROP PROCEDURE IF EXISTS list_events_between`);
+  await pool.query(`DROP PROCEDURE IF EXISTS list_upcoming_events`);
+  await pool.query(`DROP PROCEDURE IF EXISTS update_event`);
+  await pool.query(`DROP PROCEDURE IF EXISTS delete_event`);
+  await pool.query(`DROP PROCEDURE IF EXISTS list_events`);
+  // ----------------------------
+  // Event procs 
+  // ----------------------------
+
+  // Create event
+  await pool.query(`
+    CREATE PROCEDURE create_event(
+      IN p_title       VARCHAR(128),
+      IN p_subtitle    VARCHAR(255),
+      IN p_description TEXT,
+      IN p_location    VARCHAR(128),
+      IN p_xp          INT
+    )
+    BEGIN
+      INSERT INTO events (title, subtitle, description, location, xp)
+      VALUES (p_title, p_subtitle, p_description, p_location, p_xp);
+      SELECT LAST_INSERT_ID() AS eid;
+    END
+  `);
+
+  // Read single event
+  await pool.query(`
+    CREATE PROCEDURE get_event(IN p_eid INT)
+    BEGIN
+      SELECT * FROM events WHERE eid = p_eid;
+    END
+  `);
+
+    
+    await pool.query(`
+    CREATE PROCEDURE list_events()
+    BEGIN
+        SELECT eid, title, subtitle, description, location, xp
+        FROM events
+        ORDER BY eid ASC;
+    END
+    `);
+
+
+  // Delete event
+  await pool.query(`
+    CREATE PROCEDURE delete_event(IN p_eid INT)
+    BEGIN
+      DELETE FROM events WHERE eid = p_eid;
+      SELECT ROW_COUNT() AS affected;
+    END
+  `);
+
   // DB check
   await pool.query(`SELECT 1`);
-  console.log('[DB] Schema OK');
+  console.log('[DB] Schema OK (users + events with description)');
 }
 
 module.exports = { pool, initDb };

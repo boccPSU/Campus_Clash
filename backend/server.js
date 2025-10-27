@@ -48,7 +48,6 @@ app.get(/^\/api\/v1\/.*/, async (req, res) => {
         Authorization: `Bearer ${TOKEN}`,
         Accept: 'application/json'
       }
-      // (No body on GET)
     });
 
     const contentType = upstream.headers.get('content-type') || 'application/json';
@@ -166,3 +165,42 @@ app.post('/api/auth', (req, res) => {
     process.exit(1);
   }
 })();
+
+// POST /api/event
+// Creates a new event 
+app.post('/api/event', async (req, res) => {
+  const {
+    title,
+    subtitle = null,
+    description = null,
+    location = null,
+    xp = 0,
+  } = req.body || {};
+
+  try {
+    // CALL create_event(p_title, p_subtitle, p_description, p_dueAt, p_location, p_xp, p_courseId)
+    const [resultSets] = await pool.query('CALL create_event(?, ?, ?, ?, ?)', [
+      title,
+      subtitle,
+      description,
+      location,
+      xp,
+    ]);
+
+    const eid = resultSets?.[0]?.eid;
+    res.status(201).json({ successful: true, eid });
+  } catch (e) {
+    res.status(500).json({ successful: false });
+  }
+});
+
+// GET /api/events — return all events
+app.get('/api/events', async (req, res) => {
+  try {
+    const [rows] = await pool.query('CALL list_events()');
+    const items = rows?.[0] ?? [];
+    res.json(items);
+  } catch (e) {
+    res.status(500).json({ successful: false });
+  }
+});
