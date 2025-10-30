@@ -327,3 +327,88 @@ export async function logUpcomingAssignmentsForSelectedCourses({ daysAhead = 14,
 
   console.log(`[assignments] summary: courses=${courseIds.length} assignments_logged=${total}`);
 }
+
+
+// ------------------------------------------------------------
+// Recent submissions checker (server-side filtering version)
+// ------------------------------------------------------------
+
+// checks for recent submissions within the past seven days
+export async function checkRecentSubmissions({ lookbackMinutes = 60 * 24 * 7, now = new Date() } = {}) {
+  const since = new Date(now.getTime() - lookbackMinutes * 60_000);
+
+  // reuse course filter
+  const selectedCourses = await getMySemesterCoursesWithGrades();
+
+  const results = [];
+
+  for (const c of selectedCourses) {
+    const courseId = c.id;
+
+    const params = {
+      per_page: 100,
+      "student_ids[]": "self",
+      "include[]": "assignment",
+      submitted_since: since.toISOString(),
+    };
+
+    let subs;
+    try {
+      subs = await canvasGet(`/v1/courses/${courseId}/students/submissions`, params);
+    } catch (e) {
+      console.warn(`[recent] skip course_id=${courseId} name="${c.name}" reason=fetch_error: ${String(e)}`);
+      continue;
+    }
+
+    if (!Array.isArray(subs) || subs.length === 0) continue;
+
+    for (const s of subs) {
+      const submittedAt = s?.submitted_at ?? null;
+      const a = s?.assignment || {};
+      const assignmentId = a?.id ?? s?.assignment_id ?? null;
+      const assignmentName = (a?.name ?? "(untitled)").trim();
+      const dueAtISO = a?.due_at ?? null;
+
+      // determine on-time vs late
+      let onTime = null;
+      if (typeof s?.late === "boolean") {
+        onTime = !s.late;
+      } else if (dueAtISO && submittedAt) {
+        const dueT = Date.parse(dueAtISO);
+        const subT = Date.parse(submittedAt);
+        if (Number.isFinite(dueT) && Number.isFinite(subT)) {
+          onTime = subT <= dueT;
+        }
+      }
+
+      console.log(
+        `[recent] submitted: course_id=${courseId} course="${c.name}" assignment_id=${assignmentId} assignment="${assignmentName}" submitted_at=${submittedAt}`
+      );
+
+      if (onTime === true) {
+        console.log(`[recent] status: on-time (due=${dueAtISO ?? "none"})`);
+      } else if (onTime === false) {
+        console.log(`[recent] status: LATE (due=${dueAtISO ?? "none"})`);
+      } else {
+        console.log(`[recent] status: no-due-date-or-unknown (due=${dueAtISO ?? "none"})`);
+      }
+
+      results.push({
+        courseId,
+        courseName: c.name,
+        assignmentId,
+        assignmentName,
+        submittedAtISO: submittedAt,
+        dueAtISO,
+        onTime,
+      });
+    }
+  }
+
+  console.log(`[recent] summary: lookbackMinutes=${lookbackMinutes} matches=${results.length}`);
+  return results;
+}
+
+export async function logRecentSubmissions(opts) {
+  await checkRecentSubmissions(opts);
+}
