@@ -2,18 +2,19 @@ import React, { useEffect, useRef, useState } from "react";
 import { Spinner } from "react-bootstrap";
 import "./PullToRefresh.scss";
 
-// wraps scrollable screens and adds a pull down to refresh feature to them
-
-//scrollerRef: ref to the scrollable container element
-//trigger: px distance to trigger refresh
-//maxPull: max visual pull distance
-//damping: resistance factor 0-1
-
+/*
+ *  - scrollerRef: ref to the scrollable container (must be the element that scrolls)
+ *  - onRefresh?: async () => Promise<void>   // parent-provided refresher
+ *  - trigger, maxPull, damping: UI behavior controls
+ *  - minDuration?: minimum visual spinner time (ms)
+ */
 export default function PullToRefresh({
   scrollerRef,
+  onRefresh,
   trigger = 64,
   maxPull = 96,
   damping = 0.5,
+  minDuration = 450,
   children,
 }) {
   const [pull, setPull] = useState(0);
@@ -39,21 +40,34 @@ export default function PullToRefresh({
     setPull(Math.min(maxPull, dy * damping));
   };
 
+  const runRefresh = async () => {
+    setRefreshing(true);
+    setPull(trigger);
+
+    const t0 = Date.now();
+    try {
+      if (typeof onRefresh === "function") {
+        await onRefresh();                 // <-- parent does the data fetching & state updates
+      } else {
+        console.warn("[PTR] onRefresh not provided, skipping.");
+      }
+    } catch (err) {
+      console.error("[PTR] onRefresh error:", err);
+    } finally {
+      const elapsed = Date.now() - t0;
+      const wait = Math.max(0, minDuration - elapsed);
+      setTimeout(() => {
+        setRefreshing(false);
+        setPull(0);
+      }, wait);
+    }
+  };
+
   const onEnd = async () => {
     if (!draggingRef.current) return;
     draggingRef.current = false;
     if (pull >= trigger) {
-      setRefreshing(true);
-      setPull(trigger);
-      try {
-        // triggers the page reload
-        window.location.reload();
-      } finally {
-        setTimeout(() => {
-          setRefreshing(false);
-          setPull(0);
-        }, 450);
-      }
+      await runRefresh();
     } else {
       setPull(0);
     }
@@ -65,11 +79,9 @@ export default function PullToRefresh({
 
     const ts = (e) => onStart(e.touches[0].clientY);
     const tm = (e) => {
-      if (draggingRef.current) e.preventDefault(); // prevent rubber-band
+      if (draggingRef.current) e.preventDefault(); // prevent rubber-band bounce
       onMove(e.touches[0].clientY);
     };
-
-    //allows functionality on touch and w/ mouse
     const te = () => onEnd();
 
     const md = (e) => onStart(e.clientY);
@@ -92,7 +104,7 @@ export default function PullToRefresh({
       window.removeEventListener("mousemove", mm);
       window.removeEventListener("mouseup", mu);
     };
-  }, [scrollerRef, refreshing]);
+  }, [scrollerRef, refreshing, trigger, maxPull, damping]);
 
   return (
     <div style={{ transform: pull ? `translateY(${pull}px)` : undefined }}>

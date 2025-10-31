@@ -20,6 +20,8 @@ import { getUpcomingAssignmentAlerts } from "../api/canvas.js";
 
 import { getMySemesterCoursesWithGrades } from "../api/canvas.js";
 import { Award } from "react-bootstrap-icons";
+import { checkRecentSubmissions } from "../api/canvas.js";
+
 function HomeScreen() {
     const navigate = useNavigate();
 
@@ -99,6 +101,7 @@ function HomeScreen() {
         (async () => {
             await loadCourses();
             await loadAlerts();
+            await checkRecentSubmissions({ lookbackMinutes: 60 * 24 * 7 });
         })();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -107,6 +110,7 @@ function HomeScreen() {
     const refresh = async () => {
         await loadCourses();
         await loadAlerts();
+        await checkRecentSubmissions({ lookbackMinutes: 60 * 24 * 7 });
         await new Promise((r) => setTimeout(r, 300));
     };
 
