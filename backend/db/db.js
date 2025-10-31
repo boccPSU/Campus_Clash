@@ -26,6 +26,8 @@ async function initDb() {
       lastName  VARCHAR(32) NOT NULL,
       username  VARCHAR(32) NOT NULL UNIQUE,
       password  CHAR(60)    NOT NULL,
+	  xp		INT			NULL,
+	  major		VARCHAR(64) NULL,
       PRIMARY KEY (pid)
     ) ENGINE=InnoDB
       DEFAULT CHARSET=utf8mb4
@@ -164,4 +166,68 @@ async function initDb() {
   console.log('[DB] Schema OK (users + events with description)');
 }
 
-module.exports = { pool, initDb };
+//-----------
+// Mock Data
+//-----------
+
+//Function to add a certain amount of users, with a random major and XP value
+async function addMockUsers(numUsers){
+	// Used to give each user random XP amount
+  function randIntInclusive(min, max) {
+  		return Math.floor(Math.random() * (max - min + 1)) + min;
+	}
+
+	let userNum = 0;
+
+  //Clear out users table
+  await pool.query('TRUNCATE TABLE users');
+
+
+	//List of possible majors
+	const majors = [
+		'Computer Science',
+		'Software Engineering',
+		'Data Science',
+		'Cybersecurity',
+		'Information Systems',
+		'Computer Engineering',
+		'Electrical Engineering',
+		'Mechanical Engineering',
+		'Civil Engineering',
+		'Industrial Engineering',
+		'Math',
+		'Statistics',
+		'Physics',
+		'Chemistry',
+		'Biology',
+		'Psychology',
+		'Economics',
+		'Business Administration',
+		'Marketing',
+		'Finance'
+	];
+
+ const rows = [];
+
+  for (let i = 0; i < numUsers; ++i) {
+    const firstName = `FirstName${userNum}`;
+    const lastName  = `LastName${userNum}`;
+    const username  = `Username${userNum}`;
+	const psswd = "afdahjaklsdhfjkald";
+    const major = majors[randIntInclusive(0, majors.length - 1)];
+    const xp    = randIntInclusive(0, 10000);
+
+    rows.push([firstName, lastName, username, psswd, major, xp]);
+
+    ++userNum;
+  }
+
+  await pool.query(
+    `INSERT INTO users (firstName, lastName, username, password, major, xp)
+     VALUES ?`,
+	 [rows]
+     
+  );
+  console.log(`[DB] Mock users inserted (attempted ${rows.length}).`);
+}
+module.exports = { pool, initDb, addMockUsers};

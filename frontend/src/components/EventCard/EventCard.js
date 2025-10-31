@@ -4,6 +4,7 @@ import { Card } from "react-bootstrap";
 import { ArrowRight } from "react-bootstrap-icons";
 import InfoBox from "../InfoBox/InfoBox";
 
+
 function EventCard({ title, subtitle, date, location, xp }) {
     // Loading state
     const [loading, setLoading] = useState(true);

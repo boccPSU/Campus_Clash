@@ -5,11 +5,12 @@ const express = require('express');
 const cors = require('cors');
 
 // imports the actual pool + init function from db.js
-const { pool, initDb } = require('./db/db.js');
+const { pool, initDb, addMockUsers } = require('./db/db.js');
+
 const auth = require('./db/authentication.js');
 
 
-//Getting base and token vars from .env file
+//Getting base and token vars from .env file for Canas API
 const BASE = process.env.CANVAS_BASE;
 const TOKEN = process.env.CANVAS_TOKEN;
 
@@ -156,7 +157,9 @@ app.post('/api/auth', (req, res) => {
 //.listen takes port and callback functioun that runs when sever starts
 (async () => {
   try {
+    console.log("TESTING");
     await initDb(); // builds/verifies tables + procedures
+    await addMockUsers(1000);
     app.listen(PORT, () => {
       console.log(`API listening on http://localhost:${PORT}`);
     });
