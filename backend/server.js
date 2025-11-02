@@ -69,7 +69,7 @@ app.get(/^\/api\/.*/, async(req, res) =>{
 })
 
 app.use(bodyParser.json())
-app.post('/api/register',(req, res)=>{
+app.post('/api/register', (req, res)=>{
     console.log("Api Register");
     let {firstName, lastName, username, password} = req.body;
     pool.query(`call get_user_by_username(\'${username}\')`, function(err, results, fields) {

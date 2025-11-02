@@ -16,7 +16,7 @@ let dropQueries = [
     `DROP PROCEDURE IF EXISTS get_user_by_username`,
     `DROP PROCEDURE IF EXISTS login`,
     `DROP PROCEDURE IF EXISTS register`
-]
+];
 
 let createQueries = [
     `CREATE TABLE \`users\` (
@@ -53,6 +53,7 @@ const dbPool = mysql.createPool({
     password: password,
     database: database,
 });
+
 dbPool.query("SELECT * FROM users", (err, rows) => {
     if(err) {
         dbPool.getConnection(function(err, con) {
@@ -80,22 +81,3 @@ dbPool.query("SELECT * FROM users", (err, rows) => {
     console.log(rows);
 });
 module.exports = dbPool;
-
-// exports.execQuery=function(query, callback) {
-//   dbPool.getConnection(function(err, connection){
-//     if (err) {
-//       connection.release();
-//       throw err;
-//     }
-//     connection.query(query, function(err, rows){
-//       connection.release();
-//       if(!err) {
-//         callback(null, {rows: rows});
-//       }
-//     });
-//     connection.on('error', function(err) {
-//       throw err;
-//       return
-//     })
-//   })
-// }
