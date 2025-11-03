@@ -14,6 +14,7 @@ const auth = require('./db/authentication.js');
 //Getting base and token vars from .env file for Canas API
 const BASE = process.env.CANVAS_BASE;
 const TOKEN = process.env.CANVAS_TOKEN;
+let canvasToken = null;
 
 //Check to make sure token and base are set
 if (!BASE) throw new Error("Missing BASE in .env");
@@ -51,112 +52,100 @@ app.get("/health", (req, res) =>
     res.json({ ok: true, service: "canvas-proxy" }),
 );
 
-/**
- * Canvas GET proxy
- * Proxies any GET /api/v1/* to <BASE>/api/v1/* with Authorization: Bearer <TOKEN>
- */
-app.get(/^\/api\/v1\/.*/, async (req, res) => {
-  try {
-    const upstreamUrl = `${BASE}${req.originalUrl}`; // '/api/v1/...' already present
-    console.log('[CanvasProxy] GET ->', upstreamUrl);
+//Main GET route that is hit whnever path starts with /api/
+///^\/api\/.*/ is regex syntax to match any request that is /api/*
+app.get(/^\/api\/.*/, async(req, res) =>{
+    try{
+        console.log("Api Caught");
+        //main url we want to hit, .replace is removing /api/ from our url
+        //upstream stands for orions server proxy talks to(canvas)
+        //downstream is client behind the proxy (our browser / react app)
+        const upstreamUrl  = BASE + req.originalUrl;
+        //onsole.log("upstreamUrl:", upstreamUrl);
 
-    const upstream = await fetch(upstreamUrl, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${TOKEN}`,
-        Accept: 'application/json'
-      }
+        //get response from canvas
+        const upstream = await fetch(upstreamUrl, {
+            method: "GET",
+            headers:{
+                Authorization: `Bearer ${TOKEN}`,
+                Accept: "application/json",
+            },
+        });
+
+        
+        const bodyText = await upstream.text();
+        //Get the type of content that is being sent back from canvas (json)
+        const contentType = upstream.headers.get("content-type");
+
+        //return status code, content type, and full response body as text
+        res.status(upstream.status).type(contentType).send(bodyText);
+    } catch (e){
+        //return error string
+        res.status(500).type("text/plain").send(String(e));
+    }
+})
+
+app.use(bodyParser.json())
+app.post('/api/register',(req, res)=>{
+    console.log("Api Register");
+    let {firstName, lastName, username, password} = req.body;
+    pool.query(`call get_user_by_username(\'${username}\')`, function(err, results, fields) {
+        if (err) {
+            console.log(err);
+            res.json({"successful":false});
+        }
+        console.log(results)
+        if (results[0].length == 0) {
+            console.log('new user');
+            let hashedPassword = auth.encryptPassword(password);
+            console.log(hashedPassword);
+            if (!hashedPassword) {
+                res.json({"successful":false});
+            }
+            let query = `CALL register(\'${firstName}\', \'${lastName}\', \'${username}\', \'${hashedPassword}\')`;
+            pool.query(query, function(err, results, fields) {
+                if (err) {
+                    console.log(err);
+                    res.json({"successful":false});
+                }
+                console.log(results);
+            });
+            const token = auth.generateToken(username);
+            res.json({"successful":true, token});
+        } else {
+            console.log('old user');
+            res.json({"successful":false});
+        }
     });
+})
 
-    const contentType = upstream.headers.get('content-type') || 'application/json';
-    const bodyText = await upstream.text();
+app.post('/api/login',(req, res)=>{
+    console.log("Api Login");
+    const {username, password} = req.body;
+    pool.query(`call get_user_by_username(\'${username}\')`, function(err, results, fields) {
+        if (err) {
+            console.log(err);
+            res.json({"successful":false});
+        }
+        rows = results[0];
+        console.log(rows)
+        if (rows.length == 0) {
+            console.log("Incorrect Username. Try Again");
+            res.json({"successful":false})
+        } else {
+            console.log(rows[0]);
+            if (auth.verifyPassword(password, rows[0].password)) {
+                const token = auth.generateToken(username);
+                console.log('Login Successful!');
+                res.json({"successful":true, token});
+            } else {
+                console.log('Incorrect Password. Try Again');
+                res.json({"successful": false});
+            }
+        }
+    });
+})
 
-    // Optional: forward pagination headers (Canvas uses Link)
-    const linkHeader = upstream.headers.get('link');
-    if (linkHeader) res.set('Link', linkHeader);
-
-    res.status(upstream.status).type(contentType).send(bodyText);
-  } catch (e) {
-    console.error('[CanvasProxy] error:', e);
-    res.status(500).type('text/plain').send(String(e));
-  }
-});
-
-
-// POST /api/register
-// Registers new user to database
-app.post('/api/register', async (req, res) => {
-  console.log('Api Register');
-  const { firstName, lastName, username, password } = req.body;
-
-  if (!firstName || !lastName || !username || !password) {
-    return res.status(400).json({ successful: false, error: 'Missing fields' });
-  }
-
-  try {
-    // 1) Does user exist?
-    const [lookup] = await pool.query('CALL get_user_by_username(?)', [username]);
-    const rows = lookup?.[0] || [];
-    if (rows.length > 0) {
-      return res.status(409).json({ successful: false, error: 'Username taken' });
-    }
-
-    // 2) Hash password (your current auth uses bcrypt sync + returns hash)
-    const hashedPassword = auth.encryptPassword(password);
-    if (!hashedPassword) {
-      return res.status(500).json({ successful: false, error: 'Hashing failed' });
-    }
-
-    // 3) Insert user
-    await pool.query('CALL register(?, ?, ?, ?)', [
-      firstName,
-      lastName,
-      username,
-      hashedPassword,
-    ]);
-
-    // 4) Token
-    const token = auth.generateToken(username);
-    return res.status(201).json({ successful: true, token });
-  } catch (e) {
-    console.error('[BACKEND] register error:', e);
-    return res.status(500).json({ successful: false, error: 'DB error' });
-  }
-});
-
-
-// POST /api/login
-app.post('/api/login', async (req, res) => {
-  console.log('Api Login');
-  const { username, password } = req.body;
-
-  if (!username || !password) {
-    return res.status(400).json({ successful: false, error: 'Missing fields' });
-  }
-
-  try {
-    const [lookup] = await pool.query('CALL get_user_by_username(?)', [username]);
-    const rows = lookup?.[0] || [];
-    console.log('[LOGIN] lookup rows:', rows);
-    if (rows.length === 0) {
-      return res.status(401).json({ successful: false, error: 'Invalid username or password' });
-    }
-
-    const user = rows[0];
-    const ok = auth.verifyPassword(password, user.password);
-    if (!ok) {
-      return res.status(401).json({ successful: false, error: 'Invalid username or password' });
-    }
-
-    const token = auth.generateToken(username);
-    return res.json({ successful: true, token });
-  } catch (e) {
-    console.error('[BACKEND] login error:', e);
-    return res.status(500).json({ successful: false, error: 'DB error' });
-  }
-});
-
-// POST /api/auth
 app.post('/api/auth', (req, res) => {
   const tokenHeaderKey = 'jwt-token'; // matches your frontend header
   const token = req.headers[tokenHeaderKey];

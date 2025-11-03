@@ -3,6 +3,8 @@ const jwt = require("jsonwebtoken");
 
 const key = process.env.AUTH_KEY;
 
+if (!key) throw new Error('AUTH_KEY missing in .env file.');
+
 const encryptPassword = (password) => {
     const salt = bcrypt.genSaltSync(10);
     const hash = bcrypt.hashSync(password, salt);
