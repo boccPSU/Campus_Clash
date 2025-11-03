@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import RegisterUserPage from "../components/RegisterUserPage.js";
+import RegisterStudentPage from "../components/RegisterStudentPage";
 import { Button, Form, InputGroup } from "react-bootstrap";
 import { useNavigate, Link} from "react-router-dom";
 
@@ -12,6 +13,7 @@ function RegisterScreen({setToken}) {
         password: "",
         university: "",
         major: "",
+        canvasToken: ""
     });
 
     const [validated, setValidated] = useState(false);
@@ -61,13 +63,52 @@ function RegisterScreen({setToken}) {
         })
     }
 
+    const handleNextStep = () => setStep(prevStep => prevStep + 1);
+    const handlePrevStep = () => setStep(prevStep => prevStep - 1);
+
     const renderStep = () => {
         switch (step) {
             case 1:
                 return <RegisterUserPage formData={formData} setFormData={setFormData}></RegisterUserPage>
-
+            case 2:
+                return <RegisterStudentPage formData={formData} setFormData={setFormData}></RegisterStudentPage>
             default:
                 return <RegisterUserPage formData={formData} setFormData={setFormData}></RegisterUserPage>
+        }
+    }
+
+    const renderButtons = () => {
+        switch (step) {
+            case 1:
+                return  <Button
+                            variant="primary"
+                            onClick={handleNextStep}
+                        >
+                            Next
+                        </Button>
+            case 2:
+                return <>
+                    <Button
+                        className="me-2"
+                        onClick={handlePrevStep}
+                    >
+                        Previous
+                    </Button>
+                    <Button
+                        type="Submit"
+                        variant="primary"
+                        disabled={isLoading}
+                    >
+                        {isLoading ? "Loading..." : "Register"}
+                    </Button>
+                </>
+            default:
+                return  <Button
+                            variant="primary"
+                            onClick={handleNextStep}
+                        >
+                            Next
+                        </Button>
         }
     }
 
@@ -77,6 +118,7 @@ function RegisterScreen({setToken}) {
                 <div className='40-w p-5 rounded bg-light'>
                     <Form noValidate validated={validated} onSubmit={!isLoading ? handleSubmit : null}>
                         {renderStep()}
+                        {renderButtons()}
                     </Form>
                     <div>
                         <a>Already have an account? </a><Link to="/login">Log In.</Link>

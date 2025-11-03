@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { Button, Form, InputGroup } from "react-bootstrap";
 import { useNavigate, Link} from "react-router-dom";
 
-function RegisterUserPage(formData, {setFormData}) {
-    const [fName, setFName] = useState("");
-    const [lName, setLName] = useState("");
-    const [uName, setUName] = useState("");
-    const [password, setPassword] = useState("");
+function RegisterUserPage({formData, setFormData}) {
+    const [fName, setFName] = useState(formData.firstName);
+    const [lName, setLName] = useState(formData.lastName);
+    const [uName, setUName] = useState(formData.username);
+    const [password, setPassword] = useState(formData.password);
 
     useEffect(() => {
         setFormData({
@@ -14,9 +14,10 @@ function RegisterUserPage(formData, {setFormData}) {
             lastName: lName,
             username: uName,
             password: password,
-            university: "",
-            major: ""
-        })
+            university: formData.university,
+            major: formData.major,
+            canvasToken: formData.canvasToken
+        });
     }, [fName, lName, uName, password]);
 
     return (
@@ -24,30 +25,34 @@ function RegisterUserPage(formData, {setFormData}) {
             <h3>Register</h3>
             <Form.Label>Name</Form.Label>
             <InputGroup className="mb-3" hasValidation>
-                <Form.Control
-                    type="text" 
-                    required
-                    value={fName}
-                    placeholder="First Name"
-                    aria-label="First Name"
-                    aria-describedby="basic-addon1"
-                    onChange={(event) => {
-                        setFName(event.target.value);
-                    }}
-                />
-                <Form.Control.Feedback type="invalid">Please Enter your First Name.</Form.Control.Feedback>
-                <Form.Control
-                    type="text" 
-                    required 
-                    value={lName}
-                    placeholder="Last Name"
-                    aria-label="Last Name"
-                    aria-describedby="basic-addon1"
-                    onChange={(event) => {
-                        setLName(event.target.value);
-                    }}
-                />
-                <Form.Control.Feedback type="invalid">Please Enter your Last Name.</Form.Control.Feedback>
+                <div className="flex-fill me-2">
+                    <Form.Control
+                        type="text" 
+                        required
+                        value={fName}
+                        placeholder="First Name"
+                        aria-label="First Name"
+                        aria-describedby="basic-addon1"
+                        onChange={(event) => {
+                            setFName(event.target.value);
+                        }}
+                    />
+                    <Form.Control.Feedback type="invalid">Please Enter your First Name.</Form.Control.Feedback>
+                </div>
+                <div className = "flex-fill">
+                    <Form.Control
+                        type="text" 
+                        required 
+                        value={lName}
+                        placeholder="Last Name"
+                        aria-label="Last Name"
+                        aria-describedby="basic-addon1"
+                        onChange={(event) => {
+                            setLName(event.target.value);
+                        }}
+                    />
+                    <Form.Control.Feedback type="invalid">Please Enter your Last Name.</Form.Control.Feedback>
+                </div>
             </InputGroup>
 
             <Form.Label>Username</Form.Label>
@@ -67,7 +72,7 @@ function RegisterUserPage(formData, {setFormData}) {
             </InputGroup>
 
             <Form.Label>Password</Form.Label>
-            <InputGroup className="mb-3">
+            <InputGroup className="mb-3" hasValidation>
                 <Form.Control
                     type="text" 
                     required

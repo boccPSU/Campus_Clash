@@ -15,6 +15,7 @@ const auth = require("./db/authentication.js");
 //Getting base and token vars from .env file
 const BASE = process.env.CANVAS_BASE;
 const TOKEN = process.env.CANVAS_TOKEN;
+let canvasToken = null;
 
 //Check to make sure token and base are set
 if (!BASE) throw new Error("Missing BASE in .env");
@@ -43,7 +44,7 @@ app.get(/^\/api\/.*/, async(req, res) =>{
         //main url we want to hit, .replace is removing /api/ from our url
         //upstream stands for orions server proxy talks to(canvas)
         //downstream is client behind the proxy (our browser / react app)
-        const upstreamUrl  = BASE + req.originalUrl;
+        const upstreamUrl  = canvasToken + req.originalUrl;
         //onsole.log("upstreamUrl:", upstreamUrl);
 
         //get response from canvas
@@ -71,7 +72,7 @@ app.get(/^\/api\/.*/, async(req, res) =>{
 app.use(bodyParser.json())
 app.post('/api/register', (req, res)=>{
     console.log("Api Register");
-    let {firstName, lastName, username, password} = req.body;
+    let {firstName, lastName, username, password, university, major, canvasToken} = req.body;
     pool.query(`call get_user_by_username(\'${username}\')`, function(err, results, fields) {
         if (err) {
             console.log(err);
@@ -85,7 +86,7 @@ app.post('/api/register', (req, res)=>{
             if (!hashedPassword) {
                 res.json({"successful":false});
             }
-            let query = `CALL register(\'${firstName}\', \'${lastName}\', \'${username}\', \'${hashedPassword}\')`;
+            let query = `CALL register(\'${firstName}\', \'${lastName}\', \'${username}\', \'${hashedPassword}\', \'${university}\', \'${major}\', \'${canvasToken}\')`;
             pool.query(query, function(err, results, fields) {
                 if (err) {
                     console.log(err);
@@ -94,6 +95,7 @@ app.post('/api/register', (req, res)=>{
                 console.log(results);
             });
             const token = auth.generateToken(username);
+            canvasToken = canvasToken;
             res.json({"successful":true, token});
         } else {
             console.log('old user');
@@ -119,6 +121,16 @@ app.post('/api/login',(req, res)=>{
             console.log(rows[0]);
             if (auth.verifyPassword(password, rows[0].password)) {
                 const token = auth.generateToken(username);
+                pool.query(`call get_canvas_token_by_username(\'${username}\')`, function(err, results, fields) {
+                    rows = results[0];
+                    if (rows.length == 0) {
+                        console.log("Error retrieving Canvas Token.");
+                        res.json({"successful": false});
+                    } else {
+                        console.log(rows[0]);
+                        canvasToken = rows[0].canvasToken;
+                    }
+                });
                 console.log('Login Successful!');
                 res.json({"successful":true, token});
             } else {
