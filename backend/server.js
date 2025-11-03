@@ -6,6 +6,7 @@ const cors = require('cors');
 
 // imports the actual pool + init function from db.js
 const { pool, initDb, addMockUsers } = require('./db/db.js');
+const {getSortedMajors} = require('./db/sortData.js');
 
 const auth = require('./db/authentication.js');
 
@@ -26,6 +27,22 @@ const PORT = process.env.PORT;
 //app.use registers middleware that runs for every incoming requires
 //Tells browser that our react app can make requests to our server running on different ports preventing CORS issues
 app.use(cors({ origin: "http://localhost:3000" }));
+
+// Start server
+(async () => {
+  try {
+    console.log("TESTING");
+    await initDb(); // builds/verifies tables + procedures
+    await addMockUsers(1000);
+    
+    app.listen(PORT, () => {
+      console.log(`API listening on http://localhost:${PORT}`);
+    });
+  } catch (e) {
+    console.error('[DB] init failed:', e);
+    process.exit(1);
+  }
+})();
 
 // Registers get endpoint at /health to check if server is up
 // (req, res) is route handler req: incoming obj, res outgoing response obj
@@ -153,22 +170,6 @@ app.post('/api/auth', (req, res) => {
   }
 });
 
-//Start listening to start HTTP server
-//.listen takes port and callback functioun that runs when sever starts
-(async () => {
-  try {
-    console.log("TESTING");
-    await initDb(); // builds/verifies tables + procedures
-    await addMockUsers(1000);
-    app.listen(PORT, () => {
-      console.log(`API listening on http://localhost:${PORT}`);
-    });
-  } catch (e) {
-    console.error('[DB] init failed:', e);
-    process.exit(1);
-  }
-})();
-
 // POST /api/event
 // Creates a new event 
 app.post('/api/event', async (req, res) => {
@@ -207,3 +208,13 @@ app.get('/api/events', async (req, res) => {
     res.status(500).json({ successful: false });
   }
 });
+
+// GET request to return sorted majors and XP by most to least XP amound
+app.get('/api/major-xp', async (req, res) => {
+	try {
+    const rows = await getSortedMajors();
+    res.json(rows);
+  } catch (e) {
+     res.status(500).json({ successful: false });
+  }
+})

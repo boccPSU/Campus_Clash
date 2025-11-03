@@ -1,15 +1,22 @@
+// BasicHorizontalBar.scss
 @use "../../css/tokens.scss" as *;
 
-.majorGraphTitle {
-  @extend .fw-bold;
-  @extend .mb-2;
-  @extend .text-light;
-  @extend .text-center;
-}
+.majorChart {
+  .MuiBarElement-root { fill: $primary; }
 
-.graphBox {
-  border: 0 !important;
-  background: transparent !important;
-  padding: 0 !important;
-  border-radius: 0 !important;
+  .barLabel {
+    fill: $light !important;
+    font-weight: 600;
+    font-size: 12px;
+    text-anchor:center;
+  }
+  
+
+  .MuiChartsAxis-line,
+  .MuiChartsAxis-tick { stroke: $light !important; }
+
+  .MuiChartsAxis-label,
+  .MuiChartsAxis-tickLabel { fill: $light !important; }
+
+  .MuiChartsGrid-line { stroke: $light !important; }
 }

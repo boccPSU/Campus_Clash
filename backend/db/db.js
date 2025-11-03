@@ -230,4 +230,5 @@ async function addMockUsers(numUsers){
   );
   console.log(`[DB] Mock users inserted (attempted ${rows.length}).`);
 }
+
 module.exports = { pool, initDb, addMockUsers};

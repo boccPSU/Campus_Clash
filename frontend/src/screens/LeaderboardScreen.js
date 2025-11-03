@@ -11,70 +11,99 @@ import LeaderboardTable from "../components/LeaderboardTable/LeaderboardTable";
 import useCollapseOnScroll from "../components/hooks/useCollapseOnScroll";
 import PullToRefresh from "../components/interaction/PullToRefresh";
 import ScreenScroll from "../components/ScreenScroll/ScreenScroll"; // small scrollable wrapper
+import { useEffect } from "react";
+import InfoBox from "../components/InfoBox/InfoBox";
 
 function LeaderboardScreen() {
-  const scrollerRef = useRef(null);
+    // Loading states
+    const [loadingLeaderboard, setLoadingLeaderboard] = useState();
 
-  // Collapse header when user scrolls
-  const collapsed = useCollapseOnScroll(scrollerRef);
+    // Example leaderboard data
+    const [data, setData] = useState();
 
-  // Example leaderboard data
-  const [data, setData] = useState([
-    { rank: 1, major: "Computer Science", xp: 48000 },
-    { rank: 2, major: "Mechanical Engineering", xp: 46000 },
-    { rank: 3, major: "Electrical Engineering", xp: 45000 },
-    { rank: 4, major: "Business Administration", xp: 43000 },
-    { rank: 5, major: "Biology", xp: 41000 },
-    { rank: 6, major: "Psychology", xp: 40000 },
-    { rank: 7, major: "Nursing", xp: 38000 },
-    { rank: 8, major: "Chemistry", xp: 37000 },
-    { rank: 9, major: "Finance", xp: 35000 },
-    { rank: 10, major: "Political Science", xp: 34000 },
-  ]);
+    const scrollerRef = useRef(null);
 
-  // Fake refresh for PTR demo
-  const refresh = async () => {
-    await new Promise((r) => setTimeout(r, 900));
-    setData((prev) =>
-      prev.map((row) =>
-        row.rank === 1 ? { ...row, xp: row.xp + 100 } : row
-      )
-    );
-  };
+    // Collapse header when user scrolls
+    const collapsed = useCollapseOnScroll(scrollerRef);
 
-  return (
-    <>
-      {/* Fixed header with collapsing state */}
-      <HeaderBar title="Leaderboard" xp={10500} collapsed={collapsed} />
+    // Request leaderboard data
+    useEffect(() => {
+        (async () => {
+            setLoadingLeaderboard(true); // Tell app we are loading
+            try {
+                // Call endpoint, and convert to json
+                const res = await fetch("http://localhost:5000/api/major-xp");
+                const row = await res.json();
 
-      {/* Spacer pushes content below fixed header */}
-      <div className={`headerSpacer ${collapsed ? "is-collapsed" : ""}`} />
+                console.log("ROW", row);
+                if (!res.ok) throw new Error("Failed to fetch Majors-XP");
 
-      {/* Internal scrollable container for screen content */}
-      <ScreenScroll ref={scrollerRef}>
-        {/* Wrap content in PullToRefresh (optional) */}
-        <PullToRefresh scrollerRef={scrollerRef} onRefresh={refresh}>
-          <Container className="py-3 mb-5">
-            <TopMajorsCard
-              topMajors={[
-                { rank: 1, major: "Computer Science" },
-                { rank: 2, major: "Mechanical Engineering" },
-                { rank: 3, major: "Electrical Engineering" },
-              ]}
+                // Map data to leaderboard cards.
+                const mappedData = row.map((row, idx) => ({
+                    rank: idx + 1,
+                    major: row.major ?? "Unknown",
+                    xp: row.totalXp ?? row.xp ?? 0,
+                }));
+
+                setData(mappedData);
+                return;
+            } catch (e) {
+                console.log("Could not fetch Leaderboard Data");
+                console.error(e);
+            } finally {
+                setLoadingLeaderboard(false); // Stop loading
+            }
+        })();
+    }, []);
+
+    // Fake refresh for PTR demo
+    const refresh = async () => {
+        await new Promise((r) => setTimeout(r, 900));
+        setData((prev) =>
+            prev.map((row) =>
+                row.rank === 1 ? { ...row, xp: row.xp + 100 } : row
+            )
+        );
+    };
+
+    return (
+        <>
+            {/* Fixed header with collapsing state */}
+            <HeaderBar title="Leaderboard" xp={10500} collapsed={collapsed} />
+
+            {/* Spacer pushes content below fixed header */}
+            <div
+                className={`headerSpacer ${collapsed ? "is-collapsed" : ""}`}
             />
-            <MajorGraphCard />
-            <LeaderboardTable data={data} />
-          </Container>
-        </PullToRefresh>
 
-        {/* Spacer so fixed BottomNav doesn’t overlap content */}
-        <div style={{ height: "var(--bottom-nav-height, 72px)" }} />
-      </ScreenScroll>
+            {/* Internal scrollable container for screen content */}
+            <ScreenScroll ref={scrollerRef}>
+                {/* Wrap content in PullToRefresh (optional) */}
+                <PullToRefresh scrollerRef={scrollerRef} onRefresh={refresh}>
+                    <Container className="py-3 mb-5">
+                        <TopMajorsCard
+                            topMajors={(data ?? []).slice(0, 3).map((r, i) => ({
+                                rank: i + 1,
+                                major: r.major,
+                                xp: r.xp ?? 0,
+                            }))}
+                        />
+                        <InfoBox title={"Major Graph"}>
+                            <MajorGraphCard data={data ?? []} />
+                        </InfoBox>
 
-      {/* Bottom navigation bar */}
-      <BottomNav />
-    </>
-  );
+                        <LeaderboardTable data={data} />
+                    </Container>
+                </PullToRefresh>
+
+                {/* Spacer so fixed BottomNav doesn’t overlap content */}
+                <div style={{ height: "var(--bottom-nav-height, 72px)" }} />
+            </ScreenScroll>
+
+            {/* Bottom navigation bar */}
+            <BottomNav />
+        </>
+    );
 }
 
 export default LeaderboardScreen;

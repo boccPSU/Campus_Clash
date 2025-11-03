@@ -18,17 +18,12 @@ function LeaderboardTable({ data = [] }) {
 
 
     // Use provided leaderboard data, or default sample if none is passed
-    const leaderboardData =
-        data.length > 0
-            ? data
-            : [
-                  { rank: 1, major: "Computer Science", xp: 48000 },
-                  { rank: 2, major: "Mechanical Engineering", xp: 46000 },
-                  { rank: 3, major: "Electrical Engineering", xp: 45000 },
-              ];
+    const leaderboardData = data
+    .filter(item => (item.major ?? '').toLowerCase() !== 'unknown' && Number(item.xp) > 0)
+    .map((item, idx) => ({ ...item, rank: idx + 1 }));
 
     // If loading data, show spinner
-    if(loading){
+    if(false){
         return(
             <InfoBox title={"Major Leaderboard"}>
             {/* Loop through leaderboard data and render each row */}

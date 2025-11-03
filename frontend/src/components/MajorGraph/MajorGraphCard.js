@@ -1,154 +1,70 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Card, Button, Modal } from "react-bootstrap";
-import { BarChart } from "@mui/x-charts";
+// ResponsiveHorizontalBar.js
+import * as React from "react";
+import { ChartContainer, BarPlot, BarLabel, ChartsXAxis } from "@mui/x-charts";
 
-const nf = new Intl.NumberFormat("en-US");
+export default function MajorGraphCard({ data = [] }) {
+    // Convert incoming rows to just label and xp
+    const rows = Array.isArray(data)
+        ? data
+              .filter((r) => r?.major && r.major !== "Unknown")
+              .map((r) => ({
+                  label: r.major ?? r.label ?? "Unknown",
+                  xp: Number(r.xp) || 0,
+              }))
+        : [];
 
-function useBoxWidth() {
-  const ref = useRef(null);
-  const [w, setW] = useState(360);
-  const measure = () => ref.current?.clientWidth && setW(ref.current.clientWidth);
-  useLayoutEffect(measure, []);
-  useEffect(() => {
-    const onResize = () => measure();
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-  return [ref, w];
-}
+    const hostRef = React.useRef(null);
+    const [width, setWidth] = React.useState(360);
+			
+	// Allows graph to resize on screen change
+    React.useEffect(() => {
+        const measure = () => setWidth(hostRef.current?.clientWidth ?? 360);
+        measure();
+        window.addEventListener("resize", measure);
+        return () => window.removeEventListener("resize", measure);
+    }, []);
 
-// abbreviated majors directly in dataset
-const DEFAULT_DATA = [
-  { major: "CS", xp: 48000 },
-  { major: "ME", xp: 45500 },
-  { major: "EE", xp: 44000 },
-  { major: "Bus", xp: 41800 },
-  { major: "Bio", xp: 40000 },
-  { major: "Psych", xp: 38500 },
-  { major: "Nurs", xp: 37000 },
-  { major: "Chem", xp: 35500 },
-  { major: "Fin", xp: 34000 },
-  { major: "Poli Sci", xp: 32500 },
-  { major: "Eng Lit", xp: 31000 },
-  { major: "Math", xp: 30000 },
-  { major: "CE", xp: 29000 },
-  { major: "Edu", xp: 27500 },
-  { major: "Mkt", xp: 26500 },
-  { major: "Hist", xp: 25000 },
-  { major: "Env Sci", xp: 23500 },
-  { major: "Soc", xp: 22000 },
-  { major: "Arts", xp: 19500 },
-  { major: "Phil", xp: 17000 },
-];
+    //Height grows with rows
+    const height = Math.max(240, rows.length * 32);
 
-export default function MajorGraphCard({
-  title = "Major Graph",
-  data = DEFAULT_DATA,
-}) {
-  const rows = [...data].sort((a, b) => b.xp - a.xp);
-
-  // card sizing
-  const [wrapRef, width] = useBoxWidth();
-  const isPhone = width < 430;
-  const chartHeight = isPhone ? 320 : 420;
-
-  // modal sizing
-  const [show, setShow] = useState(false);
-  const [modalRef, modalWidth] = useBoxWidth();
-
-  // axis/grid styles
-  const whiteAxisSX = {
-    backgroundColor: "transparent",
-    "& .MuiChartsAxis-tickLabel, & .MuiChartsLegend-label": { fill: "#ffffff" },
-    "& .MuiChartsAxis-label": { fill: "#ffffff" },
-    "& .MuiChartsAxis-line, & .MuiChartsAxis-tick": { stroke: "#ffffff" },
-    "& .MuiChartsGrid-line": { stroke: "rgba(255,255,255,0.2)" },
-  };
-
-  const darkAxisSX = {
-    backgroundColor: "transparent",
-    "& .MuiChartsAxis-tickLabel, & .MuiChartsLegend-label": { fill: "#1f2937" },
-    "& .MuiChartsAxis-label": { fill: "#1f2937" },
-    "& .MuiChartsAxis-line, & .MuiChartsAxis-tick": { stroke: "#1f2937" },
-    "& .MuiChartsGrid-line": { stroke: "rgba(31,41,55,0.18)" },
-  };
-
-  return (
-    <>
-      <Card className="shadow-sm rounded-4 bg-dark border border-primary">
-        <Card.Body>
-          <h2 className="text-center text-light fw-bold mb-2">{title}</h2>
-
-          <div ref={wrapRef} className="w-100">
-            <BarChart
-              dataset={rows}
-              layout="horizontal"
-              width={width}
-              height={chartHeight}
-              series={[{ dataKey: "xp", label: isPhone ? undefined : "XP" }]}
-              xAxis={[{
-                scaleType: "linear",
-                label: "XP",
-                valueFormatter: (v) => nf.format(v),
-                tickLabelStyle: { fontSize: isPhone ? 10 : 12, fill: "#ffffff" },
-                labelStyle: { fill: "#ffffff" },
-              }]}
-              yAxis={[{
-                scaleType: "band",
-                dataKey: "major",
-                tickLabelStyle: { fontSize: isPhone ? 10 : 12, fill: "#ffffff" },
-              }]}
-              margin={{ top: 0, right: 10, bottom: 28, left: 10 }}
-              grid={{ vertical: false, horizontal: true }}
-              slotProps={{ legend: { hidden: true }, tooltip: { trigger: "none" } }}
-              sx={whiteAxisSX} // white axes for dark card
-            />
-          </div>
-
-          <div className="d-flex justify-content-center">
-            <Button
-              variant="primary"
-              className="mt-3 rounded-pill px-4 fw-semibold"
-              onClick={() => setShow(true)}
+    return (
+        <div ref={hostRef} className="majorChart w-100">
+            <ChartContainer
+                dataset={rows}
+                width={width}
+                height={height}
+                series={[
+                    {
+                        type: "bar",
+                        id: "xp",
+                        dataKey: "xp",
+                        layout: "horizontal",
+                    },
+                ]}
+                xAxis={[{ scaleType: "linear", label: "XP" }]}
+                yAxis={[
+                    {
+                        dataKey: "label",
+                        scaleType: "band",
+                        position: "right",
+                        tickLabelStyle: { opacity: 0 },
+                    },
+                ]}
+                margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+                sx={{
+                    "--Charts-axisLeft-width": 0,
+                    "--Charts-axisRight-width": 0,
+                    "--Charts-axisTop-height": 0,
+                    "--Charts-axisBottom-height": 20,
+                }}
             >
-              Enlarge Graph
-            </Button>
-          </div>
-        </Card.Body>
-      </Card>
-
-      <Modal show={show} onHide={() => setShow(false)} size="lg" centered>
-        <Modal.Header closeButton>
-          <Modal.Title>{title}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <div ref={modalRef} className="w-100">
-            <BarChart
-              dataset={rows}
-              layout="horizontal"
-              width={modalWidth}
-              height={600}
-              series={[{ dataKey: "xp", label: "XP" }]}
-              xAxis={[{
-                scaleType: "linear",
-                label: "XP",
-                valueFormatter: (v) => nf.format(v),
-                tickLabelStyle: { fontSize: 12, fill: "#1f2937" },
-                labelStyle: { fill: "#1f2937" },
-              }]}
-              yAxis={[{
-                scaleType: "band",
-                dataKey: "major",
-                tickLabelStyle: { fontSize: 12, fill: "#1f2937" },
-              }]}
-              margin={{ top: 20, right: 24, bottom: 40, left: 40 }}
-              grid={{ vertical: false, horizontal: true }}
-              slotProps={{ legend: { hidden: true }, tooltip: { trigger: "none" } }}
-              sx={darkAxisSX}
-            />
-          </div>
-        </Modal.Body>
-      </Modal>
-    </>
-  );
+                <BarPlot
+                    barLabel={(item) => rows[item.dataIndex]?.label ?? ""}
+                    slots={{ barLabel: BarLabel }}
+                    slotProps={{ barLabel: { className: "barLabel" } }}
+                />
+                <ChartsXAxis />
+            </ChartContainer>
+        </div>
+    );
 }
