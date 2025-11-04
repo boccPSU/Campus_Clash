@@ -1,43 +1,49 @@
-// backend/db/db.js
-require('dotenv').config();
-const mysql = require('mysql2/promise');	//mysql2 here!!!
+// Database creation and initialization
+require("dotenv").config();
+const mysql = require("mysql2/promise");
 
-<<<<<<< HEAD
-// Connection pool for database
+// Creating DB connection
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  port: Number(process.env.DB_PORT),
+  port: Number(process.env.DB_PORT || 3306),
   waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
 });
 
-// Build/repair schema & stored procedures
+// Initializes database when server is started
 async function initDb() {
-  // ----------------------------
-  // users table
-  // ----------------------------
+  // Create users table
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
-      pid INT NOT NULL AUTO_INCREMENT,
+      pid       INT NOT NULL AUTO_INCREMENT,
       firstName VARCHAR(32) NOT NULL,
       lastName  VARCHAR(32) NOT NULL,
       username  VARCHAR(32) NOT NULL UNIQUE,
       password  CHAR(60)    NOT NULL,
-	  xp		INT			NULL,
-	  major		VARCHAR(64) NULL,
       PRIMARY KEY (pid)
     ) ENGINE=InnoDB
       DEFAULT CHARSET=utf8mb4
       COLLATE=utf8mb4_0900_ai_ci;
   `);
 
-  // ----------------------------
-  // events table
-  // ----------------------------
+  // Create students table
+  await pool.query(`
+  CREATE TABLE IF NOT EXISTS students (
+    pid INT DEFAULT NULL,
+    university VARCHAR(32) DEFAULT NULL,
+    major VARCHAR(64)      DEFAULT NULL,
+    XP INT DEFAULT 0,
+    canvasToken VARCHAR(70) DEFAULT NULL,
+    KEY pid (pid),
+    CONSTRAINT students_ibfk_1 FOREIGN KEY (pid) REFERENCES users (pid)
+  ) ENGINE=InnoDB
+    DEFAULT CHARSET=utf8mb4
+    COLLATE=utf8mb4_0900_ai_ci;
+`);
+
+  // Create events table
   await pool.query(`
     CREATE TABLE IF NOT EXISTS events (
       eid         INT NOT NULL AUTO_INCREMENT,
@@ -52,23 +58,15 @@ async function initDb() {
       COLLATE=utf8mb4_0900_ai_ci;
   `);
 
-  // Ensure description exists for older deployments (MySQL 8.0+ supports IF NOT EXISTS)
-  await pool.query(`
-    ALTER TABLE events
-    ADD COLUMN IF NOT EXISTS description TEXT NULL AFTER subtitle
-  `).catch(() => {}); // ignore if unavailable/older MySQL
-
-  // ----------------------------
-  // Drop user procs (recreate cleanly)
-  // ----------------------------
+  // Drop + recreate user procedures
   await pool.query(`DROP PROCEDURE IF EXISTS get_user_by_first_name`);
   await pool.query(`DROP PROCEDURE IF EXISTS get_user_by_username`);
   await pool.query(`DROP PROCEDURE IF EXISTS login`);
   await pool.query(`DROP PROCEDURE IF EXISTS register`);
 
-  // ----------------------------
-  // User procs
-  // ----------------------------
+  //-------------------------
+  // List of User procedures
+  //-------------------------
   await pool.query(`
     CREATE PROCEDURE get_user_by_first_name(IN p_firstName VARCHAR(32))
     BEGIN
@@ -92,33 +90,33 @@ async function initDb() {
   `);
 
   await pool.query(`
-    CREATE PROCEDURE register(
-      IN p_firstName VARCHAR(32),
-      IN p_lastName  VARCHAR(32),
-      IN p_username  VARCHAR(32),
-      IN p_password  CHAR(60)
-    )
-    BEGIN
-      INSERT INTO users (firstName, lastName, username, password)
-      VALUES (p_firstName, p_lastName, p_username, p_password);
-    END
-  `);
+  CREATE PROCEDURE register(
+    IN p_firstName  VARCHAR(32),
+    IN p_lastName   VARCHAR(32),
+    IN p_username   VARCHAR(32),
+    IN p_password   CHAR(60),
+    IN p_university VARCHAR(32),
+    IN p_major      VARCHAR(64),
+    IN p_canvasTok  VARCHAR(70)
+  )
+  BEGIN
+    INSERT INTO users (firstName, lastName, username, password)
+    VALUES (p_firstName, p_lastName, p_username, p_password);
 
-  // ----------------------------
-  // Drop event procs 
-  // ----------------------------
+    INSERT INTO students (pid, university, major, XP, canvasToken)
+    VALUES (LAST_INSERT_ID(), p_university, p_major, 0, p_canvasTok);
+  END
+`);
+
+  // Drop + recreate event procedures
   await pool.query(`DROP PROCEDURE IF EXISTS create_event`);
   await pool.query(`DROP PROCEDURE IF EXISTS get_event`);
-  await pool.query(`DROP PROCEDURE IF EXISTS list_events_between`);
-  await pool.query(`DROP PROCEDURE IF EXISTS list_upcoming_events`);
-  await pool.query(`DROP PROCEDURE IF EXISTS update_event`);
-  await pool.query(`DROP PROCEDURE IF EXISTS delete_event`);
   await pool.query(`DROP PROCEDURE IF EXISTS list_events`);
-  // ----------------------------
-  // Event procs 
-  // ----------------------------
+  await pool.query(`DROP PROCEDURE IF EXISTS delete_event`);
 
-  // Create event
+  //-------------------------
+  // List of Event procedures
+  //-------------------------
   await pool.query(`
     CREATE PROCEDURE create_event(
       IN p_title       VARCHAR(128),
@@ -134,7 +132,6 @@ async function initDb() {
     END
   `);
 
-  // Read single event
   await pool.query(`
     CREATE PROCEDURE get_event(IN p_eid INT)
     BEGIN
@@ -142,18 +139,15 @@ async function initDb() {
     END
   `);
 
-    
-    await pool.query(`
+  await pool.query(`
     CREATE PROCEDURE list_events()
     BEGIN
-        SELECT eid, title, subtitle, description, location, xp
-        FROM events
-        ORDER BY eid ASC;
+      SELECT eid, title, subtitle, description, location, xp
+      FROM events
+      ORDER BY eid ASC;
     END
-    `);
+  `);
 
-
-  // Delete event
   await pool.query(`
     CREATE PROCEDURE delete_event(IN p_eid INT)
     BEGIN
@@ -162,157 +156,69 @@ async function initDb() {
     END
   `);
 
-  // DB check
-  await pool.query(`SELECT 1`);
-  console.log('[DB] Schema OK (users + events with description)');
+  console.log("[DB] Schema OK");
 }
 
-//-----------
-// Mock Data
-//-----------
-
-//Function to add a certain amount of users, with a random major and XP value
-async function addMockUsers(numUsers){
-	// Used to give each user random XP amount
+// Adds mock users to database based on numUsers
+// IMPORTANT: clears tables first in FK-safe order
+async function addMockUsers(numUsers) {
   function randIntInclusive(min, max) {
-  		return Math.floor(Math.random() * (max - min + 1)) + min;
-	}
-
-	let userNum = 0;
-
-  //Clear out users table
-  await pool.query('TRUNCATE TABLE users');
-
-
-	//List of possible majors
-	const majors = [
-		'Computer Science',
-		'Software Engineering',
-		'Data Science',
-		'Cybersecurity',
-		'Information Systems',
-		'Computer Engineering',
-		'Electrical Engineering',
-		'Mechanical Engineering',
-		'Civil Engineering',
-		'Industrial Engineering',
-		'Math',
-		'Statistics',
-		'Physics',
-		'Chemistry',
-		'Biology',
-		'Psychology',
-		'Economics',
-		'Business Administration',
-		'Marketing',
-		'Finance'
-	];
-
- const rows = [];
-
-  for (let i = 0; i < numUsers; ++i) {
-    const firstName = `FirstName${userNum}`;
-    const lastName  = `LastName${userNum}`;
-    const username  = `Username${userNum}`;
-	const psswd = "afdahjaklsdhfjkald";
-    const major = majors[randIntInclusive(0, majors.length - 1)];
-    const xp    = randIntInclusive(0, 10000);
-
-    rows.push([firstName, lastName, username, psswd, major, xp]);
-
-    ++userNum;
+    return Math.floor(Math.random() * (max - min + 1)) + min;
   }
 
-  await pool.query(
-    `INSERT INTO users (firstName, lastName, username, password, major, xp)
-     VALUES ?`,
-	 [rows]
-     
-  );
-  console.log(`[DB] Mock users inserted (attempted ${rows.length}).`);
+	// Clear child then parent to satisfy FK constraints
+	await pool.query('DELETE FROM students');
+	await pool.query('DELETE FROM users');
+	await pool.query('ALTER TABLE users AUTO_INCREMENT = 1');
+
+  const majors = [
+    'Computer Science','Software Engineering','Data Science','Cybersecurity',
+    'Information Systems','Computer Engineering','Electrical Engineering',
+    'Mechanical Engineering','Civil Engineering','Industrial Engineering',
+    'Math','Statistics','Physics','Chemistry','Biology','Psychology',
+    'Economics','Business Administration','Marketing','Finance'
+  ];
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    for (let i = 0; i < numUsers; i++) {
+      const firstName  = `FirstName${i}`;
+      const lastName   = `LastName${i}`;
+      const username   = `Username${i}`;
+      const password   = '1234'; // mock only
+      const major      = majors[randIntInclusive(0, majors.length - 1)];
+      const xp         = randIntInclusive(0, 10000);
+      const university = 'Penn State';
+      const canvasTok  = null;
+
+      // 1) insert into users
+      const [res] = await conn.query(
+        `INSERT INTO users (firstName, lastName, username, password)
+         VALUES (?, ?, ?, ?)`,
+        [firstName, lastName, username, password]
+      );
+      const pid = res.insertId;
+
+      // 2) insert into students (linked via pid)
+      await conn.query(
+        `INSERT INTO students (pid, university, major, XP, canvasToken)
+         VALUES (?, ?, ?, ?, ?)`,
+        [pid, university, major, xp, canvasTok]
+      );
+    }
+
+    await conn.commit();
+    console.log(`[DB] Mock users inserted (${numUsers}).`);
+  } catch (err) {
+    await conn.rollback();
+    console.error('[DB] Mock insert failed:', err);
+    throw err;
+  } finally {
+    conn.release();
+  }
 }
 
-module.exports = { pool, initDb, addMockUsers};
-=======
-const host = process.env.MYSQL_HOST;
-const username = process.env.MYSQL_USERNAME;
-const password = process.env.MYSQL_PASSWORD;
-const database = process.env.MYSQL_DB;
 
-if (!host) throw new Error("Missing MYSQL_HOST in .env");
-if (!username) throw new Error("Missing MYSQL_USERNAME in .env");
-if (!password) throw new Error("Missing MYSQL_PASSWORD in .env");
-if (!database) throw new Error("Missing MYSQL_DB in .env");
-
-let dropQueries = [
-    `DROP TABLE IF EXISTS users`,
-    `DROP PROCEDURE IF EXISTS get_user_by_first_name`,
-    `DROP PROCEDURE IF EXISTS get_user_by_username`,
-    `DROP PROCEDURE IF EXISTS login`,
-    `DROP PROCEDURE IF EXISTS register`
-];
-
-let createQueries = [
-    `CREATE TABLE \`users\` (
-        \`pid\` int NOT NULL AUTO_INCREMENT,
-        \`firstName\` varchar(32) NOT NULL,
-        \`lastName\` varchar(32) NOT NULL,
-        \`username\` varchar(32) NOT NULL,
-        \`password\` char(60) NOT NULL,
-        PRIMARY KEY (\`pid\`)
-        ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-        `,
-    `CREATE PROCEDURE \`get_user_by_first_name\`(IN firstName varchar(32))
-        BEGIN
-            SELECT * FROM users WHERE firstName = firstName;
-        END;`,
-    `CREATE PROCEDURE \`get_user_by_username\`(IN username varchar(32))
-        BEGIN
-            SELECT * FROM users WHERE username = username;
-        END;`,
-    `CREATE PROCEDURE \`login\`(IN username varchar(32), password char(60))
-        BEGIN
-            SELECT * FROM users WHERE username = username AND password = password;
-        END;`,
-    `CREATE PROCEDURE \`register\`(IN firstName varchar(32), lastName varchar(32), username varchar(32), password char(60))
-        BEGIN
-            insert into users (firstName, lastName, username, password) values (firstName, lastName, username, password);
-        END;`
-];
-
-//Create a connection to the SQL Database
-const dbPool = mysql.createPool({
-    host: host,
-    user: username,
-    password: password,
-    database: database,
-});
-
-dbPool.query("SELECT * FROM users", (err, rows) => {
-    if(err) {
-        dbPool.getConnection(function(err, con) {
-            if (err) {
-                console.log("[REMAKE] Connection Error: ", err);
-            }
-            dropQueries.forEach((query, index) => {
-                con.query(query, function(err, results) {
-                    if (err) {
-                        console.log("[REMAKE] Drop Query Error: ", err)
-                    }
-                });
-            });
-            createQueries.forEach((query, index) => {
-                con.query(query, function(err, results) {
-                    console.log(query);
-                    if (err) {
-                        console.log("[REMAKE] Create Query Error: ", err)
-                    }
-                });
-            })
-        });
-        console.log("Remade Database");
-    }
-    console.log(rows);
-});
-module.exports = dbPool;
->>>>>>> origin/User-Authentication
+module.exports = { pool, initDb, addMockUsers };
