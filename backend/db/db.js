@@ -31,13 +31,17 @@ async function initDb() {
   // Create students table
   await pool.query(`
   CREATE TABLE IF NOT EXISTS students (
-    pid INT DEFAULT NULL,
+    pid INT NOT NULL,
     university VARCHAR(32) DEFAULT NULL,
-    major VARCHAR(64)      DEFAULT NULL,
+    major enum(\'Computer Science\', \'Software Engineering\', \'Data Science\', 
+    \'Cybersecurity\', \'Information Systems\', \'Computer Engineering\', \'Electrical Engineering\', 
+    \'Mechanical Engineering\', \'Civil Engineering\', \'Industrial Engineering\', \'Math\', 
+    \'Statistics\', \'Physics\', \'Chemistry\', \'Biology\', \'Psychology\', \'Economics\', 
+    \'Business\', \'Marketing\', \'Finance\')      DEFAULT NULL,
     XP INT DEFAULT 0,
     canvasToken VARCHAR(70) DEFAULT NULL,
     KEY pid (pid),
-    CONSTRAINT students_ibfk_1 FOREIGN KEY (pid) REFERENCES users (pid)
+    CONSTRAINT students_ibfk_1 FOREIGN KEY (pid) REFERENCES users (pid) ON DELETE CASCADE
   ) ENGINE=InnoDB
     DEFAULT CHARSET=utf8mb4
     COLLATE=utf8mb4_0900_ai_ci;
@@ -176,7 +180,7 @@ async function addMockUsers(numUsers) {
     'Information Systems','Computer Engineering','Electrical Engineering',
     'Mechanical Engineering','Civil Engineering','Industrial Engineering',
     'Math','Statistics','Physics','Chemistry','Biology','Psychology',
-    'Economics','Business Administration','Marketing','Finance'
+    'Economics','Business','Marketing','Finance'
   ];
 
   const conn = await pool.getConnection();

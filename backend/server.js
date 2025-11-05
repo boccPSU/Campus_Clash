@@ -144,7 +144,7 @@ app.post('/api/auth', (req, res) => {
     const ok = auth.verifyToken(token);
     return res.json({ successful: !!ok });
   } catch {
-    return res.status(401).json({ successful: false });
+    return res.status(401).json({ successful: false , error: 'TokenAuth Error'});
   }
 });
 
