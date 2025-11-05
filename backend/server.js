@@ -1,33 +1,32 @@
-// server.js
-require('dotenv').config();
+// Backend server
 
+// Imports
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-
-// Node 18+ has global fetch; if you're on Node 16, uncomment:
-// global.fetch = (...args) => import('node-fetch').then(({default: f}) => f(...args));
-
 const { pool, initDb, addMockUsers } = require('./db/db.js');
 const { getSortedMajors } = require('./db/sortData.js');
 const auth = require('./db/authentication.js');
 
 // Canvas proxy config
 const BASE  = process.env.CANVAS_BASE;   // e.g. https://psu.instructure.com
-const TOKEN = process.env.CANVAS_TOKEN;  // service token (or swap to per-user later)
+const TOKEN = process.env.CANVAS_TOKEN;  // Canvas generatd token
 const PORT  = Number(process.env.PORT || 3001);
 
 if (!BASE)  throw new Error('Missing CANVAS_BASE in .env');
 if (!TOKEN) throw new Error('Missing CANVAS_TOKEN in .env');
 
+// Create server that expects JSON
 const app = express();
 app.use(express.json());
-app.use(cors({ origin: 'http://localhost:3000' }));
+app.use(cors({ origin: 'http://localhost:3000' })); //Bybass CORS
 
-// Boot DB + start server
+// Start Server
 (async () => {
   try {
-    await initDb();             // ensure tables + procs exist
-    await addMockUsers(1000);   // comment out if not desired
+    await initDb();             // Initializies DB
+    await addMockUsers(1000);   // Drops users table, comment out if you want to keep users
+
     app.listen(PORT, () => {
       console.log(`API listening on http://localhost:${PORT}`);
       console.log(`Canvas proxy upstream: ${BASE}`);
@@ -43,12 +42,14 @@ app.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'canvas-proxy' });
 });
 
-
+// Grabs all enpoints with /api/v1 and directs them to proxy to use Canvas API 
 app.get(/^\/api\/v1\/.*/, async (req, res) => {
   try {
+    // Building Canvas request URL
     const upstreamUrl = `${BASE}${req.originalUrl}`;
     console.log('[CanvasProxy] GET ->', upstreamUrl);
 
+    // Grabbing info from Canva API using GET, while verifying canvas token
     const upstream = await fetch(upstreamUrl, {
       method: 'GET',
       headers: {
@@ -57,10 +58,11 @@ app.get(/^\/api\/v1\/.*/, async (req, res) => {
       }
     });
 
-    const contentType = upstream.headers.get('content-type') || 'application/json';
-    const linkHeader  = upstream.headers.get('link');
+    const contentType = upstream.headers.get('content-type') || 'application/json'; // Get Content type, default to json if not proviced
+    const linkHeader  = upstream.headers.get('link'); // Allows for pagenation
     if (linkHeader) res.set('Link', linkHeader);
 
+    // Read response body as text and send back to client
     const bodyText = await upstream.text();
     res.status(upstream.status).type(contentType).send(bodyText);
   } catch (e) {
@@ -69,31 +71,34 @@ app.get(/^\/api\/v1\/.*/, async (req, res) => {
   }
 });
 
-// --- Auth & Users ---
-
 // POST /api/register
 app.post('/api/register', async (req, res) => {
+  // Get register info from request body
   const { firstName, lastName, username, password } = req.body || {};
   if (!firstName || !lastName || !username || !password) {
     return res.status(400).json({ successful: false, error: 'Missing fields' });
   }
 
   try {
+    // Check if username is taken
     const [lookupSets] = await pool.query('CALL get_user_by_username(?)', [username]);
     const rows = lookupSets?.[0] || [];
     if (rows.length > 0) {
       return res.status(409).json({ successful: false, error: 'Username taken' });
     }
 
+    // Hash password
     const hashedPassword = auth.encryptPassword(password);
     if (!hashedPassword) {
       return res.status(500).json({ successful: false, error: 'Hashing failed' });
     }
 
+    // Add user to users table
     await pool.query('CALL register(?, ?, ?, ?)', [
       firstName, lastName, username, hashedPassword
     ]);
 
+    // Generate token for user
     const token = auth.generateToken(username);
     return res.status(201).json({ successful: true, token });
   } catch (e) {
@@ -141,8 +146,6 @@ app.post('/api/auth', (req, res) => {
     return res.status(401).json({ successful: false });
   }
 });
-
-// --- Events ---
 
 // POST /api/event
 app.post('/api/event', async (req, res) => {
