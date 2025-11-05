@@ -74,7 +74,7 @@ app.get(/^\/api\/v1\/.*/, async (req, res) => {
 // POST /api/register
 app.post('/api/register', async (req, res) => {
   // Get register info from request body
-  const { firstName, lastName, username, password } = req.body || {};
+  const { firstName, lastName, username, password, university, major, canvasToken } = req.body || {};
   if (!firstName || !lastName || !username || !password) {
     return res.status(400).json({ successful: false, error: 'Missing fields' });
   }
@@ -94,8 +94,8 @@ app.post('/api/register', async (req, res) => {
     }
 
     // Add user to users table
-    await pool.query('CALL register(?, ?, ?, ?)', [
-      firstName, lastName, username, hashedPassword
+    await pool.query('CALL register(?, ?, ?, ?, ?, ?, ?)', [
+      firstName, lastName, username, hashedPassword, university, major, canvasToken
     ]);
 
     // Generate token for user
@@ -106,6 +106,7 @@ app.post('/api/register', async (req, res) => {
     return res.status(500).json({ successful: false, error: 'DB error' });
   }
 });
+
 
 // POST /api/login
 app.post('/api/login', async (req, res) => {

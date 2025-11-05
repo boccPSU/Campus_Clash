@@ -9,7 +9,8 @@
     background-color: $dark;
     color: $light; //Text Color
     border-radius: 20px;
-
+    height: 35rem;
+    overflow-y: auto;
     h2 {
         @extend .text-center; // centers title
     }
