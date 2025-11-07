@@ -18,12 +18,13 @@ import RegisterScreen from "./screens/RegisterScreen";
 import LoginScreen from "./screens/LoginScreen";
 
 import useToken from "./api/userTokens";
+import QuestionTester from "./screens/QuestionTester";
 
 function App() {
     const {token, setToken} = useToken();
     const location = useLocation();
 
-    const [pathName, setPathName] = useState(location.pathName);
+    const [pathName, setPathName] = useState(location.pathname);
 
     useEffect(() => {
         if (!token && !(location.pathname === "/register")) {
@@ -58,6 +59,8 @@ function App() {
 
                 {/* /login -> Login screen*/}
                 <Route path="/login" element={<LoginScreen setToken={setToken}/>} />
+
+                <Route path="/test" element = {<QuestionTester></QuestionTester>}></Route>
             </Routes>
     );
 }

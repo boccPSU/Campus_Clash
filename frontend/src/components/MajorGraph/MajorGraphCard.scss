@@ -2,8 +2,10 @@
 @use "../../css/tokens.scss" as *;
 
 .majorChart {
+  //Styles the bars 
   .MuiBarElement-root { fill: $primary; }
 
+  // Styles the bar labels
   .barLabel {
     fill: $light !important;
     font-weight: 600;

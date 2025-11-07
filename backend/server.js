@@ -1,6 +1,7 @@
 // Backend server
 
 // Imports
+const OpenAI = require('openai');
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -73,39 +74,59 @@ app.get(/^\/api\/v1\/.*/, async (req, res) => {
 
 // POST /api/register
 app.post('/api/register', async (req, res) => {
-  // Get register info from request body
-  const { firstName, lastName, username, password } = req.body || {};
-  if (!firstName || !lastName || !username || !password) {
-    return res.status(400).json({ successful: false, error: 'Missing fields' });
-  }
+    // Get register info from request body
+    const {
+        firstName,
+        lastName,
+        username,
+        password,
+        university,
+        major,
+        canvasToken, // Canvas accsess token, (should hard code this in .env)
+    } = req.body || {};
 
-  try {
-    // Check if username is taken
-    const [lookupSets] = await pool.query('CALL get_user_by_username(?)', [username]);
-    const rows = lookupSets?.[0] || [];
-    if (rows.length > 0) {
-      return res.status(409).json({ successful: false, error: 'Username taken' });
+    // Make sure fields exist
+    if (!firstName || !lastName || !username || !password || !university || !major) {
+        return res.status(400).json({ successful: false, error: 'Missing fields' });
     }
 
-    // Hash password
-    const hashedPassword = auth.encryptPassword(password);
-    if (!hashedPassword) {
-      return res.status(500).json({ successful: false, error: 'Hashing failed' });
+    try {
+        // Check if username is taken
+        const [lookupSets] = await pool.query('CALL get_user_by_username(?)', [username]);
+        const rows = lookupSets?.[0] || [];
+        if (rows.length > 0) {
+            return res.status(409).json({ successful: false, error: 'Username taken' });
+        }
+
+        // Hash password 
+        const hashedPassword = auth.encryptPassword(password);
+        if (!hashedPassword) {
+            return res.status(500).json({ successful: false, error: 'Hashing failed' });
+        }
+
+        // Add user to users table and student row to students table via stored procedure
+        await pool.query(
+            'CALL register(?, ?, ?, ?, ?, ?, ?)',
+            [
+                firstName,
+                lastName,
+                username,
+                hashedPassword,
+                university,
+                major,
+                canvasToken ?? null, 
+            ]
+        );
+
+        // Generate token for user
+        const token = auth.generateToken(username);
+        return res.status(201).json({ successful: true, token });
+    } catch (e) {
+        console.error('[BACKEND] register error:', e);
+        return res.status(500).json({ successful: false, error: 'DB error' });
     }
-
-    // Add user to users table
-    await pool.query('CALL register(?, ?, ?, ?)', [
-      firstName, lastName, username, hashedPassword
-    ]);
-
-    // Generate token for user
-    const token = auth.generateToken(username);
-    return res.status(201).json({ successful: true, token });
-  } catch (e) {
-    console.error('[BACKEND] register error:', e);
-    return res.status(500).json({ successful: false, error: 'DB error' });
-  }
 });
+
 
 // POST /api/login
 app.post('/api/login', async (req, res) => {
@@ -195,5 +216,125 @@ app.get('/api/major-xp', async (_req, res) => {
   } catch (e) {
     console.error('[BACKEND] major-xp error:', e);
     res.status(500).json({ successful: false });
+  }
+});
+
+// Generates tournement questions using opneai wrapper
+
+const client = new OpenAI({apiKey: process.env.OPENAI_KEY});
+
+// Create endopoint to send prompt to LLM
+app.post("/api/generate-questions", async(req, res) => {
+    //Expect a category, difficulty, and number of questions from req
+    const {
+        category = "Undefined",
+        difficulty = "Undefined",
+        count = 0,
+    } = req.body;
+
+    try{
+        const completion = await client.chat.completions.create({
+            // Specify LLM model
+            model: "gpt-4.1-mini",
+
+            // Format response into JSON we need
+            response_format: {
+                type: "json_schema",
+                json_schema:{
+                    name: "quiz_questoins",
+                    schema: {
+                        type: "object",
+                        properties: {
+                            questions: {
+                                type: "array",
+                                // Only return amount of questions we specify
+                                minItems: count,
+                                maxItems: count,
+                                items: {
+                                    type: "object",
+                                    properties: {
+                                        category: {type: "string"},
+                                        difficulty: {
+                                            type: "string",
+                                            enum: ["easy", "medium", "hard"],
+                                        },
+                                        question: {type: "string"},
+                                        options: {
+                                            type: "array",
+                                            items: {type: "string"},
+                                            minItems: 4,
+                                            maxItems: 4,
+                                        },
+                                        correctIndex: {
+                                            type: "integer",
+                                            minimum: 0,
+                                            maximum: 3
+                                        },
+                                    },
+                                    // All of these must be present for each question
+                                    required: [
+                                        "category",
+                                        "difficulty",
+                                        "question",
+                                        "options",
+                                        "correctIndex",
+                                    ],
+
+                                    // Disable any extra fields
+                                    additionalProperties: false,
+                                },
+                            },
+                        },
+                        required: ["questions"],
+                        additionalProperties: false,
+                    },
+                },
+            },
+
+            // Converstion we send to LLM
+            messages: [
+                {
+                    // Define behavior and constraints for LLM 
+                    role: "system",
+                    content:
+                    "You generate fair, factual tournament questions. " + 
+                    "Answers must be unamiguous, current, and appropriate",
+                },
+                {
+                    // User message with question generation instructions
+                    role: "user",
+                    content: 
+                    `Generate ${count} multiple-choice questions for the category ` +
+                    `"${category}" at "${difficulty}" difficulty. ` +
+                    "Each should:\n" +
+                    "- Have exactly 4 options.\n" +
+                    "- Exactly one correct answer.\n" +
+                    "- No 'All of the above' or 'None of the above'.\n" +
+                    "- Be suitable for a live tournament.\n" +
+                    "- Use the given category & difficulty fields accurately.",
+                }
+            ],
+
+            // Controls how how creative the LLM is, lower values give more deterministic answers while higher cause more variety
+            temperature: 0.7,
+        });
+
+        // The API returns an array of choices; we take the first one.
+        // With json_schema, message.content should be valid JSON.
+        const raw = completion.choices[0]?.message?.content;
+
+        // If content is a string, parse it into a JS object.
+        // (If it's already an object for some reason, just use it.)
+        const data = typeof raw === "string" ? JSON.parse(raw) : raw;
+
+        // Send the structured data back to the client.
+        // Frontend expects an object with a `questions` array.
+        return res.json(data);
+    }
+    catch (err) {
+    // If something goes wrong (network issue, invalid key, schema error, etc.),
+    // log it on the server and return a generic 500 error to the client.
+    console.error(err);
+    return res.status(500).json({ error: "Failed to generate questions" });
   }
 });
