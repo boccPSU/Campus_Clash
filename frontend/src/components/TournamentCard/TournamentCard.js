@@ -9,19 +9,11 @@ function TournamentCard({ title, topics, endDate, reward }) {
     const navigate = useNavigate();
 
     // Loading state
-    const [loading, setLoading] = useState(true);
-
-    // On page loading
-    useEffect(() => {
-        // Simulating latency 1000ms to see spinner
-        const timer = setTimeout(() => {
-            setLoading(false);
-        }, 1000);
-        return () => clearTimeout(timer);
-    }, []);
+    const [loading, setLoading] = useState(false);
 
     // Handle join button click
     const handleJoin = () => {
+        setLoading(true);
         // Call API to create tournament
         fetch("http://localhost:5000/api/create-tournament", {
             method: "POST",
@@ -31,9 +23,9 @@ function TournamentCard({ title, topics, endDate, reward }) {
             body: JSON.stringify({
                 title,
                 topics,
-                difficulty: "Medium",          // basic placeholder for now
+                difficulty: "Medium",          
                 reward,
-                questionSet: null    // or null if you prefer
+                questionSet: null    
             })
         })
             .then(response => {
@@ -44,11 +36,17 @@ function TournamentCard({ title, topics, endDate, reward }) {
             })
             .then(data => {
                 console.log("Tournament created:", data);
-                navigate("/questions");
             })
             .catch(error => {
                 console.error("Error creating tournament:", error);
+            })
+            .finally(() => {
+                setLoading(false);
             });
+        
+        
+        // Navigate to questions screen
+        navigate("/questions");
     };
 
     // If loading data, show spinner

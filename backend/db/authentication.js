@@ -41,4 +41,15 @@ const verifyToken = (token) => {
         return false;
     }
 }
+    
+// Decryps user token and returns username
+const decryptToken = (token) => {
+    try {
+        const decoded = jwt.verify(token, key);
+        // Return only the username
+        return decoded.username;
+    } catch (err) {
+        return null;
+    }
+};
 module.exports = {encryptPassword, verifyPassword, generateToken, verifyToken}
