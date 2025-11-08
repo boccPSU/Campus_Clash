@@ -16,7 +16,7 @@ import StudyPlan from "./screens/StudyPlan";
 import ProgressReport from "./screens/ProgressReport";
 import RegisterScreen from "./screens/RegisterScreen";
 import LoginScreen from "./screens/LoginScreen";
-
+import QuestionScreen from "./screens/QuestionScreen";
 import useToken from "./api/userTokens";
 import QuestionTester from "./screens/QuestionTester";
 
@@ -61,6 +61,8 @@ function App() {
                 <Route path="/login" element={<LoginScreen setToken={setToken}/>} />
 
                 <Route path="/test" element = {<QuestionTester></QuestionTester>}></Route>
+                {/* /questions -> Tournament Questions*/}
+                <Route path="/questions" element = {<QuestionScreen></QuestionScreen>}></Route>
             </Routes>
     );
 }

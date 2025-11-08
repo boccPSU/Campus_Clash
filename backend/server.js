@@ -332,8 +332,7 @@ app.post("/api/generate-questions", async(req, res) => {
         return res.json(data);
     }
     catch (err) {
-    // If something goes wrong (network issue, invalid key, schema error, etc.),
-    // log it on the server and return a generic 500 error to the client.
+    // Log any errors
     console.error(err);
     return res.status(500).json({ error: "Failed to generate questions" });
   }

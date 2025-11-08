@@ -220,5 +220,10 @@ async function addMockUsers(numUsers) {
   }
 }
 
+// Tournement 
+
+// Need table to store active tornament
+  //Should have a list of users participating, and questions with answer index
+
 
 module.exports = { pool, initDb, addMockUsers };
