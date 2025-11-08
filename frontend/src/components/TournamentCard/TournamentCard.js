@@ -2,9 +2,11 @@ import { useState, useEffect } from "react";
 import Spinner from 'react-bootstrap/Spinner';
 import { Button } from "react-bootstrap";
 import InfoBox from "../InfoBox/InfoBox";
-
+import { useNavigate } from "react-router-dom";
 // Reusable component representing a single tournament card
 function TournamentCard({ title, topics, endDate, reward }) {
+    const navigate = useNavigate();
+
     // Loading state
     const [loading, setLoading] = useState(true);
 
@@ -17,6 +19,31 @@ function TournamentCard({ title, topics, endDate, reward }) {
         return () => clearTimeout(timer);
     }, [])
     
+    //Handle join button click
+    const handleJoin = () => {
+        // Call API to create tournament
+        fetch("http://localhost:5000/api/create-tournament", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ title })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("Failed to create tournament");
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("Tournament created:", data);
+            navigate("/questions");
+        })
+        .catch(error => {
+            console.error("Error creating tournament:", error);
+        });
+    }
+    
     // If loading data, show spinner
     if(loading){
         return(
@@ -26,9 +53,9 @@ function TournamentCard({ title, topics, endDate, reward }) {
                     <span className="visually-hidden">Loading...</span>
                 </Spinner>
 
-                {/* Join button */}
+                {/* Join button, send user to questionsScreen */}
                 <div>
-                    <Button variant="primary" className="joinBtn">
+                    <Button variant="primary" className="joinBtn" >
                         Join
                     </Button>
                 </div>
@@ -57,7 +84,7 @@ function TournamentCard({ title, topics, endDate, reward }) {
 
             {/* Join button */}
             <div>
-                <Button variant="primary" className="joinBtn">
+                <Button variant="primary" className="joinBtn" onClick={handleJoin}>
                     Join
                 </Button>
             </div>

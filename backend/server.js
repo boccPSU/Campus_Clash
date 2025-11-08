@@ -337,3 +337,28 @@ app.post("/api/generate-questions", async(req, res) => {
     return res.status(500).json({ error: "Failed to generate questions" });
   }
 });
+
+// Creates a new tournament in the database if tournament title does not exist
+// Should have tournament title, and no questions for now
+app.post('/api/create-tournament', async (req, res) => {
+    const { title } = req.body;
+    // Check to see if title already exists in tournaments table
+    const titleExists = await pool.query('SELECT * FROM tournaments WHERE questionSet = ?', [title]);
+    if (titleExists[0].length > 0) {
+        return res.status(400).json({ error: "Tournament already exists" });
+    }
+
+    // Call create_tournament stored procedure
+    try {
+        await pool.query('CALL create_tournament(?, NOW())', [
+            title
+        ]);
+        
+        console.log(`[DB] Tournament created: ${title}`);
+        return res.status(201).json({ successful: true });  
+    }
+    catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: "Failed to create tournament" });
+    } 
+});

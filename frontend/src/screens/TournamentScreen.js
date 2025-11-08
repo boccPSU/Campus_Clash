@@ -11,11 +11,13 @@ import ScreenScroll from "../components/ScreenScroll/ScreenScroll.js";
 
 // Screen displaying available tournaments
 function TournamentScreen() {
+    // Generate tournaments based on students major and enrolled courses later
+    
     // Static tournament list data
     const tournaments = [
         {
-            title: "Science Showdown",
-            topics: "Chemistry, Biology, Physics",
+            title: "Computer Science Challenge",
+            topics: "Computer Architecture, Algorithms, Data Structures",
             endDate: "Sept. 25, 12:00 a.m.",
             reward: 250,
         },
