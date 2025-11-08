@@ -58,6 +58,74 @@ async function initDb() {
       COLLATE=utf8mb4_0900_ai_ci;
   `);
 
+  // Create tournaments table
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS tournaments (
+        tid          INT NOT NULL AUTO_INCREMENT,
+        questionSet  VARCHAR(64) NOT NULL,
+        startTime    DATETIME    NOT NULL,
+        PRIMARY KEY (tid)
+    ) ENGINE=InnoDB
+      DEFAULT CHARSET=utf8mb4
+      COLLATE=utf8mb4_0900_ai_ci;
+`);
+
+    // Create tournament_participants table with FKs to tournaments and students
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS tournament_participants (
+            tid    INT NOT NULL,
+            pid    INT NOT NULL,
+            score  INT NOT NULL DEFAULT 0,
+            PRIMARY KEY (tid, pid),
+
+            CONSTRAINT fk_tp_tournament
+                FOREIGN KEY (tid)
+                REFERENCES tournaments (tid)
+                ON DELETE CASCADE,
+
+            CONSTRAINT fk_tp_student
+                FOREIGN KEY (pid)
+                REFERENCES students (pid)
+                ON DELETE CASCADE
+        ) ENGINE=InnoDB
+          DEFAULT CHARSET=utf8mb4
+          COLLATE=utf8mb4_0900_ai_ci;
+    `);
+
+// Drop + recreate tournament procedures
+await pool.query(`DROP PROCEDURE IF EXISTS create_tournament`);
+await pool.query(`DROP PROCEDURE IF EXISTS join_tournament`);
+
+//-------------------------
+// List of Tournament procedures
+//-------------------------
+
+await pool.query(`
+  CREATE PROCEDURE create_tournament(
+    IN p_questionSet VARCHAR(64),
+    IN p_startTime    DATETIME
+  )
+  BEGIN
+    INSERT INTO tournaments (questionSet, startTime)
+    VALUES (p_questionSet, p_startTime);
+    SELECT LAST_INSERT_ID() AS tid;
+  END
+`);
+
+await pool.query(`
+  CREATE PROCEDURE join_tournament(
+    IN p_tid INT,
+    IN p_pid INT
+  )
+  BEGIN
+    INSERT INTO tournament_participants (tid, pid)
+    VALUES (p_tid, p_pid);
+  END
+`);   
+
+
+
   // Drop + recreate user procedures
   await pool.query(`DROP PROCEDURE IF EXISTS get_user_by_first_name`);
   await pool.query(`DROP PROCEDURE IF EXISTS get_user_by_username`);
@@ -166,17 +234,32 @@ async function addMockUsers(numUsers) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
 
-	// Clear child then parent to satisfy FK constraints
-	await pool.query('DELETE FROM students');
-	await pool.query('DELETE FROM users');
-	await pool.query('ALTER TABLE users AUTO_INCREMENT = 1');
+  // Clear child then parent to satisfy FK constraints
+  await pool.query("DELETE FROM students");
+  await pool.query("DELETE FROM users");
+  await pool.query("ALTER TABLE users AUTO_INCREMENT = 1");
 
   const majors = [
-    'Computer Science','Software Engineering','Data Science','Cybersecurity',
-    'Information Systems','Computer Engineering','Electrical Engineering',
-    'Mechanical Engineering','Civil Engineering','Industrial Engineering',
-    'Math','Statistics','Physics','Chemistry','Biology','Psychology',
-    'Economics','Business Administration','Marketing','Finance'
+    "Computer Science",
+    "Software Engineering",
+    "Data Science",
+    "Cybersecurity",
+    "Information Systems",
+    "Computer Engineering",
+    "Electrical Engineering",
+    "Mechanical Engineering",
+    "Civil Engineering",
+    "Industrial Engineering",
+    "Math",
+    "Statistics",
+    "Physics",
+    "Chemistry",
+    "Biology",
+    "Psychology",
+    "Economics",
+    "Business Administration",
+    "Marketing",
+    "Finance",
   ];
 
   const conn = await pool.getConnection();
@@ -184,14 +267,14 @@ async function addMockUsers(numUsers) {
     await conn.beginTransaction();
 
     for (let i = 0; i < numUsers; i++) {
-      const firstName  = `FirstName${i}`;
-      const lastName   = `LastName${i}`;
-      const username   = `Username${i}`;
-      const password   = '1234'; // mock only
-      const major      = majors[randIntInclusive(0, majors.length - 1)];
-      const xp         = randIntInclusive(0, 10000);
-      const university = 'Penn State';
-      const canvasTok  = null;
+      const firstName = `FirstName${i}`;
+      const lastName = `LastName${i}`;
+      const username = `Username${i}`;
+      const password = "1234"; // mock only
+      const major = majors[randIntInclusive(0, majors.length - 1)];
+      const xp = randIntInclusive(0, 10000);
+      const university = "Penn State";
+      const canvasTok = null;
 
       // 1) insert into users
       const [res] = await conn.query(
@@ -213,17 +296,16 @@ async function addMockUsers(numUsers) {
     console.log(`[DB] Mock users inserted (${numUsers}).`);
   } catch (err) {
     await conn.rollback();
-    console.error('[DB] Mock insert failed:', err);
+    console.error("[DB] Mock insert failed:", err);
     throw err;
   } finally {
     conn.release();
   }
 }
 
-// Tournement 
+// Tournement
 
 // Need table to store active tornament
-  //Should have a list of users participating, and questions with answer index
-
+//Should have a list of users participating, and questions with answer index
 
 module.exports = { pool, initDb, addMockUsers };
