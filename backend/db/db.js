@@ -14,6 +14,17 @@ const pool = mysql.createPool({
 
 // Initializes database when server is started
 async function initDb() {
+
+  // Drop dependent table first (if it exists)
+await pool.query(`
+  DROP TABLE IF EXISTS tournament_participants;
+`);
+
+// Then drop tournaments so we can recreate with new schema
+await pool.query(`
+  DROP TABLE IF EXISTS tournaments;
+`);
+  
   // Create users table
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
@@ -62,14 +73,18 @@ async function initDb() {
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS tournaments (
-        tid          INT NOT NULL AUTO_INCREMENT,
-        questionSet  VARCHAR(64) NOT NULL,
-        startTime    DATETIME    NOT NULL,
-        PRIMARY KEY (tid)
+      tid         INT NOT NULL AUTO_INCREMENT,
+      title       VARCHAR(128) NOT NULL,
+      topics      VARCHAR(255) NOT NULL,
+      difficulty  VARCHAR(32)  NOT NULL,
+      reward      INT          NOT NULL,
+      questionSet VARCHAR(64)  NULL,
+      startTime   DATETIME     NOT NULL,
+      PRIMARY KEY (tid)
     ) ENGINE=InnoDB
       DEFAULT CHARSET=utf8mb4
       COLLATE=utf8mb4_0900_ai_ci;
-`);
+  `);
 
     // Create tournament_participants table with FKs to tournaments and students
     await pool.query(`
@@ -102,16 +117,20 @@ await pool.query(`DROP PROCEDURE IF EXISTS join_tournament`);
 //-------------------------
 
 await pool.query(`
-  CREATE PROCEDURE create_tournament(
-    IN p_questionSet VARCHAR(64),
-    IN p_startTime    DATETIME
-  )
-  BEGIN
-    INSERT INTO tournaments (questionSet, startTime)
-    VALUES (p_questionSet, p_startTime);
-    SELECT LAST_INSERT_ID() AS tid;
-  END
-`);
+    CREATE PROCEDURE create_tournament(
+      IN p_questionSet VARCHAR(64),
+      IN p_startTime   DATETIME,
+      IN p_title       VARCHAR(128),
+      IN p_topics      VARCHAR(255),
+      IN p_difficulty  VARCHAR(32),
+      IN p_reward      INT
+    )
+    BEGIN
+      INSERT INTO tournaments (questionSet, startTime, title, topics, difficulty, reward)
+      VALUES (p_questionSet, p_startTime, p_title, p_topics, p_difficulty, p_reward);
+      SELECT LAST_INSERT_ID() AS tid;
+    END
+  `);
 
 await pool.query(`
   CREATE PROCEDURE join_tournament(
@@ -224,6 +243,7 @@ await pool.query(`
     END
   `);
 
+ 
   console.log("[DB] Schema OK");
 }
 

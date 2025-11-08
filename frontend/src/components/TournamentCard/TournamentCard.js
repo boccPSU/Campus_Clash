@@ -3,6 +3,7 @@ import Spinner from 'react-bootstrap/Spinner';
 import { Button } from "react-bootstrap";
 import InfoBox from "../InfoBox/InfoBox";
 import { useNavigate } from "react-router-dom";
+
 // Reusable component representing a single tournament card
 function TournamentCard({ title, topics, endDate, reward }) {
     const navigate = useNavigate();
@@ -11,15 +12,15 @@ function TournamentCard({ title, topics, endDate, reward }) {
     const [loading, setLoading] = useState(true);
 
     // On page loading
-    useEffect(()=>{
-        //Simulating latency 1000ms to see spinner
-        const timer = setTimeout(()=>{
+    useEffect(() => {
+        // Simulating latency 1000ms to see spinner
+        const timer = setTimeout(() => {
             setLoading(false);
-        }, 1000)
+        }, 1000);
         return () => clearTimeout(timer);
-    }, [])
-    
-    //Handle join button click
+    }, []);
+
+    // Handle join button click
     const handleJoin = () => {
         // Call API to create tournament
         fetch("http://localhost:5000/api/create-tournament", {
@@ -27,41 +28,45 @@ function TournamentCard({ title, topics, endDate, reward }) {
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ title })
+            body: JSON.stringify({
+                title,
+                topics,
+                difficulty: "Medium",          // basic placeholder for now
+                reward,
+                questionSet: null    // or null if you prefer
+            })
         })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error("Failed to create tournament");
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log("Tournament created:", data);
-            navigate("/questions");
-        })
-        .catch(error => {
-            console.error("Error creating tournament:", error);
-        });
-    }
-    
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Failed to create tournament");
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log("Tournament created:", data);
+                navigate("/questions");
+            })
+            .catch(error => {
+                console.error("Error creating tournament:", error);
+            });
+    };
+
     // If loading data, show spinner
-    if(loading){
-        return(
+    if (loading) {
+        return (
             <InfoBox>
-               
                 <Spinner animation="border" role="status" className="spinner">
                     <span className="visually-hidden">Loading...</span>
                 </Spinner>
 
                 {/* Join button, send user to questionsScreen */}
                 <div>
-                    <Button variant="primary" className="joinBtn" >
+                    <Button variant="primary" className="joinBtn">
                         Join
                     </Button>
                 </div>
             </InfoBox>
-        )
-        
+        );
     }
 
     return (
@@ -84,7 +89,11 @@ function TournamentCard({ title, topics, endDate, reward }) {
 
             {/* Join button */}
             <div>
-                <Button variant="primary" className="joinBtn" onClick={handleJoin}>
+                <Button
+                    variant="primary"
+                    className="joinBtn"
+                    onClick={handleJoin}
+                >
                     Join
                 </Button>
             </div>

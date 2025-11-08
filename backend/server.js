@@ -339,26 +339,46 @@ app.post("/api/generate-questions", async(req, res) => {
 });
 
 // Creates a new tournament in the database if tournament title does not exist
-// Should have tournament title, and no questions for now
 app.post('/api/create-tournament', async (req, res) => {
-    const { title } = req.body;
-    // Check to see if title already exists in tournaments table
-    const titleExists = await pool.query('SELECT * FROM tournaments WHERE questionSet = ?', [title]);
-    if (titleExists[0].length > 0) {
-        return res.status(400).json({ error: "Tournament already exists" });
+    const {
+        title,
+        topics,
+        difficulty,
+        reward,
+        questionSet = null,   // Null for now
+    } = req.body || {};
+
+    // Basic validation 
+    if (!title || !topics || !difficulty || reward == null) {
+        return res.status(400).json({ error: "Missing tournament fields" });
     }
 
-    // Call create_tournament stored procedure
     try {
-        await pool.query('CALL create_tournament(?, NOW())', [
-            title
-        ]);
-        
+        // Check to see if title already exists in tournaments table
+        const [existing] = await pool.query(
+            'SELECT tid FROM tournaments WHERE title = ?',
+            [title]
+        );
+        if (existing.length > 0) {
+            return res.status(400).json({ error: "Tournament already exists" });
+        }
+
+        // Call create_tournament stored procedure
+        // (p_questionSet, p_startTime, p_title, p_topics, p_difficulty, p_reward)
+        const [resultSets] = await pool.query(
+            'CALL create_tournament(?, NOW(), ?, ?, ?, ?)',
+            [
+                questionSet,   // can be null
+                title,
+                topics,
+                difficulty,
+                reward
+            ]
+        );
         console.log(`[DB] Tournament created: ${title}`);
-        return res.status(201).json({ successful: true });  
+        return res.status(201).json({ successful: true });
+    } catch (err) {
+        console.error('[BACKEND] create-tournament error:', err);
+        return res.status(520).json({ error: "Failed to create tournament" });
     }
-    catch (err) {
-        console.error(err);
-        return res.status(500).json({ error: "Failed to create tournament" });
-    } 
 });
