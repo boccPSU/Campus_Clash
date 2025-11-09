@@ -11,15 +11,40 @@ function ProfileScreen() {
     const navigate = useNavigate();
     const location = useLocation();
 
+    const [user, setUser] = useState({
+        firstName: "",
+        lastName: "",
+        username: "",
+        university: "",
+        major: "",
+        xp: ""
+    })
+
     const returnPath = location.state?.returnPath;
 
     console.log("Profile Path: ", returnPath);
 
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState();
 
     // collapse header / pull-to-refresh
     const scrollerRef = useRef(null);
     const collapsed = useCollapseOnScroll(scrollerRef);
+
+    const useEffect = (() => {
+        (async () => {
+
+        })();
+    }, []);
+
+    const loadUser = async () => {
+        try {
+            
+        } catch(e) {
+            console.log(e);
+            setError(e.cause);
+        }
+    }
 
     // pull-to-refresh
     const refresh = async () => {
@@ -27,8 +52,6 @@ function ProfileScreen() {
     };
 
     const handleBack = () => {
-        console.log("Location: ", location);
-        console.log("Return Path: ", returnPath);
         navigate(returnPath ?? "/home");
     };
 
@@ -55,11 +78,22 @@ function ProfileScreen() {
                 </Container>
             </Navbar>
 
+            <div
+                className={`headerSpacer ${collapsed ? "is-collapsed" : ""}`}
+            />
+
             <ScreenScroll ref={scrollerRef}>
                 <PullToRefresh scrollerRef={scrollerRef} onRefresh={refresh}>
-                    <Container className="py-3">
+                    <div className="profile m-3 p-3 d-flex flex-column rounded bg-dark justify-content-center align-items-center" style={{height: "50vh"}}>
+                        <PersonCircle
+                            className="ProfileIcon text-light"
+                            aria-label="Profile"
+                            role="img"
+                            style={{width:"60%", height:"60%"}}
 
-                    </Container>
+                        />
+                        <h2 className="text-light">Name</h2>
+                    </div>
                 </PullToRefresh>
 
                 <div style={{ height: "var(--bottom-nav-height, 72px)" }} />

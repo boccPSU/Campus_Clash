@@ -18,6 +18,8 @@ function LeaderboardScreen() {
     // Loading states
     const [loadingLeaderboard, setLoadingLeaderboard] = useState();
 
+    const [error, setError] = useState();
+
     // Example leaderboard data
     const [data, setData] = useState();
 
@@ -33,10 +35,11 @@ function LeaderboardScreen() {
             try {
                 // Call endpoint, and convert to json
                 const res = await fetch("http://localhost:5000/api/major-xp");
-                const row = await res.json();
-
+                if (res.status === 500) throw new Error("[LEADERBOARD] Error", {cause: "Unable to Connect."});
+                const data = await res.json();
+                if (!res.ok) throw new Error("Failed to fetch Majors-XP", {cause: data.cause});
+                const row = data.row;
                 console.log("ROW", row);
-                if (!res.ok) throw new Error("Failed to fetch Majors-XP");
 
                 // Map data to leaderboard cards.
                 const mappedData = row.map((row, idx) => ({
@@ -48,8 +51,8 @@ function LeaderboardScreen() {
                 setData(mappedData);
                 return;
             } catch (e) {
-                console.log("Could not fetch Leaderboard Data");
-                console.error(e);
+                console.log(e);
+                setError(e.cause);
             } finally {
                 setLoadingLeaderboard(false); // Stop loading
             }
@@ -75,7 +78,9 @@ function LeaderboardScreen() {
             <div
                 className={`headerSpacer ${collapsed ? "is-collapsed" : ""}`}
             />
-
+            {error && (
+                <div className="text-danger">{error}</div>
+            )}
             {/* Internal scrollable container for screen content */}
             <ScreenScroll ref={scrollerRef}>
                 {/* Wrap content in PullToRefresh (optional) */}

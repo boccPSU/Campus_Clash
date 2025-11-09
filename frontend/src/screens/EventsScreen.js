@@ -26,8 +26,9 @@ function EventsScreen() {
         setLoading(true);
         try {
             const res = await fetch("http://localhost:5000/api/events");
+            if (res.status === 500) throw new Error("[EVENTS] Error", {cause: "Unable to Connect."});
             const data = await res.json();
-            if (!res.ok) throw new Error("Failed to fetch events");
+            if (!res.ok) throw new Error("Failed to fetch events", {cause: data.error});
 
             // Map DB rows -> EventCard props
             const mapped = (Array.isArray(data) ? data : []).map((row) => {
@@ -49,7 +50,7 @@ function EventsScreen() {
             setEvents(mapped);
         } catch (e) {
             console.error(e);
-            setErr("Could not load events.");
+            setErr(e.cause);
             setEvents([]);
         } finally {
             setLoading(false);

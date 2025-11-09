@@ -119,7 +119,7 @@ function RegisterScreen({setToken}) {
     return (
         <>
             <div className="register template d-flex justify-content-center align-items-center 100-w vh-100 bg-primary">
-                <div className='40-w p-5 rounded bg-light'>
+                <div className='p-5 width:50 rounded bg-light'>
                     {error && (
                         <div className="text-danger">{error}</div>
                     )}
