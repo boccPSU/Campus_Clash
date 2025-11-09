@@ -1,22 +1,39 @@
 @use "../../css/tokens.scss" as *;
 
 .progressSummaryCard {
-    @extend .d-flex;
-    @extend .flex-row;
-    @extend .justify-content-between;
-    @extend .align-items-center;
-    @extend .py-1;
-    @extend .px-3;
-    @extend .fs-5;
+  background-color: $dark;
+  color: $light;
+  border-radius: 20px;
+  padding: 1rem 1.2rem;
+  border: none;
+  box-shadow: none;
 
-    background-color: $light;
+  .innerBox {
+    background: transparent;
+    border: none;
+    padding: 0;
+  }
 
-    .description {
-        @extend .fw-bolder;
-        color: $dark;
+  .summaryRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem 0;
+    font-size: 1.05rem;
+    border-bottom: 1px solid rgba($light, 0.1);
+
+    &:last-child {
+      border-bottom: none;
     }
+  }
 
-    .value {
-        color: $dark;
-    }
+  .description {
+    font-weight: 700;
+    color: $light;
+  }
+
+  .value {
+    font-weight: 600;
+    color: $light;
+  }
 }

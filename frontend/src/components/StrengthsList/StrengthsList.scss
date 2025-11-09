@@ -1,0 +1,13 @@
+@use "../../css/tokens.scss" as *;
+.strengthsList { display: grid; gap: 14px; }
+
+.pill {
+  background: darken($dark, 3%);
+  color: $light;
+  border-radius: 999px;
+  padding: 12px 16px;
+  font-weight: 800;
+  border: 3px solid transparent;
+}
+.pill--bad  { border-color: var(--bs-danger, #e44747); }
+.pill--good { border-color: var(--bs-success, #46b05e); }
