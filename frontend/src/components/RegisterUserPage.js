@@ -23,9 +23,8 @@ function RegisterUserPage({formData, setFormData}) {
     return (
         <>
             <h3>Register</h3>
-            <Form.Label>Name</Form.Label>
-            <InputGroup className="mb-3" hasValidation>
-                <div className="flex-fill me-2">
+            <Form.Label>First Name</Form.Label>
+            <InputGroup className="mb-1" hasValidation>
                     <Form.Control
                         type="text" 
                         required
@@ -38,8 +37,10 @@ function RegisterUserPage({formData, setFormData}) {
                         }}
                     />
                     <Form.Control.Feedback type="invalid">Please Enter your First Name.</Form.Control.Feedback>
-                </div>
-                <div className = "flex-fill">
+            </InputGroup>
+
+            <Form.Label>Last Name</Form.Label>
+            <InputGroup className="mb-1" hasValidation>
                     <Form.Control
                         type="text" 
                         required 
@@ -52,11 +53,10 @@ function RegisterUserPage({formData, setFormData}) {
                         }}
                     />
                     <Form.Control.Feedback type="invalid">Please Enter your Last Name.</Form.Control.Feedback>
-                </div>
             </InputGroup>
 
             <Form.Label>Username</Form.Label>
-            <InputGroup className="mb-3" hasValidation>
+            <InputGroup className="mb-1" hasValidation>
                 <Form.Control
                     type="text" 
                     required
@@ -72,7 +72,7 @@ function RegisterUserPage({formData, setFormData}) {
             </InputGroup>
 
             <Form.Label>Password</Form.Label>
-            <InputGroup className="mb-3" hasValidation>
+            <InputGroup className="mb-1" hasValidation>
                 <Form.Control
                     type="text" 
                     required

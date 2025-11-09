@@ -21,7 +21,7 @@ function BottomNav() {
             />
             <NavButton to="/events" icon={CalendarEventFill} label="Events" />
             <NavButton
-                to="/"
+                to="/home"
                 icon={HouseDoorFill}
                 label="Home"
                 size={26}
