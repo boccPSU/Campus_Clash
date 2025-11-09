@@ -1,7 +1,7 @@
 import React from "react";
 
 // import routing tools to switch between pages
-import {Routes, Route, useLocation} from "react-router-dom";
+import {Routes, Route, useLocation, useNavigate, Navigate} from "react-router-dom";
 import {useEffect, useState} from 'react';
 
 // needed to use bootstrap components
@@ -16,27 +16,28 @@ import StudyPlan from "./screens/StudyPlan";
 import ProgressReport from "./screens/ProgressReport";
 import RegisterScreen from "./screens/RegisterScreen";
 import LoginScreen from "./screens/LoginScreen";
+import ProfileScreen from "./screens/ProfileScreen";
 
 import useToken from "./api/userTokens";
 
 function App() {
     const {token, setToken} = useToken();
+    const navigate = useNavigate();
     const location = useLocation();
 
-    const [pathName, setPathName] = useState(location.pathName);
-
     useEffect(() => {
-        if (!token && !(location.pathname === "/register")) {
-            setPathName("/login");
-        } else {
-            setPathName(location.pathname);
+        if (!token && (location.pathname !== "/register") && (location.pathname !== "/login")) {
+            navigate("/login");
         }
     }, [location]);
 
     return (
-            <Routes location={pathName}>
-                {/* default path -> Home */}
-                <Route path="/" element={<HomeScreen />} />
+            <Routes>
+                {/* default path redirects depending on token*/}
+                <Route path="/" element={<Navigate to={token ? "/home" : "/login"} replace />}/>
+                
+                {/* /home path -> Home */}
+                <Route path="/home" element={<HomeScreen />} />
 
                 {/* /events path -> Events screen */}
                 <Route path="/events" element={<EventsScreen />} />
@@ -58,6 +59,9 @@ function App() {
 
                 {/* /login -> Login screen*/}
                 <Route path="/login" element={<LoginScreen setToken={setToken}/>} />
+
+                {/* /profile -> Profile Screen*/}
+                <Route path="/profile" element={<ProfileScreen/>} />
             </Routes>
     );
 }

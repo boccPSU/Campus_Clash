@@ -103,7 +103,7 @@ app.post('/api/register', async (req, res) => {
     return res.status(201).json({ successful: true, token });
   } catch (e) {
     console.error('[BACKEND] register error:', e);
-    return res.status(500).json({ successful: false, error: 'DB error' });
+    return res.status(500).json({ successful: false, error: '/register Error' });
   }
 });
 
@@ -129,10 +129,10 @@ app.post('/api/login', async (req, res) => {
     }
 
     const token = auth.generateToken(username);
-    return res.json({ successful: true, token });
+    return res.status(201).json({ successful: true, token });
   } catch (e) {
     console.error('[BACKEND] login error:', e);
-    return res.status(500).json({ successful: false, error: 'DB error' });
+    return res.status(500).json({ successful: false, error: '/login Error' });
   }
 });
 
@@ -144,7 +144,7 @@ app.post('/api/auth', (req, res) => {
     const ok = auth.verifyToken(token);
     return res.json({ successful: !!ok });
   } catch {
-    return res.status(401).json({ successful: false , error: 'TokenAuth Error'});
+    return res.status(401).json({ successful: false , error: '/auth Error'});
   }
 });
 
@@ -172,7 +172,7 @@ app.post('/api/event', async (req, res) => {
     return res.status(201).json({ successful: true, eid });
   } catch (e) {
     console.error('[BACKEND] create event error:', e);
-    return res.status(500).json({ successful: false });
+    return res.status(500).json({ successful: false, error: "/event Error"});
   }
 });
 
@@ -184,7 +184,7 @@ app.get('/api/events', async (_req, res) => {
     res.json(items);
   } catch (e) {
     console.error('[BACKEND] list events error:', e);
-    res.status(500).json({ successful: false });
+    res.status(500).json({ successful: false, error: "/events Error" });
   }
 });
 
@@ -195,6 +195,11 @@ app.get('/api/major-xp', async (_req, res) => {
     res.json(rows);
   } catch (e) {
     console.error('[BACKEND] major-xp error:', e);
-    res.status(500).json({ successful: false });
+    res.status(500).json({ successful: false, error: "/major-xp Error" });
   }
 });
+
+//Listen For Calls
+app.listen(PORT, () => {
+  console.log(`Server listening on Port ${PORT}`);
+})

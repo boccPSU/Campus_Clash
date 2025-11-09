@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Button, Form, InputGroup } from "react-bootstrap";
 import { useNavigate, Link} from "react-router-dom";
 
-function RegisterUserPage({formData, setFormData}) {
+function RegisterStudentPage({formData, setFormData}) {
     const [university, setUniversity] = useState(formData.university);
     const [major, setMajor] = useState(formData.major);
     const [canvasToken, setCanvasToken] = useState(formData.canvasToken);
@@ -43,7 +43,6 @@ function RegisterUserPage({formData, setFormData}) {
                 <Form.Select 
                     aria-label="Major Select"
                     required
-                    hasValidation
                     defaultValue={formData.major}
                     onChange={(event) => {
                         setMajor(event.target.value);
@@ -81,4 +80,4 @@ function RegisterUserPage({formData, setFormData}) {
     );
 }
 
-export default RegisterUserPage;
+export default RegisterStudentPage;

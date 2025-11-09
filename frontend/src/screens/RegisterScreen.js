@@ -18,6 +18,7 @@ function RegisterScreen({setToken}) {
 
     const [validated, setValidated] = useState(false);
     const [isLoading, setLoading] = useState(false);
+    const [error, setError] = useState("");
 
     const navigate = useNavigate();
 
@@ -42,25 +43,28 @@ function RegisterScreen({setToken}) {
         setValidated(true);
     }
 
-    const registerNewUser = () => {
-        return fetch("/api/register", {
-            method: "post",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(formData),
-        })
-        .then((response) => response.json())
-        .then((data) => {
-            console.log(data)
+    const registerNewUser = async () => {
+        try {
+            const res = await fetch("/api/register", {
+                method: "post",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(formData),
+            });
+            if (res.status === 500) throw new Error("[LOGIN] Error", {cause: "Unable to Connect."});
+            const data = await res.json();
+            if (!res.ok) throw new Error("[Register] Error", {cause: data.error});
             if (data.successful) {
-                console.log("Success!");
                 setToken({"token": data.token});
-                navigate("/");
+                navigate("/home");
             } else {
-                console.log("Failure.");
+                setError(data.error);
             }
-        })
+        } catch (e) {
+            console.log(e);
+            setError(e.cause);
+        }
     }
 
     const handleNextStep = () => setStep(prevStep => prevStep + 1);
@@ -116,6 +120,9 @@ function RegisterScreen({setToken}) {
         <>
             <div className="register template d-flex justify-content-center align-items-center 100-w vh-100 bg-primary">
                 <div className='40-w p-5 rounded bg-light'>
+                    {error && (
+                        <div className="text-danger">{error}</div>
+                    )}
                     <Form noValidate validated={validated} onSubmit={!isLoading ? handleSubmit : null}>
                         {renderStep()}
                         {renderButtons()}
