@@ -30,6 +30,7 @@ const generateToken = (username) => {
         username
     }
     const token = jwt.sign(data, key, {expiresIn: "1d"});
+    console.log("Generated token for", username, ":", token);
     return token;
 }
 
@@ -41,15 +42,26 @@ const verifyToken = (token) => {
         return false;
     }
 }
-    
-// Decryps user token and returns username
-const decryptToken = (token) => {
-    try {
-        const decoded = jwt.verify(token, key);
-        // Return only the username
-        return decoded.username;
-    } catch (err) {
-        return null;
+
+// Decrypts user token and returns username
+const decryptToken = (token) => {  
+  console.log('[decryptToken] Decrypting token:', token);
+  try {
+    if (!token) {
+      console.warn('[decryptToken] No token provided');
+      return null;
     }
+
+    const decoded = jwt.verify(token, key);
+    if (!decoded || !decoded.username) {
+      console.warn('[decryptToken] No username in decoded token', decoded);
+      return null;
+    }
+
+    return decoded.username;
+  } catch (err) {
+    console.error('[decryptToken] Failed to verify token:', err.message);
+    return null;
+  }
 };
-module.exports = {encryptPassword, verifyPassword, generateToken, verifyToken}
+module.exports = {encryptPassword, verifyPassword, generateToken, verifyToken, decryptToken}

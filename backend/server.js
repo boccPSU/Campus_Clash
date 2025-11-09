@@ -8,6 +8,7 @@ const cors = require('cors');
 const { pool, initDb, addMockUsers } = require('./db/db.js');
 const { getSortedMajors } = require('./db/sortData.js');
 const auth = require('./db/authentication.js');
+const { decryptToken } = require('./db/authentication.js');
 
 // Canvas proxy config
 const BASE  = process.env.CANVAS_BASE;   // e.g. https://psu.instructure.com
@@ -120,6 +121,8 @@ app.post('/api/register', async (req, res) => {
 
         // Generate token for user
         const token = auth.generateToken(username);
+
+        // Set token in local storage on client side
         return res.status(201).json({ successful: true, token });
     } catch (e) {
         console.error('[BACKEND] register error:', e);
@@ -381,4 +384,127 @@ app.post('/api/create-tournament', async (req, res) => {
         console.error('[BACKEND] create-tournament error:', err);
         return res.status(520).json({ error: "Failed to create tournament" });
     }
+});
+
+// New endpoint to return the userName of the currently loggeed in user
+app.get('/api/current-user', async (req, res) => {
+    const token = req.headers['jwt-token']; // matches your frontend convention
+    const username = decryptToken(token);
+    if (!username) {
+        return res.status(401).json({ error: "Unauthorized" });
+    }
+    return res.json({ username });
+});
+
+// Endpoint to return the information on the current tournament based on logged in user
+app.get('/api/current-tournament', async (req, res) => {
+    //log token
+    
+    const token = req.headers['jwt-token'];
+    console.log("Current Tournament Token: " + token);
+    if (!token) {
+        return res.status(401).json({ error: "Unauthorized: missing token" });
+    }
+
+    // decryptToken now returns just the username (or null/undefined)
+    const username = decryptToken(token);
+    console.log('Decrypted username in current tournament:', username);
+    if (!username) {
+        return res.status(401).json({ error: "Unauthorized: invalid token" });
+    }
+
+    try {
+        // Find the (single) tournament this user is participating in.
+        // If you truly only ever have one active tournament total,
+        // this will just pick that one for whoever is in it.
+        const [rows] = await pool.query(
+            `
+            SELECT t.*
+            FROM tournament_participants tp
+            JOIN users u ON u.pid = tp.pid
+            JOIN tournaments t ON t.tid = tp.tid
+            WHERE u.username = ?
+            LIMIT 1
+            `,
+            [username]
+        );
+
+        if (!rows || rows.length === 0) {
+            return res.status(404).json({ error: "Tournament not found for user" });
+        }
+
+        return res.json({ tournament: rows[0] });
+    } catch (err) {
+        console.error('[BACKEND] current-tournament error:', err);
+        return res.status(500).json({ error: "Failed to retrieve tournament" });
+    }
+});
+
+// Allows currently logged in user to join the current tournament
+app.post('/api/join-tournament', async (req, res) => {
+  try {
+    const token = req.headers['jwt-token'];
+    console.log("Join Tournament Token: " + token);
+
+    if (!token) {
+      return res.status(401).json({ error: "Missing token" });
+    }
+
+    // This should return the username string based on your implementation
+    const username = decryptToken(token);
+    console.log('Decrypted username in join tournament:', username);
+    if (!username) {
+      return res.status(401).json({ error: "Invalid token" });
+    }
+
+    // Look up user's pid
+    const [userRows] = await pool.query(
+      "SELECT pid FROM users WHERE username = ?",
+      [username]
+    );
+    const user = userRows[0];
+    console.log('User found for join tournament:', user);
+    if (!user) {
+      return res.status(460).json({ error: "User not found" });
+    }
+
+    // Get "current" tournament
+    // If you truly only allow one at a time, this is fine.
+    const [tRows] = await pool.query(
+      "SELECT tid FROM tournaments ORDER BY startTime DESC LIMIT 1"
+    );
+    const tournament = tRows[0];
+    if (!tournament) {
+      return res.status(469).json({ error: "No active tournament" });
+    }
+
+    const tid = tournament.tid;
+    const pid = user.pid;
+
+    // Check if already joined
+    const [existingRows] = await pool.query(
+      "SELECT 1 FROM tournament_participants WHERE tid = ? AND pid = ? LIMIT 1",
+      [tid, pid]
+    );
+    if (existingRows.length > 0) {
+      return res.json({
+        successful: true,
+        joined: false,
+        tid,
+        message: "Already joined tournament",
+      });
+    }
+
+    // Add user to tournament via stored procedure
+    await pool.query("CALL join_tournament(?, ?)", [tid, pid]);
+
+    return res.status(201).json({
+      successful: true,
+      joined: true,
+      tid,
+    });
+  } catch (err) {
+    console.error("[BACKEND] join-tournament error:", err);
+    return res.status(500).json({ error: "Failed to join tournament" });
+  }
 });

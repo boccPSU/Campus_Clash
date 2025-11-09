@@ -16,8 +16,8 @@ function TournamentScreen() {
     // Static tournament list data
     const tournaments = [
         {
-            title: "Computer Science Challenge",
-            topics: "Computer Architecture, Algorithms, Data Structures",
+            title: "Science Showdown",
+            topics: "Chemistry, Biology, Physics",
             endDate: "Sept. 25, 12:00 a.m.",
             reward: 250,
         },

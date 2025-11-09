@@ -15,7 +15,7 @@ const pool = mysql.createPool({
 // Initializes database when server is started
 async function initDb() {
 
-  // Drop dependent table first (if it exists)
+// Drop dependent table first (if it exists)
 await pool.query(`
   DROP TABLE IF EXISTS tournament_participants;
 `);
@@ -24,7 +24,8 @@ await pool.query(`
 await pool.query(`
   DROP TABLE IF EXISTS tournaments;
 `);
-  
+
+
   // Create users table
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
