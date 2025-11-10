@@ -412,3 +412,181 @@ export async function checkRecentSubmissions({ lookbackMinutes = 60 * 24 * 7, no
 export async function logRecentSubmissions(opts) {
   await checkRecentSubmissions(opts);
 }
+
+// ------------------------------------------------------------
+// Weekly Progress (Canvas-driven)
+// ------------------------------------------------------------
+
+/** Internal: compute Sun..Sat window around "now" */
+function _weekWindow(now = new Date()) {
+  const start = new Date(now);
+  start.setDate(now.getDate() - now.getDay());
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  end.setHours(23, 59, 59, 999);
+  return { start, end };
+}
+
+/** Internal: format M/D (e.g., 9/14) */
+function _md(d) {
+  return d.toLocaleDateString(undefined, { month: "numeric", day: "numeric" });
+}
+
+/** Internal: safe percent from a submission (score/points_possible) */
+function _submissionPercent(sub) {
+  const score = typeof sub?.score === "number" ? sub.score : null;
+  const pts = typeof sub?.assignment?.points_possible === "number" ? sub.assignment.points_possible : null;
+  if (score == null || pts == null || pts <= 0) return null;
+  return (score / pts) * 100;
+}
+
+/**
+ * Compute weekly summary & chart data from Canvas.
+ * Returns:
+ * {
+ *   weekIndex: number,
+ *   rangeLabel: "M/D - M/D",
+ *   summary: { totalXp, maxStreak, avgAssignGradePct },
+ *   grades: { days: string[], series: {name, points[]}[] },
+ *   strengths: { negatives: string[], positives: string[] }
+ * }
+ *
+ * NOTE on XP: we expose a hook `xpFromSubmissions(subs)` so you can plug your own
+ * gamification rules. By default we set totalXp = 0 to stay truthful.
+ */
+export async function getWeeklyProgressData(now = new Date()) {
+  const { start, end } = _weekWindow(now);
+
+  // week index from SEMESTER_START (Sun..Sat buckets)
+  const weeksSinceStart = Math.max(
+    1,
+    Math.floor((start.getTime() - new Date(SEMESTER_START).getTime()) / (7 * 86400000)) + 1
+  );
+
+  // Courses filtered by your existing rules (active, created after SEMESTER_START, has grades)
+  const courses = await getMySemesterCoursesWithGrades(); // [{id,name,...}]
+
+  // Recent submissions across all selected courses within the week (uses your server-side filter)
+  const all = await checkRecentSubmissions({
+    // look back 7 days is already default; we’ll client-trim to Sun..Sat exactly:
+    lookbackMinutes: 60 * 24 * 7,
+    now,
+  });
+
+  // Keep only those inside [start,end]
+  const weeklySubs = all.filter(s => {
+    const t = Date.parse(s.submittedAtISO ?? "");
+    return Number.isFinite(t) && t >= start.getTime() && t <= end.getTime();
+  });
+
+  // ---------- Summary ----------
+  // XP: plug your own rule here if you have one:
+  function xpFromSubmissions(subs) {
+    // TODO: integrate your existing XP engine.
+    // For now, stay accurate (no made-up XP):
+    return 0;
+  }
+  const totalXp = xpFromSubmissions(weeklySubs);
+
+  // Highest daily submission streak this week (max consecutive days with >=1 submission)
+  const submittedDay = new Array(7).fill(false);
+  for (const s of weeklySubs) {
+    const t = new Date(s.submittedAtISO);
+    const dayIdx = (t.getDay() + 7) % 7; // 0..6
+    submittedDay[dayIdx] = true;
+  }
+  let maxStreak = 0, cur = 0;
+  for (let i = 0; i < 7; i++) {
+    cur = submittedDay[i] ? cur + 1 : 0;
+    if (cur > maxStreak) maxStreak = cur;
+  }
+
+  // Average assignment grade this week (from scored submissions only)
+  const percents = [];
+  for (const s of weeklySubs) {
+    const p = _submissionPercent(s);
+    if (typeof p === "number" && Number.isFinite(p)) percents.push(p);
+  }
+  const avgAssignGradePct = percents.length
+    ? Math.round((percents.reduce((a, b) => a + b, 0) / percents.length) * 10) / 10
+    : 0;
+
+  // ---------- Weekly Grades chart ----------
+  // x-axis labels: Sun..Sat
+  const days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  // For each course, create an array[7] with latest available score that day; if multiple,
+  // take the last submission of that day; if none, carry forward the previous day's value.
+  const courseIdToName = new Map(courses.map(c => [c.id, c.name]));
+  const perCourseDaily = new Map(); // id -> number[7] with nulls
+  for (const c of courses) perCourseDaily.set(c.id, new Array(7).fill(null));
+
+  // Bucket submissions into days per course and choose last-of-day
+  const lastSubIdx = {}; // key: `${courseId}-${dayIdx}` => percent
+  for (const s of weeklySubs) {
+    const courseId = s.courseId;
+    if (!perCourseDaily.has(courseId)) continue;
+    const dt = new Date(s.submittedAtISO);
+    const dayIdx = dt.getDay(); // 0..6
+    const pct = _submissionPercent(s);
+    if (pct == null) continue;
+    lastSubIdx[`${courseId}-${dayIdx}`] = pct; // overwrite -> last in array order
+  }
+  // Fill per-course arrays
+  for (const [key, pct] of Object.entries(lastSubIdx)) {
+    const [cidStr, dStr] = key.split("-");
+    const cid = Number(cidStr);
+    const di = Number(dStr);
+    const arr = perCourseDaily.get(cid);
+    if (arr) arr[di] = Math.max(0, Math.min(100, pct));
+  }
+  // Carry-forward so the lines look continuous (optional)
+  for (const [cid, arr] of perCourseDaily) {
+    for (let i = 1; i < 7; i++) {
+      if (arr[i] == null) arr[i] = arr[i - 1];
+    }
+    // still null? set to 0 so chart has a baseline
+    for (let i = 0; i < 7; i++) if (arr[i] == null) arr[i] = 0;
+  }
+  const series = [...perCourseDaily.entries()].map(([cid, arr]) => ({
+    name: courseIdToName.get(cid) ?? `Course ${cid}`,
+    points: arr,
+  }));
+
+  // ---------- Strengths/Improvements ----------
+  const negatives = [];
+  const positives = [];
+
+  // Flag: <50% scores this week
+  const lowScores = weeklySubs
+    .map(_submissionPercent)
+    .filter(p => typeof p === "number" && p < 50).length;
+  if (lowScores >= 2) negatives.push(`Scored < 50% on ${lowScores} assignments (this week)`);
+
+  // On-time submissions
+  const onTimeCount = weeklySubs.filter(s => s.onTime === true).length;
+  const lateCount = weeklySubs.filter(s => s.onTime === false).length;
+  if (onTimeCount > 0) positives.push(`All on-time submissions: ${onTimeCount} (this week)`);
+  if (lateCount > 0) negatives.push(`Late submissions: ${lateCount} (this week)`);
+
+  // “Above average on X/Y” within week — compare to each course's current_score if available
+  // (heuristic; Canvas doesn't expose weekly average directly)
+  const above = [];
+  for (const s of weeklySubs) {
+    const percent = _submissionPercent(s);
+    if (percent == null) continue;
+    // use the course enrollment percent as a rough "course average"
+    const courseCard = courses.find(c => c.id === s.courseId);
+    const courseAvg = typeof courseCard?.percent === "number" ? courseCard.percent : 70;
+    if (percent >= courseAvg) above.push(1);
+  }
+  if (above.length) positives.push(`Scored at/above course avg on ${above.length}/${weeklySubs.length} graded submissions`);
+
+  return {
+    weekIndex: weeksSinceStart,
+    rangeLabel: `${_md(start)} - ${_md(end)}`,
+    summary: { totalXp, maxStreak, avgAssignGradePct: Math.round(avgAssignGradePct) },
+    grades: { days, series },
+    strengths: { negatives, positives },
+  };
+}

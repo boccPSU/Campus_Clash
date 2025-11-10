@@ -1,14 +1,23 @@
-// Displays most important sumamry reports for each acedemic week
-
 import { Card } from "react-bootstrap";
+import "./ProgressSummaryCard.scss";
 
-function ProgressSummaryCard() {
-    return (
-        <Card className="progressSummaryCard">
-            <p className="description">Description</p>
-            <p className="value">Value</p>
-        </Card>
-    );
+export default function ProgressSummaryCard({ totalXp, maxStreak, avgAssignGradePct }) {
+  return (
+    <Card className="progressSummaryCard">
+      <div className="innerBox">
+        <div className="summaryRow">
+          <p className="description">Total XP Earned:</p>
+          <p className="value">{(totalXp ?? 0).toLocaleString()} XP</p>
+        </div>
+        <div className="summaryRow">
+          <p className="description">Highest Assignment Streak:</p>
+          <p className="value">{maxStreak ?? 0}</p>
+        </div>
+        <div className="summaryRow">
+          <p className="description">Average grade on assignments:</p>
+          <p className="value">{avgAssignGradePct ?? 0}%</p>
+        </div>
+      </div>
+    </Card>
+  );
 }
-
-export default ProgressSummaryCard;
