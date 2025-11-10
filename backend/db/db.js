@@ -153,6 +153,7 @@ await pool.query(`
   // Drop + recreate user procedures
   await pool.query(`DROP PROCEDURE IF EXISTS get_user_by_first_name`);
   await pool.query(`DROP PROCEDURE IF EXISTS get_user_by_username`);
+    await pool.query(`DROP PROCEDURE IF EXISTS get_student_by_username`);
   await pool.query(`DROP PROCEDURE IF EXISTS login`);
   await pool.query(`DROP PROCEDURE IF EXISTS register`);
 
@@ -170,6 +171,16 @@ await pool.query(`
     CREATE PROCEDURE get_user_by_username(IN p_username VARCHAR(32))
     BEGIN
       SELECT * FROM users WHERE username = p_username;
+    END
+  `);
+
+  await pool.query(`
+    CREATE PROCEDURE get_student_by_username(IN p_username VARCHAR(32))
+    BEGIN
+      SELECT users.firstName, users.lastName, users.username, students.university, students.major, students.xp
+        FROM users
+        INNER JOIN students
+        ON users.pid = students.pid;
     END
   `);
 

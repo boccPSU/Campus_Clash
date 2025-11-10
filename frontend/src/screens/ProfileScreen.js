@@ -33,13 +33,43 @@ function ProfileScreen() {
 
     const useEffect = (() => {
         (async () => {
-
+            //await loadUser();
         })();
     }, []);
 
     const loadUser = async () => {
         try {
-            
+            //Get user token
+            const tokenString = localStorage.getItem("token");
+            const userToken = JSON.parse(tokenString);
+            const tokenValue = userToken.token;
+            const getUserRes = await fetch("/api/current-user", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "jwt-token": tokenValue,
+                },
+            });
+            if (getUserRes.status == 500) throw new Error("[PROFILE] Error", {cause: "Could not Connect."});
+            const username = await getUserRes.json().username;
+            const res = await fetch("/api/profile", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(username)
+            });
+            if (res.status == 500) throw new Error("[PROFILE] Error", {cause: "Could not Connect."});
+            const data = res.json();
+            if (!res.ok) throw new Error("[PROFILE] Error", {cause: data.error});
+            setUser({
+                firstName: data.firstName,
+                lastName: data.lastName,
+                username: data.username,
+                university: data.university,
+                major: data.major,
+                xp: data.xp
+            });
         } catch(e) {
             console.log(e);
             setError(e.cause);
@@ -81,7 +111,9 @@ function ProfileScreen() {
             <div
                 className={`headerSpacer ${collapsed ? "is-collapsed" : ""}`}
             />
-
+            {error && (
+                        <div className="text-danger">{error}</div>
+            )}
             <ScreenScroll ref={scrollerRef}>
                 <PullToRefresh scrollerRef={scrollerRef} onRefresh={refresh}>
                     <div className="profile m-3 p-3 d-flex flex-column rounded bg-dark justify-content-center align-items-center" style={{height: "50vh"}}>
@@ -92,7 +124,7 @@ function ProfileScreen() {
                             style={{width:"60%", height:"60%"}}
 
                         />
-                        <h2 className="text-light">Name</h2>
+                        <h2 className="text-light">{user.username}</h2>
                     </div>
                 </PullToRefresh>
 

@@ -144,6 +144,8 @@ app.post('/api/login', async (req, res) => {
     const rows = lookupSets?.[0] || [];
     if (rows.length === 0) {
       return res.status(401).json({ successful: false, error: 'Invalid username or password' });
+    } else if (rows.length > 1) {
+      return res.status(401).json({successful:false, error: "Multiple Users with Username"});
     }
 
     const user = rows[0];
@@ -157,6 +159,34 @@ app.post('/api/login', async (req, res) => {
   } catch (e) {
     console.error('[BACKEND] login error:', e);
     return res.status(500).json({ successful: false, error: '/login Error' });
+  }
+});
+
+app.post('api/profile', async (req, res) => {
+  const { username } = req.body || {};
+  if (!username) {
+    return res.status(400).json({error: "Missing Parameters"});
+  }
+
+  try {
+    const [searchRows] = await pool.query('CALL get_student_by_username(?)', [username]);
+    const rows = searchRows?.[0] || [];
+    if (rows.length !== 1) {
+      return res.status(401).json({error: "Couldn't Find Unique Username."});
+    }
+
+    student = rows[0];
+    return res.status(201).json({
+      firstName: student.firstName, 
+      lastName: student.lastName,
+      username: student.username,
+      univeristy: student.university,
+      major: student.major,
+      xp: student.xp
+    });
+  } catch (e) {
+    console.error('[BACKEND] Profile Error: ', e);
+    return res.status(500).json({error: '/profile error'});
   }
 });
 
