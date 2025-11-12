@@ -28,33 +28,47 @@ function LeaderboardScreen() {
     // Collapse header when user scrolls
     const collapsed = useCollapseOnScroll(scrollerRef);
 
-    // Request leaderboard data
+    // Getting leaderboard data from backend
     useEffect(() => {
         (async () => {
-            setLoadingLeaderboard(true); // Tell app we are loading
-            try {
-                // Call endpoint, and convert to json
-                const res = await fetch("http://localhost:5000/api/major-xp");
-                if (res.status === 500) throw new Error("[LEADERBOARD] Error", {cause: "Unable to Connect."});
-                const data = await res.json();
-                if (!res.ok) throw new Error("Failed to fetch Majors-XP", {cause: data.cause});
-                const row = data.row;
-                console.log("ROW", row);
+            setLoadingLeaderboard(true);
 
-                // Map data to leaderboard cards.
-                const mappedData = row.map((row, idx) => ({
+            // Call backend API to get leaderboard data
+            try {
+                const res = await fetch("http://localhost:5000/api/major-xp");
+
+                // Check for errors
+                if (!res.ok) {
+                    const errBody = await res.json().catch(() => ({}));
+                    throw new Error("Failed to fetch Majors-XP", {
+                        cause: errBody.cause,
+                    });
+                }
+
+                const body = await res.json();
+                console.log("ROWS", body);
+
+                const rows = Array.isArray(body) ? body : body.rows;
+
+                if (!Array.isArray(rows)) {
+                    throw new Error("Majors-XP response is not an array");
+                }
+
+                // Map data to required format
+                const mappedData = rows.map((row, idx) => ({
                     rank: idx + 1,
                     major: row.major ?? "Unknown",
                     xp: row.totalXp ?? row.xp ?? 0,
                 }));
 
+                // Update data state
                 setData(mappedData);
-                return;
+                console.log("[LEADERBOARD] Fetched major XP data:", mappedData);
             } catch (e) {
-                console.log(e);
-                setError(e.cause);
+                console.error(e);
+                setError(e.cause || e.message || "Unknown error");
             } finally {
-                setLoadingLeaderboard(false); // Stop loading
+                setLoadingLeaderboard(false);   // Stop loading
             }
         })();
     }, []);
@@ -78,9 +92,7 @@ function LeaderboardScreen() {
             <div
                 className={`headerSpacer ${collapsed ? "is-collapsed" : ""}`}
             />
-            {error && (
-                <div className="text-danger">{error}</div>
-            )}
+            {error && <div className="text-danger">{error}</div>}
             {/* Internal scrollable container for screen content */}
             <ScreenScroll ref={scrollerRef}>
                 {/* Wrap content in PullToRefresh (optional) */}

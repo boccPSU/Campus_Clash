@@ -45,11 +45,7 @@ await pool.query(`
   CREATE TABLE IF NOT EXISTS students (
     pid INT NOT NULL,
     university VARCHAR(32) DEFAULT NULL,
-    major enum(\'Computer Science\', \'Software Engineering\', \'Data Science\', 
-    \'Cybersecurity\', \'Information Systems\', \'Computer Engineering\', \'Electrical Engineering\', 
-    \'Mechanical Engineering\', \'Civil Engineering\', \'Industrial Engineering\', \'Math\', 
-    \'Statistics\', \'Physics\', \'Chemistry\', \'Biology\', \'Psychology\', \'Economics\', 
-    \'Business\', \'Marketing\', \'Finance\')      DEFAULT NULL,
+    major VARCHAR(32)  DEFAULT NULL,
     XP INT DEFAULT 0,
     canvasToken VARCHAR(70) DEFAULT NULL,
     KEY pid (pid),

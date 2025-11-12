@@ -216,7 +216,7 @@ app.get('/api/events', async (_req, res) => {
 app.get('/api/major-xp', async (_req, res) => {
   try {
     const rows = await getSortedMajors();
-    res.status(201).json({successful: true, rows});
+    res.status(278).json({successful: true, rows});
   } catch (e) {
     console.error('[BACKEND] major-xp error:', e);
     res.status(500).json({ successful: false, error: "/major-xp Error" });

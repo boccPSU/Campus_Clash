@@ -16,23 +16,11 @@ function TournamentScreen() {
     // Static tournament list data
     const tournaments = [
         {
-            title: "Science Showdown",
-            topics: "Chemistry, Biology, Physics",
+            title: "Computer Science Challenge",
+            topics: "Computer Science, Algorithms",
             endDate: "Sept. 25, 12:00 a.m.",
             reward: 250,
-        },
-        {
-            title: "History Battle",
-            topics: "World War I, World War II",
-            endDate: "Sept. 30, 12:00 a.m.",
-            reward: 300,
-        },
-        {
-            title: "Business Blitz",
-            topics: "Economics, Marketing, Finance",
-            endDate: "Oct. 5, 12:00 a.m.",
-            reward: 275,
-        },
+        }
     ];
 
     // User XP for header display
