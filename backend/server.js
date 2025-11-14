@@ -670,3 +670,96 @@ app.get("/api/tournament/questions/:title", async (req, res) => {
       return res.status(500).json({ error: "Server error fetching questions" });
   }
 });
+
+// Updates score in tournament_participants for a user in a given tournament
+app.post("/api/tournament/update-score/:username", async (req, res) => {
+  const username = req.params.username;
+  const { tid, score } = req.body || {};
+
+  if (!tid || typeof score !== "number") {
+    return res
+      .status(400)
+      .json({ successful: false, error: "Missing or invalid tid/score" });
+  }
+
+  try {
+    // 1) Look up the user to get pid
+    const [userSets] = await pool.query("CALL get_user_by_username(?)", [
+      username,
+    ]);
+    const userRows = userSets?.[0] || [];
+
+    if (userRows.length === 0) {
+      return res
+        .status(404)
+        .json({ successful: false, error: "User not found" });
+    }
+
+    const pid = userRows[0].pid;
+
+    // 2) Update the participant's score in this tournament
+    const [result] = await pool.query(
+      `
+        UPDATE tournament_participants
+        SET score = ?
+        WHERE tid = ? AND pid = ?
+      `,
+      [score, tid, pid]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        successful: false,
+        error: "User is not a participant in this tournament",
+      });
+    }
+
+    return res.json({
+      successful: true,
+      tid,
+      username,
+      pid,
+      score,
+    });
+  } catch (err) {
+    console.error("[API] update-score error:", err);
+    return res
+      .status(500)
+      .json({ successful: false, error: "Database error updating score" });
+  }
+});
+
+// Gets all participating usernames in a tournament with their scores
+app.post("/api/tournament/participating-users-info", async (req, res) => {
+  const { tid } = req.body || {};
+
+  if (!tid) {
+    return res
+      .status(400)
+      .json({ successful: false, error: "Missing tid in request body" });
+  }
+
+  try {
+    const [rows] = await pool.query(
+      `
+        SELECT u.username, tp.score
+        FROM tournament_participants tp
+        INNER JOIN users u ON u.pid = tp.pid
+        WHERE tp.tid = ?
+        ORDER BY tp.score DESC, u.username ASC
+      `,
+      [tid]
+    );
+
+    return res.json({
+      successful: true,
+      tid,
+      participants: rows, // [{ username, score }, ...]
+    });
+  } catch (err) {
+    console.error("[API] participating-users-info error:", err);
+    return res
+      .status(500)
+      .json({ successful: false, error: "Database error fetching participants" });
+  }
+});

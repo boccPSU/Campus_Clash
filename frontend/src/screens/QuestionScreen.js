@@ -8,7 +8,7 @@ import useCollapseOnScroll from "../components/hooks/useCollapseOnScroll.js";
 import PullToRefresh from "../components/interaction/PullToRefresh.js";
 import ScreenScroll from "../components/ScreenScroll/ScreenScroll.js";
 import { Button } from "react-bootstrap";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 export default function QuestionScreen() {
     // Used to get data from navigate() function
@@ -16,21 +16,21 @@ export default function QuestionScreen() {
     const navState = location.state || {};
     const navTitle = navState.title; // Tournament title used to fetch its questions
 
-    // -----------------------------
-    // Default values / constants
-    // -----------------------------
-    //const DEFAULT_CATEGORY = "Computer Science";
-    //const DEFAULT_DIFFICULTY = "medium";
-    //const QUESTION_COUNT = 5; // Not strictly used here, but describes expected # of questions
+    const navigate = useNavigate(); // used to go back to tournament screen
 
     // Timing configuration (shared by all players)
     // Every player uses the same schedule relative to the tournament's startTime.
     // The "tournamentStartTime" is: startTime + PREP_DURATION_MS
-    const PREP_DURATION_MS = 15_000;          // Time from startTime until first question
-    const QUESTION_DURATION_MS = 15_000;      // Duration of each question
-    const LEADERBOARD_DURATION_MS = 5_000;    // Leaderboard time between questions
-    const CYCLE_DURATION_MS =
-        QUESTION_DURATION_MS + LEADERBOARD_DURATION_MS; // One full question + leaderboard cycle
+
+    //---------------------------------------//
+    //---------------------------------------//
+    // CHANGE THESE TIMES IF NEEDED FOR DEMO //
+    //---------------------------------------//
+    //---------------------------------------//
+    const PREP_DURATION_MS = 20_000; // Time from startTime until first question
+    const QUESTION_DURATION_MS = 10_000; // Duration of each question
+    const LEADERBOARD_DURATION_MS = 5_000; // Leaderboard time between questions
+    const CYCLE_DURATION_MS = QUESTION_DURATION_MS + LEADERBOARD_DURATION_MS; // One full question + leaderboard cycle
 
     // -----------------------------
     // State variables
@@ -39,11 +39,9 @@ export default function QuestionScreen() {
     // Which "screen" is currently active:
     //  - "waiting": before first question / during prep or between questions
     //  - "question": actively answering a question
-    //  - "leaderboard": showing score and waiting for next question or end
+    //  - "leaderboard": showing score and waiting for next question
+    //  - "gameover": final leaderboard after all questions
     const [stage, setStage] = useState("waiting");
-
-    // Whether this client is participating in the tournament
-    const [inProgress, setInProgress] = useState(false);
 
     // The full list of questions for this tournament and the current index
     const [questions, setQuestions] = useState([]);
@@ -51,9 +49,9 @@ export default function QuestionScreen() {
 
     // Answer selection and scoring for this player
     const [selectedIndex, setSelectedIndex] = useState(null); // Which answer the player clicked
-    const [isCorrect, setIsCorrect] = useState(null);         // true/false/null (null = not answered yet)
-    const [score, setScore] = useState(0);                    // Player's score across questions
-
+    const [isCorrect, setIsCorrect] = useState(null); // true/false/null (null = not answered yet)
+    const [score, setScore] = useState(0); // Player's score across questions
+    const [inProgress, setInProgress] = useState(false);
     // Loading / error state
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -62,8 +60,21 @@ export default function QuestionScreen() {
     const [startTime, setStartTime] = useState(null); // ms timestamp
     const [topics, setTopics] = useState();
     const [difficulty, setDifficulty] = useState();
+    const [tid, setTid] = useState(null); // Tournament ID from backend
+    const [authToken, setAuthToken] = useState("");
+    const [username, setUsername] = useState("");
+    const [leaderboard, setLeaderboard] = useState([]); // [{ username, score }, ...]
 
-    // Header UI 
+    // Ref to hard-block multiple answers per question (prevents multi-click scoring)
+    const hasAnsweredRef = useRef(false);
+
+    // Tracks which question index is currently active in the timer, so we only reset selection when the index actually changes.
+    const previousQuestionIndexRef = useRef(null);
+
+    // Used for auto-return on game over screen
+    const gameOverTimeoutRef = useRef(null);
+
+    // Header UI
     const currentXP = 10500;
     const scrollerRef = useRef(null);
     const collapsed = useCollapseOnScroll(scrollerRef);
@@ -101,7 +112,6 @@ export default function QuestionScreen() {
             // Store questions array in state
             setQuestions(loadedQuestions);
 
-
             setStage("waiting");
         } catch (err) {
             console.error(err);
@@ -116,7 +126,6 @@ export default function QuestionScreen() {
         await loadQuestions();
     };
 
-  
     // Sync player with tournament timing, does not allow player to join if tournament started
     const syncPlayer = (startTimeMs) => {
         const tournamentStartMs = startTimeMs + PREP_DURATION_MS;
@@ -124,8 +133,9 @@ export default function QuestionScreen() {
 
         if (now > tournamentStartMs) {
             console.log("Tournament already started for this user.");
-            setError("This tournament has already started. Please join the next one.");
-            // We do not call setStartTime in this case, so the timer effect never runs.
+            setError(
+                "This tournament has already started. Please join the next one."
+            );
             return false;
         }
 
@@ -133,7 +143,7 @@ export default function QuestionScreen() {
     };
 
     // -----------------------------
-    // Initial tournament join + metadata load
+    // Initial tournament join + data load
     // -----------------------------
     // When the user navigates to this screen:
     //  1. Join the current tournament (based on JWT token).
@@ -142,11 +152,11 @@ export default function QuestionScreen() {
     //  4. If not too late, set startTime so the timer effect can drive the stages.
     const initTournament = async () => {
         console.log(
-            "Initializing tournament... token is " + sessionStorage.getItem("token")
+            "Initializing tournament... token is " +
+                sessionStorage.getItem("token")
         );
         setError("");
 
-        // Get user token from sessionStorage (set during login/register)
         const tokenString = sessionStorage.getItem("token");
         if (!tokenString) {
             setError("No token found in session. Please log in again.");
@@ -154,21 +164,59 @@ export default function QuestionScreen() {
         }
 
         let tokenValue = "";
+        let parsedToken = null;
         try {
-            const userToken = JSON.parse(tokenString);
-            tokenValue = userToken.token;
+            parsedToken = JSON.parse(tokenString);
+            tokenValue = parsedToken.token;
         } catch {
             setError("Invalid token format. Please log in again.");
             return;
         }
 
-        console.log("User token in initTournament:", tokenValue);
+        console.log("Parsed Token:", parsedToken);
+        console.log("Token Value -----------", tokenValue);
+
+        // Store for later API calls
+        setAuthToken(tokenValue);
+
+        // Get the current user via backend
+        try {
+            const userRes = await fetch(
+                "http://localhost:5000/api/current-user",
+                {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "jwt-token": tokenValue, // backend uses this header to decrypt
+                    },
+                }
+            );
+
+            if (!userRes.ok) {
+                throw new Error(
+                    `Failed to get current user (${userRes.status})`
+                );
+            }
+
+            const userData = await userRes.json();
+            console.log("current-user response:", userData);
+
+            if (userData.username) {
+                setUsername(userData.username);
+                console.log("Set username state to:", userData.username);
+            } else {
+                console.log("current-user response has no 'username' field");
+            }
+        } catch (e) {
+            console.log("Failed to get current user:", e);
+        }
+
+        //console.log("User token in initTournament:", tokenValue);
 
         try {
-            // Mark as in-progress locally (we can still later mark it false if needed)
             setInProgress(true);
 
-            // 1) Join the tournament for this user
+            // Join the tournament for this user
             await fetch("http://localhost:5000/api/join-tournament", {
                 method: "POST",
                 headers: {
@@ -177,7 +225,7 @@ export default function QuestionScreen() {
                 },
             });
 
-            // 2) Fetch tournament metadata (topics, difficulty, startTime, etc.)
+            // Fetch tournament data
             const res = await fetch(
                 "http://localhost:5000/api/current-tournament",
                 {
@@ -195,17 +243,22 @@ export default function QuestionScreen() {
 
             const data = await res.json();
             const t = data.tournament;
+            console.log("current-tournament response:", t);
 
-            if (!t) {
-                throw new Error("Invalid tournament format from API");
+            // Capture tid for score + leaderboard endpoints
+            if (t.tid) {
+                setTid(t.tid);
+            } else {
+                console.log(
+                    "Tournament object has no tid"
+                );
             }
 
-            // Use server-provided metadata if present
+            // Set tournament topics and difficulty
             if (t.topics) setTopics(t.topics);
             if (t.difficulty) setDifficulty(t.difficulty);
 
-            // Determine the tournament's official startTime in ms
-            // If missing, use "now" as a fallback (local-only run)
+            // Get current time
             let startTimeMs;
             if (t.startTime) {
                 startTimeMs = new Date(t.startTime).getTime();
@@ -213,15 +266,13 @@ export default function QuestionScreen() {
                 startTimeMs = Date.now();
             }
 
-            // 3) Check if the tournament already started past the prep window
+            // Check if user can join
             const okToJoin = syncPlayer(startTimeMs);
             if (!okToJoin) {
-                // Tournament started; do not start timer for this user.
                 setInProgress(false);
                 return;
             }
 
-            // 4) If it's not too late, set startTime so the timer can drive the stages.
             setStartTime(startTimeMs);
         } catch (err) {
             console.error(err);
@@ -230,13 +281,80 @@ export default function QuestionScreen() {
         }
     };
 
-    // -----------------------------
-    // Answer selection
-    // -----------------------------
+    // Helper function that sends users new score to server (can change this to only call if user is correct later)
+    const pushScoreToServer = async (newScore) => {
+        if (!tid || !username) {
+            console.log(
+                "pushScoreToServer: missing tid or username, skipping update",
+                { tid, username }
+            );
+            return;
+        }
+
+        // Update score via backend
+        try {
+            const res = await fetch(
+                `http://localhost:5000/api/tournament/update-score/${encodeURIComponent(
+                    username
+                )}`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        ...(authToken ? { "jwt-token": authToken } : {}),
+                    },
+                    body: JSON.stringify({ tid, score: newScore }),
+                }
+            );
+
+            let data = null;
+            try {
+                data = await res.json();
+            } catch (e) {
+                console.log("Failed to get data in questions screen Error: " + e);
+            }
+
+        } catch (e) {
+            console.log("Failed to update score on server Error: " + e);
+        }
+    };
+
+    // Fetches leaderboard data from the backend (tournament_participant table)
+    const loadLeaderboard = async () => {
+        
+        // Get all participating users info (Username + score)
+        try {
+            const res = await fetch(
+                "http://localhost:5000/api/tournament/participating-users-info",
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ tid }),
+                }
+            );
+
+            if (!res.ok) {
+                throw new Error(`Failed to load leaderboard (${res.status})`);
+            }
+
+            const data = await res.json();
+            setLeaderboard(data.participants || []);
+        } catch (err) {
+            console.error("Failed to load leaderboard:", err);
+        }
+    };
+
+    // Called whenver user clicks button to ansewr 
     const handleAnswer = (index) => {
-        // Do not allow multiple answers or answering outside of "question" stage
-        if (selectedIndex !== null) return;
+        // Do not allow answering outside of "question" stage
         if (stage !== "question") return;
+
+        // Hard guard to prevent multiple answers / multiple scoring per question
+        if (hasAnsweredRef.current) {
+            console.log("Ignored extra click for this question");
+            return;
+        }
+        hasAnsweredRef.current = true;
 
         const q = questions[currentIndex];
         if (!q) return;
@@ -247,34 +365,40 @@ export default function QuestionScreen() {
         setIsCorrect(correct);
 
         if (correct) {
-            // Simple scoring: +100 points for each correct answer
-            // (Can later be modified for time-based scoring, streaks, etc.)
-            setScore((prev) => prev + 100);
+            // Change this to be time based later
+            setScore((prev) => {
+                const updated = prev + 100;
+                // Immediately try to sync with backend
+                pushScoreToServer(updated);
+                return updated;
+            });
         }
     };
 
-    // Manual "Next Question" button (mainly useful for debugging without timing loop)
-    const handleNextQuestion = () => {
-        const next = currentIndex + 1;
-        if (next >= questions.length) {
-            // No more questions: could transition to a final game-over screen here
-            return;
+    // Navigate back to the tournament screen (previous page)
+    // Delete tournament here later
+    const handleReturnToTournament = () => {
+        // Clear any pending auto-return timeout
+        if (gameOverTimeoutRef.current) {
+            clearTimeout(gameOverTimeoutRef.current);
+            gameOverTimeoutRef.current = null;
         }
-
-        setCurrentIndex(next);
-        setSelectedIndex(null);
-        setIsCorrect(null);
-        setStage("question");
+        navigate(-1);
     };
 
-    // -----------------------------
     // Initial load on mount
-    // -----------------------------
     useEffect(() => {
         // On load, load questions and initialize the tournament
         loadQuestions();
         initTournament();
     }, []);
+
+    // Load leaderboard when entering leaderboard or gameover stag
+    useEffect(() => {
+        if (stage !== "leaderboard" && stage !== "gameover") return;
+        if (!tid) return;
+        loadLeaderboard();
+    }, [stage, tid]);
 
     // -----------------------------
     // Tournament timing loop
@@ -282,7 +406,7 @@ export default function QuestionScreen() {
     // This effect:
     //  - Depends on startTime and questions.length
     //  - On each tick (every 300 ms), computes how far we are from startTime
-    //  - Chooses correct stage: "waiting", "question", or "leaderboard"
+    //  - Chooses correct stage: "waiting", "question", "leaderboard", or "gameover"
     //  - Computes which question index (qIndex) should be active
     //
     // Note:
@@ -291,66 +415,97 @@ export default function QuestionScreen() {
     useEffect(() => {
         // If we don't have a startTime or no questions yet, don't start the timer
         if (!startTime || questions.length === 0) return;
-
+    
         const timer = setInterval(() => {
             const now = Date.now();
             const diff = now - startTime; // ms since official startTime
-
+    
             if (diff < 0) {
                 // Before the official startTime
                 setStage("waiting");
                 return;
             }
-
+    
             if (diff < PREP_DURATION_MS) {
                 // Prep window: give everyone time to load and get ready
                 // Tournament has not "started" yet on the frontend.
                 setStage("waiting");
                 return;
             }
-
+    
             // Time elapsed since prep ended
             const sincePrep = diff - PREP_DURATION_MS;
-
+    
             // Integer question index based on which cycle we're in
             const qIndex = Math.floor(sincePrep / CYCLE_DURATION_MS);
-
+    
+            // If we somehow go beyond the last question (extra safety), end game.
             if (qIndex >= questions.length) {
-                // All questions done → final leaderboard
-                setStage("leaderboard");
+                setStage("gameover");
                 setInProgress(false);
                 clearInterval(timer);
                 return;
             }
-
+    
             // Position within the current question+leaderboard cycle
             const withinCycle = sincePrep % CYCLE_DURATION_MS;
-
+    
             if (withinCycle < QUESTION_DURATION_MS) {
                 // We are in the "question answering" phase
-                if (stage !== "question" || currentIndex !== qIndex) {
-                    setStage("question");
+                setStage("question");
+    
+                // Only when the question index changes do we reset the answer state
+                if (previousQuestionIndexRef.current !== qIndex) {
+                    previousQuestionIndexRef.current = qIndex;
                     setCurrentIndex(qIndex);
                     setSelectedIndex(null);
                     setIsCorrect(null);
+                    hasAnsweredRef.current = false; // reset per-question answer guard
                 }
             } else {
-                // We are in the leaderboard phase between questions
-                if (stage !== "leaderboard" || currentIndex !== qIndex) {
-                    setStage("leaderboard");
+                // We are in the "leaderboard" phase between questions,
+                // BUT if this is the LAST question, go straight to gameover instead.
+                if (qIndex === questions.length - 1) {
+                    setStage("gameover");
+                    setInProgress(false);
+                    clearInterval(timer);
+                    return;
                 }
+    
+                setStage("leaderboard");
             }
         }, 300); // Tick every 0.3s
-
+    
         return () => clearInterval(timer);
-        // We intentionally omit 'stage' and 'currentIndex' from deps
-        // to avoid resetting the timer too often.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [startTime, questions.length]);
+    
 
-    // -----------------------------
-    // Render helpers
-    // -----------------------------
+    // Game over auto-return
+    // When stage is "gameover", show leaderboard and then navigate back to tournament screen after a short delay.
+    useEffect(() => {
+        if (stage !== "gameover") {
+            // If we leave gameover, clear any pending timeout
+            if (gameOverTimeoutRef.current) {
+                clearTimeout(gameOverTimeoutRef.current);
+                gameOverTimeoutRef.current = null;
+            }
+            return;
+        }
+
+        // Auto-return after 10 seconds
+        gameOverTimeoutRef.current = setTimeout(() => {
+            navigate(-1);
+        }, 10_000);
+
+        return () => {
+            if (gameOverTimeoutRef.current) {
+                clearTimeout(gameOverTimeoutRef.current);
+                gameOverTimeoutRef.current = null;
+            }
+        };
+    }, [stage, navigate]);
+
+    // Render functions to render different stages ("questions, waiting, leaderboard, game over")
 
     // Waiting screen (before tournament starts or during prep period)
     const renderWaiting = () => (
@@ -368,9 +523,6 @@ export default function QuestionScreen() {
                     <p>
                         Questions loaded: <strong>{questions.length}</strong>
                     </p>
-                    {/* No "Start" button:
-                        The tournament will automatically start for all users
-                        once (now >= startTime + PREP_DURATION_MS). */}
                 </>
             )}
         </InfoBox>
@@ -404,14 +556,19 @@ export default function QuestionScreen() {
                         const isSelected = idx === selectedIndex;
                         const isCorrectOpt = idx === q.correctIndex;
 
-                        // Basic feedback styling:
-                        //  - Green: correct answer
-                        //  - Red: selected but wrong
-                        //  - Grey outline: untouched
+                        // Feedback styling:
+                        //  - After an answer is selected:
+                        //      * Correct answer: green
+                        //      * Selected wrong answer: red
+                        //      * Others: grey outline
                         let variant = "outline-secondary";
+
                         if (selectedIndex !== null) {
-                            if (isCorrectOpt) variant = "success";
-                            else if (isSelected) variant = "danger";
+                            if (isCorrectOpt) {
+                                variant = "success";
+                            } else if (isSelected) {
+                                variant = "danger";
+                            }
                         }
 
                         return (
@@ -445,12 +602,9 @@ export default function QuestionScreen() {
         );
     };
 
-    // Leaderboard stage shown between questions (or at the very end)
+    // Leaderboard stage shown between questions
     const renderLeaderboard = () => (
         <InfoBox title="Leaderboard">
-            {/* For now, this only shows the local player's score.
-                Later, you can extend this to show all participants
-                by having the backend track scores. */}
             <p>
                 Your score: <strong>{score}</strong>
             </p>
@@ -459,30 +613,77 @@ export default function QuestionScreen() {
                 / {questions.length}
             </p>
 
-            {/* Debug/manual navigation without timing loop */}
-            {!inProgress && currentIndex + 1 < questions.length && (
-                <Button variant="primary" onClick={handleNextQuestion}>
-                    Next Question
-                </Button>
-            )}
-
-            {!inProgress && (
-                <Button
-                    variant="outline-secondary"
-                    onClick={loadQuestions}
-                    style={{ marginLeft: 8 }}
-                >
-                    New Round
-                </Button>
-            )}
-
-            {inProgress && <p>Waiting for next question...</p>}
+            {/* Full leaderboard pulled from backend */}
+            <div style={{ marginTop: 12 }}>
+                <h6>Top Users</h6>
+                {leaderboard.length > 0 && (
+                    <ol style={{ paddingLeft: "1.2rem" }}>
+                        {leaderboard.map((p, idx) => (
+                            <li
+                                key={p.username || idx}
+                                style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    fontWeight:
+                                        p.username === username
+                                            ? "bold"
+                                            : "normal",
+                                }}
+                            >
+                                <span>{p.username}</span>
+                                <span>{p.score}</span>
+                            </li>
+                        ))}
+                    </ol>
+                )}
+            </div>
         </InfoBox>
     );
 
-    // -----------------------------
+    // Final game over screen (after all questions are done)
+    const renderGameOver = () => (
+        <InfoBox title="Game Over">
+            <p>
+                Final score: <strong>{score}</strong>
+            </p>
+
+            {/* Final leaderboard */}
+            <div style={{ marginTop: 12 }}>
+                <h6>Final Leaderboard</h6>
+                {leaderboard.length > 0 ? (
+                    <ol style={{ paddingLeft: "1.2rem" }}>
+                        {leaderboard.map((p, idx) => (
+                            <li
+                                key={p.username || idx}
+                                style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    fontWeight:
+                                        p.username === username
+                                            ? "bold"
+                                            : "normal",
+                                }}
+                            >
+                                <span>{p.username}</span>
+                                <span>{p.score}</span>
+                            </li>
+                        ))}
+                    </ol>
+                ) : (
+                    <p>No scores available.</p>
+                )}
+            </div>
+
+            <div style={{ marginTop: 16 }}>
+                <p>Returning to the tournament screen in about 10 seconds…</p>
+                <Button variant="primary" onClick={handleReturnToTournament}>
+                    Return to Tournament Now
+                </Button>
+            </div>
+        </InfoBox>
+    );
+
     // Main render
-    // -----------------------------
     return (
         <>
             {/* Top navigation header */}
@@ -503,6 +704,7 @@ export default function QuestionScreen() {
                     {stage === "waiting" && renderWaiting()}
                     {stage === "question" && renderQuestion()}
                     {stage === "leaderboard" && renderLeaderboard()}
+                    {stage === "gameover" && renderGameOver()}
                 </PullToRefresh>
 
                 {/* Extra space at bottom for the fixed bottom nav */}
