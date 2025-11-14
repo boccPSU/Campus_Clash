@@ -1,4 +1,4 @@
-// Screen to display a question during the tournament
+// Displays tournament game
 
 import React, { useRef, useState, useEffect } from "react";
 import InfoBox from "../components/InfoBox/InfoBox";
@@ -8,93 +8,100 @@ import useCollapseOnScroll from "../components/hooks/useCollapseOnScroll.js";
 import PullToRefresh from "../components/interaction/PullToRefresh.js";
 import ScreenScroll from "../components/ScreenScroll/ScreenScroll.js";
 import { Button } from "react-bootstrap";
+import { useLocation } from "react-router-dom";
 
 export default function QuestionScreen() {
-    // Set these later
-    const DEFAULT_CATEGORY = "Computer Science";
-    const DEFAULT_DIFFICULTY = "medium";
-    const QUESTION_COUNT = 5;
+    // Used to get data from navigate() function
+    const location = useLocation();
+    const navState = location.state || {};
+    const navTitle = navState.title; // Tournament title used to fetch its questions
+
+    // -----------------------------
+    // Default values / constants
+    // -----------------------------
+    //const DEFAULT_CATEGORY = "Computer Science";
+    //const DEFAULT_DIFFICULTY = "medium";
+    //const QUESTION_COUNT = 5; // Not strictly used here, but describes expected # of questions
 
     // Timing configuration (shared by all players)
-    // Each player uses the same schedule relative to tournament startTime
-    const PREP_DURATION_MS = 5_000; // 1 min after startTime before first question
-    const QUESTION_DURATION_MS = 15_000; // 15s each question
-    const LEADERBOARD_DURATION_MS = 5_000; // 5s leaderboard between questions
-    const CYCLE_DURATION_MS = QUESTION_DURATION_MS + LEADERBOARD_DURATION_MS;
+    // Every player uses the same schedule relative to the tournament's startTime.
+    // The "tournamentStartTime" is: startTime + PREP_DURATION_MS
+    const PREP_DURATION_MS = 15_000;          // Time from startTime until first question
+    const QUESTION_DURATION_MS = 15_000;      // Duration of each question
+    const LEADERBOARD_DURATION_MS = 5_000;    // Leaderboard time between questions
+    const CYCLE_DURATION_MS =
+        QUESTION_DURATION_MS + LEADERBOARD_DURATION_MS; // One full question + leaderboard cycle
 
-    // State Vars
+    // -----------------------------
+    // State variables
+    // -----------------------------
 
-    // Different stages: "waiting", "question", "leaderboard"
+    // Which "screen" is currently active:
+    //  - "waiting": before first question / during prep or between questions
+    //  - "question": actively answering a question
+    //  - "leaderboard": showing score and waiting for next question or end
     const [stage, setStage] = useState("waiting");
 
-    // Indicates if a tournament is in progress so a new one can't start locally
+    // Whether this client is participating in the tournament
     const [inProgress, setInProgress] = useState(false);
 
-    // Questions from the backend along with the current question index
+    // The full list of questions for this tournament and the current index
     const [questions, setQuestions] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
 
-    // Answer and score per player
-    const [selectedIndex, setSelectedIndex] = useState(null);
-    const [isCorrect, setIsCorrect] = useState(null); // true/false/null
-    const [score, setScore] = useState(0);
+    // Answer selection and scoring for this player
+    const [selectedIndex, setSelectedIndex] = useState(null); // Which answer the player clicked
+    const [isCorrect, setIsCorrect] = useState(null);         // true/false/null (null = not answered yet)
+    const [score, setScore] = useState(0);                    // Player's score across questions
 
-    // Loading / error
+    // Loading / error state
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
-    // Tournament metadata from backend
-    const [startTime, setStartTime] = useState(null); // ms from Date
-    const [topics, setTopics] = useState(DEFAULT_CATEGORY);
-    const [difficulty, setDifficulty] = useState(DEFAULT_DIFFICULTY);
+    // Tournament data from backend
+    const [startTime, setStartTime] = useState(null); // ms timestamp
+    const [topics, setTopics] = useState();
+    const [difficulty, setDifficulty] = useState();
 
-    // header UX
+    // Header UI 
     const currentXP = 10500;
     const scrollerRef = useRef(null);
     const collapsed = useCollapseOnScroll(scrollerRef);
 
-    //------------------
-    // Helper Functions
-    //------------------
-
-    // Get questions from backend API
+    // Loads questions by tournament title
     const loadQuestions = async () => {
+        if (!navTitle) {
+            setError("Missing tournament title from navigation.");
+            return;
+        }
+
         try {
             setLoading(true);
             setError("");
 
-            // Hitting local dev server
             const res = await fetch(
-                "http://localhost:5000/api/generate-questions",
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        category: DEFAULT_CATEGORY,
-                        difficulty: DEFAULT_DIFFICULTY,
-                        count: QUESTION_COUNT,
-                    }),
-                }
+                `http://localhost:5000/api/tournament/questions/${encodeURIComponent(
+                    navTitle
+                )}`
             );
 
             if (!res.ok) {
                 throw new Error(`Failed to load questions (${res.status})`);
             }
 
-            // Get questions back from API
             const data = await res.json();
+            console.log("Questions API response:", data);
 
-            if (!data.questions || !Array.isArray(data.questions)) {
+            const loadedQuestions = data.questions || [];
+
+            if (!Array.isArray(loadedQuestions)) {
                 throw new Error("Invalid questions format from API");
             }
 
-            // Set all state vars for a new round (questions only)
-            setQuestions(data.questions);
-            setCurrentIndex(0);
-            setSelectedIndex(null);
-            setIsCorrect(null);
-            setScore(0);
-            // Actual stage is controlled by tournament timing; default to waiting
+            // Store questions array in state
+            setQuestions(loadedQuestions);
+
+
             setStage("waiting");
         } catch (err) {
             console.error(err);
@@ -104,30 +111,64 @@ export default function QuestionScreen() {
         }
     };
 
-    // For pull-to-refresh
+    // Used by PullToRefresh to reload questions from the server
     const refresh = async () => {
         await loadQuestions();
     };
 
-    // Start the tournament:
-    // - Fetch current tournament from backend
-    // - Set topics, difficulty, startTime (shared across players)
-    // - Ensure we have questions loaded
-    const handleStart = async () => {
+  
+    // Sync player with tournament timing, does not allow player to join if tournament started
+    const syncPlayer = (startTimeMs) => {
+        const tournamentStartMs = startTimeMs + PREP_DURATION_MS;
+        const now = Date.now();
+
+        if (now > tournamentStartMs) {
+            console.log("Tournament already started for this user.");
+            setError("This tournament has already started. Please join the next one.");
+            // We do not call setStartTime in this case, so the timer effect never runs.
+            return false;
+        }
+
+        return true;
+    };
+
+    // -----------------------------
+    // Initial tournament join + metadata load
+    // -----------------------------
+    // When the user navigates to this screen:
+    //  1. Join the current tournament (based on JWT token).
+    //  2. Fetch /api/current-tournament to get topics, difficulty, startTime.
+    //  3. Call syncPlayer(startTimeMs) to see if they arrived too late.
+    //  4. If not too late, set startTime so the timer effect can drive the stages.
+    const initTournament = async () => {
         console.log(
-            "Starting tournament... token is " + localStorage.getItem("token")
+            "Initializing tournament... token is " + sessionStorage.getItem("token")
         );
         setError("");
 
-        //Get user token
-        const tokenString = localStorage.getItem("token");
-        const userToken = JSON.parse(tokenString);
-        const tokenValue = userToken.token;
-        console.log("User token in handleStart: " + tokenValue);
+        // Get user token from sessionStorage (set during login/register)
+        const tokenString = sessionStorage.getItem("token");
+        if (!tokenString) {
+            setError("No token found in session. Please log in again.");
+            return;
+        }
+
+        let tokenValue = "";
         try {
+            const userToken = JSON.parse(tokenString);
+            tokenValue = userToken.token;
+        } catch {
+            setError("Invalid token format. Please log in again.");
+            return;
+        }
+
+        console.log("User token in initTournament:", tokenValue);
+
+        try {
+            // Mark as in-progress locally (we can still later mark it false if needed)
             setInProgress(true);
 
-            // Join the tournament (id inferred on backend)
+            // 1) Join the tournament for this user
             await fetch("http://localhost:5000/api/join-tournament", {
                 method: "POST",
                 headers: {
@@ -136,6 +177,7 @@ export default function QuestionScreen() {
                 },
             });
 
+            // 2) Fetch tournament metadata (topics, difficulty, startTime, etc.)
             const res = await fetch(
                 "http://localhost:5000/api/current-tournament",
                 {
@@ -162,30 +204,39 @@ export default function QuestionScreen() {
             if (t.topics) setTopics(t.topics);
             if (t.difficulty) setDifficulty(t.difficulty);
 
-            // Store startTime as ms; if missing, fall back to now
+            // Determine the tournament's official startTime in ms
+            // If missing, use "now" as a fallback (local-only run)
+            let startTimeMs;
             if (t.startTime) {
-                setStartTime(new Date(t.startTime).getTime());
+                startTimeMs = new Date(t.startTime).getTime();
             } else {
-                setStartTime(Date.now());
+                startTimeMs = Date.now();
             }
 
-            // Ensure we have questions loaded
-            if (questions.length === 0) {
-                await loadQuestions();
+            // 3) Check if the tournament already started past the prep window
+            const okToJoin = syncPlayer(startTimeMs);
+            if (!okToJoin) {
+                // Tournament started; do not start timer for this user.
+                setInProgress(false);
+                return;
             }
+
+            // 4) If it's not too late, set startTime so the timer can drive the stages.
+            setStartTime(startTimeMs);
         } catch (err) {
             console.error(err);
-            setError(err.message || "Failed to start tournament");
+            setError(err.message || "Failed to initialize tournament");
             setInProgress(false);
         }
     };
 
-    // Handle answer click
-    // NOTE: We no longer drive stage changes here. The timing loop
-    // decides when to switch to leaderboard so all players stay in sync.
+    // -----------------------------
+    // Answer selection
+    // -----------------------------
     const handleAnswer = (index) => {
-        if (selectedIndex !== null) return; // already answered
-        if (stage !== "question") return; // only answer during question window
+        // Do not allow multiple answers or answering outside of "question" stage
+        if (selectedIndex !== null) return;
+        if (stage !== "question") return;
 
         const q = questions[currentIndex];
         if (!q) return;
@@ -196,17 +247,17 @@ export default function QuestionScreen() {
         setIsCorrect(correct);
 
         if (correct) {
-            // Set score, make this more complex later (time-based)
+            // Simple scoring: +100 points for each correct answer
+            // (Can later be modified for time-based scoring, streaks, etc.)
             setScore((prev) => prev + 100);
         }
     };
 
-    // Go to next question manually (used only if not relying on synced timing)
-    // Leaving this here for debug/manual control if needed.
+    // Manual "Next Question" button (mainly useful for debugging without timing loop)
     const handleNextQuestion = () => {
         const next = currentIndex + 1;
         if (next >= questions.length) {
-            // No more questions, go to game end state
+            // No more questions: could transition to a final game-over screen here
             return;
         }
 
@@ -216,15 +267,29 @@ export default function QuestionScreen() {
         setStage("question");
     };
 
-    // initial load on question screen mount
+    // -----------------------------
+    // Initial load on mount
+    // -----------------------------
     useEffect(() => {
+        // On load, load questions and initialize the tournament
         loadQuestions();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        initTournament();
     }, []);
 
-    // Tournament timing loop:
-    // Uses shared startTime + fixed durations to keep all players in sync.
+    // -----------------------------
+    // Tournament timing loop
+    // -----------------------------
+    // This effect:
+    //  - Depends on startTime and questions.length
+    //  - On each tick (every 300 ms), computes how far we are from startTime
+    //  - Chooses correct stage: "waiting", "question", or "leaderboard"
+    //  - Computes which question index (qIndex) should be active
+    //
+    // Note:
+    //  - The actual "tournamentStartTime" is startTime + PREP_DURATION_MS.
+    //  - Before that, stage remains "waiting".
     useEffect(() => {
+        // If we don't have a startTime or no questions yet, don't start the timer
         if (!startTime || questions.length === 0) return;
 
         const timer = setInterval(() => {
@@ -232,32 +297,37 @@ export default function QuestionScreen() {
             const diff = now - startTime; // ms since official startTime
 
             if (diff < 0) {
-                // Before official startTime
+                // Before the official startTime
                 setStage("waiting");
                 return;
             }
 
             if (diff < PREP_DURATION_MS) {
-                // Prep window so all clients are ready
+                // Prep window: give everyone time to load and get ready
+                // Tournament has not "started" yet on the frontend.
                 setStage("waiting");
                 return;
             }
 
+            // Time elapsed since prep ended
             const sincePrep = diff - PREP_DURATION_MS;
+
+            // Integer question index based on which cycle we're in
             const qIndex = Math.floor(sincePrep / CYCLE_DURATION_MS);
 
             if (qIndex >= questions.length) {
-                // Tournament over: final leaderboard
+                // All questions done → final leaderboard
                 setStage("leaderboard");
                 setInProgress(false);
                 clearInterval(timer);
                 return;
             }
 
+            // Position within the current question+leaderboard cycle
             const withinCycle = sincePrep % CYCLE_DURATION_MS;
 
             if (withinCycle < QUESTION_DURATION_MS) {
-                // Question phase
+                // We are in the "question answering" phase
                 if (stage !== "question" || currentIndex !== qIndex) {
                     setStage("question");
                     setCurrentIndex(qIndex);
@@ -265,21 +335,24 @@ export default function QuestionScreen() {
                     setIsCorrect(null);
                 }
             } else {
-                // Leaderboard phase
+                // We are in the leaderboard phase between questions
                 if (stage !== "leaderboard" || currentIndex !== qIndex) {
                     setStage("leaderboard");
                 }
             }
-        }, 300); // tick every 0.3s
+        }, 300); // Tick every 0.3s
 
         return () => clearInterval(timer);
-        // We intentionally omit some deps to avoid resetting timer too often.
+        // We intentionally omit 'stage' and 'currentIndex' from deps
+        // to avoid resetting the timer too often.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [startTime, questions.length]);
 
-    // Render functions for different stages in tournament
+    // -----------------------------
+    // Render helpers
+    // -----------------------------
 
-    // Waiting for tournament to start
+    // Waiting screen (before tournament starts or during prep period)
     const renderWaiting = () => (
         <InfoBox title="Tournament">
             {loading && <p>Loading questions...</p>}
@@ -295,20 +368,22 @@ export default function QuestionScreen() {
                     <p>
                         Questions loaded: <strong>{questions.length}</strong>
                     </p>
-                    {!inProgress && (
-                        <Button variant="primary" onClick={handleStart}>
-                            Start Tournament
-                        </Button>
-                    )}
+                    {/* No "Start" button:
+                        The tournament will automatically start for all users
+                        once (now >= startTime + PREP_DURATION_MS). */}
                 </>
             )}
         </InfoBox>
     );
 
-    // Render current question
+    // Question screen for the current question index
     const renderQuestion = () => {
         const q = questions[currentIndex];
-        if (!q) return null;
+
+        if (!q) {
+            console.log("No questions, returning null");
+            return null;
+        }
 
         return (
             <InfoBox
@@ -319,15 +394,20 @@ export default function QuestionScreen() {
                         {q.category} • {q.difficulty}
                     </h6>
                 </div>
+
                 <div className="QuestionText" style={{ margin: "12px 0" }}>
                     <h4>{q.question}</h4>
                 </div>
+
                 <div className="Answers" style={{ display: "grid", gap: 8 }}>
                     {q.options.map((opt, idx) => {
                         const isSelected = idx === selectedIndex;
                         const isCorrectOpt = idx === q.correctIndex;
 
-                        // Simple coloring / feedback for demo
+                        // Basic feedback styling:
+                        //  - Green: correct answer
+                        //  - Red: selected but wrong
+                        //  - Grey outline: untouched
                         let variant = "outline-secondary";
                         if (selectedIndex !== null) {
                             if (isCorrectOpt) variant = "success";
@@ -346,20 +426,31 @@ export default function QuestionScreen() {
                         );
                     })}
                 </div>
+
                 <div style={{ marginTop: 12 }}>
                     <p>
                         Your score: <strong>{score}</strong>
                     </p>
+                    {isCorrect !== null && (
+                        <p>
+                            You were{" "}
+                            <strong>
+                                {isCorrect ? "correct" : "incorrect"}
+                            </strong>
+                            .
+                        </p>
+                    )}
                 </div>
             </InfoBox>
         );
     };
 
-    // Render leaderboard after question
+    // Leaderboard stage shown between questions (or at the very end)
     const renderLeaderboard = () => (
         <InfoBox title="Leaderboard">
-            {/* For now, just show this player's score.
-                Later you can replace with real tournament scores from backend. */}
+            {/* For now, this only shows the local player's score.
+                Later, you can extend this to show all participants
+                by having the backend track scores. */}
             <p>
                 Your score: <strong>{score}</strong>
             </p>
@@ -368,7 +459,7 @@ export default function QuestionScreen() {
                 / {questions.length}
             </p>
 
-            {/* If not using synced timing (e.g., for testing), you can still manually advance */}
+            {/* Debug/manual navigation without timing loop */}
             {!inProgress && currentIndex + 1 < questions.length && (
                 <Button variant="primary" onClick={handleNextQuestion}>
                     Next Question
@@ -389,7 +480,9 @@ export default function QuestionScreen() {
         </InfoBox>
     );
 
-    // Main render screen
+    // -----------------------------
+    // Main render
+    // -----------------------------
     return (
         <>
             {/* Top navigation header */}
@@ -398,10 +491,13 @@ export default function QuestionScreen() {
                 xp={currentXP}
                 collapsed={collapsed}
             />
+
+            {/* Spacer to push content below the header when fixed */}
             <div
                 className={`headerSpacer ${collapsed ? "is-collapsed" : ""}`}
             />
 
+            {/* Scrollable content area with pull-to-refresh */}
             <ScreenScroll ref={scrollerRef}>
                 <PullToRefresh scrollerRef={scrollerRef} onRefresh={refresh}>
                     {stage === "waiting" && renderWaiting()}
@@ -409,11 +505,11 @@ export default function QuestionScreen() {
                     {stage === "leaderboard" && renderLeaderboard()}
                 </PullToRefresh>
 
-                {/* Persistent bottom navigation space */}
+                {/* Extra space at bottom for the fixed bottom nav */}
                 <div style={{ height: "var(--bottom-nav-height, 72px)" }} />
             </ScreenScroll>
 
-            {/* Persistent bottom navigation */}
+            {/* Persistent bottom navigation bar */}
             <BottomNav />
         </>
     );

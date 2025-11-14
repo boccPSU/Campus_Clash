@@ -15,15 +15,15 @@ const pool = mysql.createPool({
 // Initializes database when server is started
 async function initDb() {
 
-// Drop dependent table first (if it exists)
-await pool.query(`
-  DROP TABLE IF EXISTS tournament_participants;
-`);
+  // Drop dependent table first (if it exists)
+  await pool.query(`
+    DROP TABLE IF EXISTS tournament_participants;
+  `);
 
-// Then drop tournaments so we can recreate with new schema
-await pool.query(`
-  DROP TABLE IF EXISTS tournaments;
-`);
+  // Then drop tournaments so we can recreate with new schema
+  await pool.query(`
+    DROP TABLE IF EXISTS tournaments;
+  `);
 
 
   // Create users table
@@ -71,7 +71,6 @@ await pool.query(`
   `);
 
   // Create tournaments table
-
   await pool.query(`
     CREATE TABLE IF NOT EXISTS tournaments (
       tid         INT NOT NULL AUTO_INCREMENT,
@@ -79,7 +78,7 @@ await pool.query(`
       topics      VARCHAR(255) NOT NULL,
       difficulty  VARCHAR(32)  NOT NULL,
       reward      INT          NOT NULL,
-      questionSet VARCHAR(64)  NULL,
+      questionSet JSON  NULL,
       startTime   DATETIME     NOT NULL,
       PRIMARY KEY (tid)
     ) ENGINE=InnoDB
@@ -144,12 +143,13 @@ await pool.query(`
   END
 `);   
 
+//
 
 
   // Drop + recreate user procedures
   await pool.query(`DROP PROCEDURE IF EXISTS get_user_by_first_name`);
   await pool.query(`DROP PROCEDURE IF EXISTS get_user_by_username`);
-    await pool.query(`DROP PROCEDURE IF EXISTS get_student_by_username`);
+  await pool.query(`DROP PROCEDURE IF EXISTS get_student_by_username`);
   await pool.query(`DROP PROCEDURE IF EXISTS login`);
   await pool.query(`DROP PROCEDURE IF EXISTS register`);
 

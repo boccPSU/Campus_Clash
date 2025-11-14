@@ -14,8 +14,22 @@
     @extend .fw-semibold;
 }
 
+.btnGroup {
+    
+    @extend .justify-content-between;
+}
+
 .joinBtn {
     @extend .px-4;
     @extend .rounded-pill;
     @extend .fw-semibold;
+    margin: 10px;
+
 }
+
+.difficultyBtn {
+    color: $primary;
+    margin: 10px;
+}
+
+

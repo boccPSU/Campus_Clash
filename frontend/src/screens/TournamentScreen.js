@@ -20,6 +20,12 @@ function TournamentScreen() {
             topics: "Computer Science, Algorithms",
             endDate: "Sept. 25, 12:00 a.m.",
             reward: 250,
+        },
+        {
+            title: "Mechanical Engineering Challenge",
+            topics: "Mechanical Engineering",
+            endDate: "Sept. 25, 12:00 a.m",
+            reward: 250,
         }
     ];
 
