@@ -405,7 +405,6 @@ app.post("/api/create-tournament", async (req, res) => {
     topics,
     difficulty,
     reward,
-    questionSet = null, // Null for now
   } = req.body || {};
 
   // Basic validation
@@ -428,7 +427,7 @@ app.post("/api/create-tournament", async (req, res) => {
     const [resultSets] = await pool.query(
       "CALL create_tournament(?, NOW(), ?, ?, ?, ?)",
       [
-        questionSet, // can be null
+        null, // can be null
         title,
         topics,
         difficulty,
@@ -436,6 +435,28 @@ app.post("/api/create-tournament", async (req, res) => {
       ]
     );
     console.log(`[DB] Tournament created: ${title}`);
+
+    let questionSet = await generateQuestions({
+      category: topics,
+      difficulty: difficulty,
+      count: 5
+    });
+
+    // Add questions to tournament table
+    const [result] = await pool.query(
+      `UPDATE tournaments
+           SET questionSet = ?
+           WHERE title = ?`,
+      [JSON.stringify(questionSet.questions), title]
+    );
+
+    // No tournament found
+    if (result.affectedRows === 0) {
+      return res
+        .status(404)
+        .json({ successful: false, error: "Tournament not found" });
+    }
+
     return res.status(201).json({ successful: true });
   } catch (err) {
     console.error("[BACKEND] create-tournament error:", err);
@@ -499,7 +520,7 @@ app.get("/api/current-tournament", async (req, res) => {
 app.post("/api/join-tournament", async (req, res) => {
   try {
     const token = req.headers["jwt-token"];
-    console.log("Join Tournament Token: " + token);
+    console.log("[join-tournament] Token: " + token);
 
     if (!token) {
       return res.status(401).json({ error: "Missing token" });
@@ -507,7 +528,7 @@ app.post("/api/join-tournament", async (req, res) => {
 
     // This should return the username string based on your implementation
     const username = decryptToken(token);
-    console.log("Decrypted username in join tournament:", username);
+    console.log("[join-tournament] Decrypted username in join tournament:", username);
     if (!username) {
       return res.status(401).json({ error: "Invalid token" });
     }
@@ -518,7 +539,7 @@ app.post("/api/join-tournament", async (req, res) => {
       [username]
     );
     const user = userRows[0];
-    console.log("User found for join tournament:", user);
+    console.log("[join-tournament] User found for join tournament:", user);
     if (!user) {
       return res.status(460).json({ error: "User not found" });
     }
@@ -537,10 +558,11 @@ app.post("/api/join-tournament", async (req, res) => {
     const pid = user.pid;
 
     // Check if already joined
-    const [existingRows] = await pool.query(
+    let [existingRows] = await pool.query(
       "SELECT 1 FROM tournament_participants WHERE tid = ? AND pid = ? LIMIT 1",
       [tid, pid]
     );
+    console.log(existingRows);
     if (existingRows.length > 0) {
       return res.json({
         successful: true,
@@ -568,10 +590,10 @@ app.post("/api/join-tournament", async (req, res) => {
 app.get("/api/tournament/title-exists/:title", async (req, res) => {
   // Get title
   const title = req.params.title;
-  let existingTitle;
+  let existingTitle, rows;
   // Check if title exists
   try {
-    existingTitle = await pool.query(
+    [existingTitle, rows] = await pool.query(
       " SELECT title FROM TOURNAMENTS WHERE title = ? ",
       title
     );
@@ -579,6 +601,7 @@ app.get("/api/tournament/title-exists/:title", async (req, res) => {
     console.log("Failed to check if tournamnet title exists ERROR: " + e);
   }
 
+  console.log("[title-exists] ", existingTitle);
   if (existingTitle.length > 0) {
     res.json(true);
   } else {
@@ -764,3 +787,115 @@ app.post("/api/tournament/participating-users-info", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server listening on Port ${PORT}`);
 });
+
+const generateQuestions = async (req) => {
+  //Expect a category, difficulty, and number of questions from req
+  const {
+    category = "Undefined",
+    difficulty = "Undefined",
+    count = 0,
+  } = req;
+
+  try {
+    const completion = await client.chat.completions.create({
+      // Specify LLM model
+      model: "gpt-4.1-mini",
+
+      // Format response into JSON we need
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "quiz_questoins",
+          schema: {
+            type: "object",
+            properties: {
+              questions: {
+                type: "array",
+                // Only return amount of questions we specify
+                minItems: count,
+                maxItems: count,
+                items: {
+                  type: "object",
+                  properties: {
+                    category: { type: "string" },
+                    difficulty: {
+                      type: "string",
+                      enum: ["easy", "medium", "hard"],
+                    },
+                    question: { type: "string" },
+                    options: {
+                      type: "array",
+                      items: { type: "string" },
+                      minItems: 4,
+                      maxItems: 4,
+                    },
+                    correctIndex: {
+                      type: "integer",
+                      minimum: 0,
+                      maximum: 3,
+                    },
+                  },
+                  // All of these must be present for each question
+                  required: [
+                    "category",
+                    "difficulty",
+                    "question",
+                    "options",
+                    "correctIndex",
+                  ],
+
+                  // Disable any extra fields
+                  additionalProperties: false,
+                },
+              },
+            },
+            required: ["questions"],
+            additionalProperties: false,
+          },
+        },
+      },
+
+      // Converstion we send to LLM
+      messages: [
+        {
+          // Define behavior and constraints for LLM
+          role: "system",
+          content:
+            "You generate fair, factual tournament questions. " +
+            "Answers must be unamiguous, current, and appropriate",
+        },
+        {
+          // User message with question generation instructions
+          role: "user",
+          content:
+            `Generate ${count} multiple-choice questions for the category ` +
+            `"${category}" at "${difficulty}" difficulty. ` +
+            "Each should:\n" +
+            "- Have exactly 4 options.\n" +
+            "- Exactly one correct answer.\n" +
+            "- No 'All of the above' or 'None of the above'.\n" +
+            "- Be suitable for a live tournament.\n" +
+            "- Use the given category & difficulty fields accurately.",
+        },
+      ],
+
+      // Controls how how creative the LLM is, lower values give more deterministic answers while higher cause more variety
+      temperature: 0.7,
+    });
+
+    // The API returns an array of choices; we take the first one.
+    // With json_schema, message.content should be valid JSON.
+    const raw = completion.choices[0]?.message?.content;
+
+    // If content is a string, parse it into a JS object.
+    // (If it's already an object for some reason, just use it.)
+    const data = typeof raw === "string" ? JSON.parse(raw) : raw;
+
+    console.log("[Generate-Questions] Questions: ", data);
+    return data;
+  } catch (err) {
+    // Log any errors
+    console.error(err);
+    return { error: "Failed to generate questions" };
+  }
+};

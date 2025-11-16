@@ -26,6 +26,18 @@ async function initDb() {
     DROP TABLE IF EXISTS tournaments;
   `);
 
+  await pool.query(`
+    DROP TABLE IF EXISTS events;
+  `);
+
+  await pool.query(`
+    DROP TABLE IF EXISTS students;
+  `);
+
+  await pool.query(`
+    DROP TABLE IF EXISTS users;
+  `);
+
 
   // Create users table
   await pool.query(`

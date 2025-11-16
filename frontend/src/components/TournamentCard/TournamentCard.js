@@ -28,10 +28,12 @@ function TournamentCard({ title, topics, endDate, reward }) {
                 )}`
             );
             const tournamentExists = await res.json();
+
+            console.log(tournamentExists)
     
             // For now you always create — but at least await it
-            if (true) {
-                await fetch("http://localhost:5000/api/create-tournament", {
+            if (!tournamentExists) {
+                let res = await fetch("http://localhost:5000/api/create-tournament", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -41,52 +43,51 @@ function TournamentCard({ title, topics, endDate, reward }) {
                         topics,
                         difficulty,
                         reward,
-                        questionSet: null,
                     }),
                 });
-            }
-    
-            // Create question set (get actual JSON, not the Response)
-            let questionsData;
-            try {
-                const qRes = await fetch(
-                    "http://localhost:5000/api/generate-questions",
-                    {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            category: topics,
-                            difficulty: difficulty,
-                            count: 5,
-                        }),
-                    }
-                );
-    
-                const qJson = await qRes.json();
-                // assuming backend returns { questions: [...] }
-                questionsData = qJson.questions;
-            } catch (e) {
-                console.log("Failed to generate questions Error: " + e);
-            }
-    
-            console.log("Logging questions:", questionsData);
-    
-            // Store questions in table
-            try {
-                await fetch(
-                    `http://localhost:5000/api/tournament/add-questions/${encodeURIComponent(
-                        title
-                    )}`,
-                    {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ questions: questionsData }),
-                    }
-                );
-            } catch (e) {
-                console.log(
-                    "Failed to store questions in tournament table Error: " + e
-                );
+                console.log("Tournament Created - ", res.json());
+                // Create question set (get actual JSON, not the Response)
+                // let questionsData;
+                // try {
+                //     const qRes = await fetch(
+                //         "http://localhost:5000/api/generate-questions",
+                //         {
+                //             method: "POST",
+                //             headers: { "Content-Type": "application/json" },
+                //             body: JSON.stringify({
+                //                 category: topics,
+                //                 difficulty: difficulty,
+                //                 count: 5,
+                //             }),
+                //         }
+                //     );
+        
+                //     const qJson = await qRes.json();
+                //     // assuming backend returns { questions: [...] }
+                //     questionsData = qJson.questions;
+                // } catch (e) {
+                //     console.log("Failed to generate questions Error: " + e);
+                // }
+        
+                // console.log("Logging questions:", questionsData);
+        
+                // // Store questions in table
+                // try {
+                //     await fetch(
+                //         `http://localhost:5000/api/tournament/add-questions/${encodeURIComponent(
+                //             title
+                //         )}`,
+                //         {
+                //             method: "POST",
+                //             headers: { "Content-Type": "application/json" },
+                //             body: JSON.stringify({ questions: questionsData }),
+                //         }
+                //     );
+                // } catch (e) {
+                //     console.log(
+                //         "Failed to store questions in tournament table Error: " + e
+                //     );
+                // }
             }
     
             // Go to questions screen

@@ -79,6 +79,9 @@ export default function QuestionScreen() {
     const scrollerRef = useRef(null);
     const collapsed = useCollapseOnScroll(scrollerRef);
 
+    //Used to prevent double useEffect calls in dev mode.
+    const joinedRef = useRef(false);
+
     // Loads questions by tournament title
     const loadQuestions = async () => {
         if (!navTitle) {
@@ -389,6 +392,9 @@ export default function QuestionScreen() {
     // Initial load on mount
     useEffect(() => {
         // On load, load questions and initialize the tournament
+        if (joinedRef.current) return;
+        joinedRef.current = true;
+        
         loadQuestions();
         initTournament();
     }, []);
