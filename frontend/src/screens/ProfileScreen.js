@@ -71,7 +71,7 @@ function ProfileScreen({logout}) {
 
     // pull-to-refresh
     const refresh = async () => {
-
+        await loadUser();
     };
 
     const handleBack = () => {
