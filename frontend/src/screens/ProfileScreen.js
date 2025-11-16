@@ -1,13 +1,15 @@
 import React, {useEffect, useRef, useState } from "react";
-import { Container, Navbar} from "react-bootstrap";
+import { Container, Navbar, Button} from "react-bootstrap";
 import { useNavigate, useLocation } from "react-router-dom";
 import { PersonCircle, ArrowLeft} from "react-bootstrap-icons";
 
 import useCollapseOnScroll from "../components/hooks/useCollapseOnScroll.js";
 import PullToRefresh from "../components/interaction/PullToRefresh.js";
 import ScreenScroll from "../components/ScreenScroll/ScreenScroll.js";
+import ProfileInfo from "../components/ProfileInfo/ProfileInfo.js";
+import LogoutButton from "../components/LogoutButton/LogoutButton.js";
 
-function ProfileScreen() {
+function ProfileScreen({logout}) {
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -31,9 +33,9 @@ function ProfileScreen() {
     const scrollerRef = useRef(null);
     const collapsed = useCollapseOnScroll(scrollerRef);
 
-    const useEffect = (() => {
+    useEffect(() => {
         (async () => {
-            //await loadUser();
+            await loadUser();
         })();
     }, []);
 
@@ -43,24 +45,15 @@ function ProfileScreen() {
             const tokenString = localStorage.getItem("token");
             const userToken = JSON.parse(tokenString);
             const tokenValue = userToken.token;
-            const getUserRes = await fetch("/api/current-user", {
-                method: "POST",
+            const res = await fetch("/api/profile", {
+                method: "GET",
                 headers: {
                     "Content-Type": "application/json",
                     "jwt-token": tokenValue,
                 },
             });
-            if (getUserRes.status == 500) throw new Error("[PROFILE] Error", {cause: "Could not Connect."});
-            const username = await getUserRes.json().username;
-            const res = await fetch("/api/profile", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(username)
-            });
             if (res.status == 500) throw new Error("[PROFILE] Error", {cause: "Could not Connect."});
-            const data = res.json();
+            const data = await res.json();
             if (!res.ok) throw new Error("[PROFILE] Error", {cause: data.error});
             setUser({
                 firstName: data.firstName,
@@ -83,6 +76,11 @@ function ProfileScreen() {
 
     const handleBack = () => {
         navigate(returnPath ?? "/home");
+    };
+
+    const handleLogout = async () => {
+        logout();
+        navigate('/login');
     };
 
     return (
@@ -116,19 +114,10 @@ function ProfileScreen() {
             )}
             <ScreenScroll ref={scrollerRef}>
                 <PullToRefresh scrollerRef={scrollerRef} onRefresh={refresh}>
-                    <div className="profile m-3 p-3 d-flex flex-column rounded bg-dark justify-content-center align-items-center" style={{height: "50vh"}}>
-                        <PersonCircle
-                            className="ProfileIcon text-light"
-                            aria-label="Profile"
-                            role="img"
-                            style={{width:"60%", height:"60%"}}
-
-                        />
-                        <h2 className="text-light">{user.username}</h2>
-                    </div>
+                    <ProfileInfo user={user}></ProfileInfo>
                 </PullToRefresh>
 
-                <div style={{ height: "var(--bottom-nav-height, 72px)" }} />
+                <LogoutButton handleLogout={handleLogout}></LogoutButton>
             </ScreenScroll>
         </>
     );

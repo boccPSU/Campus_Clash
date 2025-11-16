@@ -86,7 +86,7 @@ function LeaderboardScreen() {
     return (
         <>
             {/* Fixed header with collapsing state */}
-            <HeaderBar title="Leaderboard" xp={10500} collapsed={collapsed} />
+            <HeaderBar title="Leaderboard" collapsed={collapsed} />
 
             {/* Spacer pushes content below fixed header */}
             <div

@@ -1,0 +1,21 @@
+@use "../../css/tokens.scss" as *;
+
+.profile {
+    .profileIcon {
+        color: $light;
+        margin: 2;
+    }
+    .infoText {
+        color: $light;
+        margin: 2;
+    }
+    margin: 3;
+    padding: 3;
+    height: 50vh;
+    display: flex;
+    flex-direction: column;
+    background: $dark;
+    justify-content: center;
+    align-items: center;
+    border-radius: 5%;
+}

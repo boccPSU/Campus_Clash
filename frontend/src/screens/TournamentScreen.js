@@ -29,9 +29,6 @@ function TournamentScreen() {
         }
     ];
 
-    // User XP for header display
-    const currentXP = 10500;
-
     // Collapsing header + PTR wiring
     const scrollerRef = useRef(null);
     const collapsed = useCollapseOnScroll(scrollerRef);
@@ -43,7 +40,7 @@ function TournamentScreen() {
     return (
         <>
             {/* Top navigation header */}
-            <HeaderBar title="Tournaments" xp={currentXP} collapsed={collapsed} />
+            <HeaderBar title="Tournaments" collapsed={collapsed} />
             <div className={`headerSpacer ${collapsed ? "is-collapsed" : ""}`} />
 
             <ScreenScroll ref={scrollerRef}>

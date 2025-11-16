@@ -15,7 +15,6 @@ function EventsScreen() {
     const [err, setErr] = useState("");
 
     const filters = ["All Events", "This Week", "Academic", "Sports"]; // stub for future
-    const currentXP = 10500;
 
     // Collapsing header + PTR wiring
     const scrollerRef = useRef(null);
@@ -73,7 +72,6 @@ function EventsScreen() {
         <>
             <HeaderBar
                 title="Campus Events"
-                xp={currentXP}
                 collapsed={collapsed}
             />
             <div
@@ -103,7 +101,7 @@ function EventsScreen() {
                             </div>
 
                             {loading && (
-                                <div className="text-muted">
+                                <div className="text-light">
                                     Loading events…
                                 </div>
                             )}
@@ -111,7 +109,7 @@ function EventsScreen() {
                                 <div className="text-danger">{err}</div>
                             )}
                             {!loading && !err && events.length === 0 && (
-                                <div className="text-muted">
+                                <div className="text-light">
                                     No events yet. Create one!
                                 </div>
                             )}

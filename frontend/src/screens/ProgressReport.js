@@ -15,7 +15,6 @@ import ScreenScroll from "../components/ScreenScroll/ScreenScroll.js";
 import { getWeeklyProgressData } from "../api/canvas";
 
 export default function ProgressReport() {
-  const [xp, setXp] = useState(10500);          // header XP (like Home)
   const [loading, setLoading] = useState(true);
   const [weekData, setWeekData] = useState(null);
   const [error, setError] = useState("");
@@ -53,7 +52,7 @@ export default function ProgressReport() {
 
   return (
     <>
-      <HeaderBar title="Progress Report" xp={xp} collapsed={collapsed} />
+      <HeaderBar title="Progress Report" collapsed={collapsed} />
       <div className={`headerSpacer ${collapsed ? "is-collapsed" : ""}`} />
 
       <ScreenScroll ref={scrollerRef}>

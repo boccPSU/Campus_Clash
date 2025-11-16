@@ -3,7 +3,7 @@ import { Navbar, Container, Placeholder } from "react-bootstrap";
 import { PersonCircle, Bell } from "react-bootstrap-icons";
 import { useNavigate, useLocation } from "react-router-dom";
 
-function HeaderBar({ title = "Screen", xp = 0, collapsed = false }) {
+function HeaderBar({ title = "Screen", collapsed = false }) {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
@@ -14,7 +14,6 @@ function HeaderBar({ title = "Screen", xp = 0, collapsed = false }) {
   }, []);
 
   const handleProfile = () => {
-    console.log("Origin Path: ", location.pathname);
     navigate("/profile", {
       state: {
         returnPath: location.pathname
@@ -54,7 +53,7 @@ function HeaderBar({ title = "Screen", xp = 0, collapsed = false }) {
                 />
               </Placeholder>
             ) : (
-              <span>{Number(xp).toLocaleString()}</span>
+              <span>{Number(JSON.parse(sessionStorage.getItem('studentData'))?.xp ?? 0).toLocaleString()}</span>
             )}
           </div>
         </div>

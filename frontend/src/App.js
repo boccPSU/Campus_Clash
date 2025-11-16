@@ -18,11 +18,12 @@ import RegisterScreen from "./screens/RegisterScreen";
 import LoginScreen from "./screens/LoginScreen";
 import ProfileScreen from "./screens/ProfileScreen";
 import QuestionScreen from "./screens/QuestionScreen";
-import useToken from "./api/userTokens";
 import QuestionTester from "./screens/QuestionTester";
 
+import useToken from "./api/userTokens";
+
 function App() {
-    const {token, setToken} = useToken();
+    const {token, setToken, logout} = useToken();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -62,7 +63,7 @@ function App() {
                 <Route path="/login" element={<LoginScreen setToken={setToken}/>} />
 
                 {/* /profile -> Profile Screen*/}
-                <Route path="/profile" element={<ProfileScreen/>} />
+                <Route path="/profile" element={<ProfileScreen logout={logout}/>} />
 
                 <Route path="/test" element = {<QuestionTester></QuestionTester>}></Route>
                 {/* /questions -> Tournament Questions*/}

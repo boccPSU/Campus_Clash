@@ -33,6 +33,12 @@ function HomeScreen() {
     const [alerts, setAlerts] = useState([]);
     const [alertsLoading, setAlertsLoading] = useState(true);
 
+    const [studentData, setStudentData] = useState(JSON.parse(sessionStorage.getItem('studentData')));
+
+    useEffect(() => {
+        sessionStorage.setItem('studentData', JSON.stringify(studentData));
+    }, [studentData]);
+
     // collapse header / pull-to-refresh
     const scrollerRef = useRef(null);
     const collapsed = useCollapseOnScroll(scrollerRef);
@@ -69,6 +75,13 @@ function HomeScreen() {
             });
 
             setCourses(normalizedForUI);
+            setStudentData(prevStudent => ({
+                ...prevStudent,
+                gpa: nextGpa,
+                courses: normalizedForUI,
+                filled: true
+            }));
+            console.log("Student Data Post-Course Load: ", studentData);
         } catch (e) {
             console.error("Failed to load Canvas data:", e);
             setError(
@@ -88,6 +101,12 @@ function HomeScreen() {
                 daysAhead: 14,
             });
             setAlerts(upcoming);
+            setStudentData(prevStudent => ({
+                ...prevStudent,
+                alerts: upcoming,
+                filled: true
+            }));
+            console.log("Student Data Post-Alerts Load: ", studentData);
         } catch (e) {
             console.error("Failed to load upcoming assignments:", e);
             setAlerts([]);
@@ -99,29 +118,67 @@ function HomeScreen() {
     // initial load
     useEffect(() => {
         (async () => {
-            await loadCourses();
-            await loadAlerts();
-            await checkRecentSubmissions({ lookbackMinutes: 60 * 24 * 7 });
+            let studentDataToken = JSON.parse(sessionStorage.getItem('studentData'));
+            console.log(studentDataToken);
+            if (studentDataToken?.filled ?? false) {
+                setStudentData(studentDataToken);
+                setLoading(false);
+                setAlertsLoading(false);
+            } else {
+                await setTokens();
+                await loadCourses();
+                await loadAlerts();
+                await checkRecentSubmissions({ lookbackMinutes: 60 * 24 * 7 });
+            }
         })();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // pull-to-refresh
     const refresh = async () => {
+        await setTokens();
         await loadCourses();
         await loadAlerts();
         await checkRecentSubmissions({ lookbackMinutes: 60 * 24 * 7 });
         await new Promise((r) => setTimeout(r, 300));
     };
 
-    const currentXP = 10500;
+    const setTokens = async () => {
+        try {
+            //Get user token
+            const tokenString = localStorage.getItem("token");
+            const userToken = JSON.parse(tokenString);
+            const tokenValue = userToken.token;
+            const res = await fetch("/api/profile", {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    "jwt-token": tokenValue,
+                },
+            });
+            if (res.status == 500) throw new Error("[PROFILE] Error", {cause: "Could not Connect."});
+            const data = await res.json();
+            if (!res.ok) throw new Error("[PROFILE] Error", {cause: data.error});
+            console.log(data);
+            setStudentData(prevStudent => ({
+                ...prevStudent,
+                username: data.username,
+                university: data.university,
+                major: data.major,
+                xp: data.xp,
+                filled: true
+            }));
+        } catch (err) {
+            console.log(err);
+            setError(err.cause);
+        }
+    };
 
     return (
         <>
             <HeaderBar
                 title="Home"
                 aria-label="Home"
-                xp={currentXP}
                 collapsed={collapsed}
             />
             <div
@@ -132,7 +189,7 @@ function HomeScreen() {
                 <PullToRefresh scrollerRef={scrollerRef} onRefresh={refresh}>
                     <Container className="py-3">
                         {/* GPA Section — pass computed GPA */}
-                        <GpaDisplay gpa={gpa ?? undefined} />
+                        <GpaDisplay gpa={studentData?.gpa ?? undefined} />
 
                         {/* Courses */}
                         <InfoBox title="Courses">
@@ -181,7 +238,7 @@ function HomeScreen() {
 
                             {!loading &&
                                 !error &&
-                                courses.map((c, i) => (
+                                studentData.courses.map((c, i) => (
                                     <CourseCard key={i} {...c} />
                                 ))}
                         </InfoBox>
@@ -217,7 +274,7 @@ function HomeScreen() {
                                 </div>
                             )}
                             {!alertsLoading &&
-                                alerts.map((a) => (
+                                studentData.alerts.map((a) => (
                                     <AlertCard
                                         key={a.id}
                                         alertTitle={`${a.type}: ${a.title}`}

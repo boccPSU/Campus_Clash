@@ -12,8 +12,6 @@ import PullToRefresh from "../components/interaction/PullToRefresh.js";
 import ScreenScroll from "../components/ScreenScroll/ScreenScroll.js";
 
 function StudyPlan() {
-    // Important Use State Vars
-    const [xp, setXp] = useState(0);
 
     //Temp info for study plans
     const studyPlans = [
@@ -62,11 +60,6 @@ function StudyPlan() {
         },
     ];
 
-    //Fetch xp from databse, temp value for now
-    useEffect(() => {
-        setXp(10500);
-    }, []);
-
     // Collapsing header + PTR wiring
     const scrollerRef = useRef(null);
     const collapsed = useCollapseOnScroll(scrollerRef);
@@ -78,7 +71,7 @@ function StudyPlan() {
     return (
         <>
             {/*Header Section*/}
-            <HeaderBar title="Study Plan" xp={xp} collapsed={collapsed}></HeaderBar>
+            <HeaderBar title="Study Plan" collapsed={collapsed}></HeaderBar>
             <div className={`headerSpacer ${collapsed ? "is-collapsed" : ""}`} />
 
             {/*Container to give screen body padding */}

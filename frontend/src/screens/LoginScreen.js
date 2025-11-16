@@ -43,6 +43,7 @@ function LoginScreen({setToken}) {
             });
             if (res.status === 500) throw new Error("[LOGIN] Error", {cause: "Unable to Connect."});
             const data = await res.json();
+            console.log(data);
             if (!res.ok) throw new Error("[LOGIN] Error", {cause: data.error});
 
             if (data.successful) {

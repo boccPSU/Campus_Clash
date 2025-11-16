@@ -181,12 +181,13 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-app.post("api/profile", async (req, res) => {
-  const { username } = req.body || {};
-  if (!username) {
-    return res.status(400).json({ error: "Missing Parameters" });
+app.get("/api/profile", async (req, res) => {
+  const token = req.headers["jwt-token"];
+  if (!token) {
+    return res.status(401).json({ error: "Unauthorized: missing token" });
   }
-
+  // decryptToken now returns just the username (or null/undefined)
+  const username = decryptToken(token);
   try {
     const [searchRows] = await pool.query("CALL get_student_by_username(?)", [
       username,
@@ -201,7 +202,7 @@ app.post("api/profile", async (req, res) => {
       firstName: student.firstName,
       lastName: student.lastName,
       username: student.username,
-      univeristy: student.university,
+      university: student.university,
       major: student.major,
       xp: student.xp,
     });
@@ -277,11 +278,6 @@ app.get("/api/major-xp", async (_req, res) => {
     console.error("[BACKEND] major-xp error:", e);
     res.status(500).json({ successful: false, error: "/major-xp Error" });
   }
-});
-
-//Listen For Calls
-app.listen(PORT, () => {
-  console.log(`Server listening on Port ${PORT}`);
 });
 
 // Generates tournement questions using opneai wrapper
@@ -762,4 +758,9 @@ app.post("/api/tournament/participating-users-info", async (req, res) => {
       .status(500)
       .json({ successful: false, error: "Database error fetching participants" });
   }
+});
+
+//Listen For Calls
+app.listen(PORT, () => {
+  console.log(`Server listening on Port ${PORT}`);
 });

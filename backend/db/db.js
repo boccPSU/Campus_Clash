@@ -1,6 +1,7 @@
 // Database creation and initialization
 require("dotenv").config();
 const mysql = require("mysql2/promise");
+const auth = require("./authentication.js");
 
 // Creating DB connection
 const pool = mysql.createPool({
@@ -176,7 +177,8 @@ await pool.query(`
       SELECT users.firstName, users.lastName, users.username, students.university, students.major, students.xp
         FROM users
         INNER JOIN students
-        ON users.pid = students.pid;
+        ON users.pid = students.pid
+        WHERE users.username = p_username;
     END
   `);
 
@@ -297,6 +299,22 @@ async function addMockUsers(numUsers) {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
+    //Add Dev Users
+    let devFNames = [`Mark`, `Brock`, `Ben`];
+    let devLNames = [`Collins`, `Handley`, `Vukson`];
+    let devUNames = [`mCollins`, `bHandley`, `bVukson`];
+    let password = `pass`;
+    const hashedPassword = auth.encryptPassword(password);
+    let university = `Penn State`;
+    let major = `Computer Science`;
+    let canvasTok = null;
+
+    for (let i = 0; i < 3; i++) {
+      const [res] = await conn.query(
+        `CALL register(?, ?, ?, ?, ?, ?, ?)`, 
+        [devFNames[i], devLNames[i], devUNames[i], hashedPassword, university, major, canvasTok]
+      );
+    }
 
     for (let i = 0; i < numUsers; i++) {
       const firstName = `FirstName${i}`;
