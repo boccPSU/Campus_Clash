@@ -60,6 +60,7 @@ export default function QuestionScreen() {
     const [startTime, setStartTime] = useState(null); // ms timestamp
     const [topics, setTopics] = useState();
     const [difficulty, setDifficulty] = useState();
+    const [reward, setReward] = useState();
     const [tid, setTid] = useState(null); // Tournament ID from backend
     const [authToken, setAuthToken] = useState("");
     const [username, setUsername] = useState("");
@@ -75,7 +76,6 @@ export default function QuestionScreen() {
     const gameOverTimeoutRef = useRef(null);
 
     // Header UI
-    const currentXP = 10500;
     const scrollerRef = useRef(null);
     const collapsed = useCollapseOnScroll(scrollerRef);
 
@@ -88,34 +88,40 @@ export default function QuestionScreen() {
             setError("Missing tournament title from navigation.");
             return;
         }
-
-        try {
+            try {
             setLoading(true);
             setError("");
 
-            const res = await fetch(
-                `http://localhost:5000/api/tournament/questions/${encodeURIComponent(
-                    navTitle
-                )}`
-            );
+            let questionsFound = false;
 
-            if (!res.ok) {
-                throw new Error(`Failed to load questions (${res.status})`);
+            while (!questionsFound) {
+                const res = await fetch(
+                    `http://localhost:5000/api/tournament/questions/${encodeURIComponent(
+                        navTitle
+                    )}`
+                );
+                
+                if (res.status === 204) {
+                    continue;
+                }
+                if (!res.ok) {
+                    throw new Error(`Failed to load questions (${res.status})`);
+                }
+
+                const data = await res.json();
+                console.log("Questions API response:", data);
+
+                const loadedQuestions = data.questions || [];
+
+                if (!Array.isArray(loadedQuestions)) {
+                    throw new Error("Invalid questions format from API");
+                }
+
+                // Store questions array in state
+                setQuestions(loadedQuestions);
+                questionsFound = true;
+                setStage("waiting");
             }
-
-            const data = await res.json();
-            console.log("Questions API response:", data);
-
-            const loadedQuestions = data.questions || [];
-
-            if (!Array.isArray(loadedQuestions)) {
-                throw new Error("Invalid questions format from API");
-            }
-
-            // Store questions array in state
-            setQuestions(loadedQuestions);
-
-            setStage("waiting");
         } catch (err) {
             console.error(err);
             setError(err.message || "Unable to load questions");
@@ -260,6 +266,7 @@ export default function QuestionScreen() {
             // Set tournament topics and difficulty
             if (t.topics) setTopics(t.topics);
             if (t.difficulty) setDifficulty(t.difficulty);
+            if (t.reward) setReward(t.reward);
 
             // Get current time
             let startTimeMs;
@@ -394,7 +401,7 @@ export default function QuestionScreen() {
         // On load, load questions and initialize the tournament
         if (joinedRef.current) return;
         joinedRef.current = true;
-        
+
         loadQuestions();
         initTournament();
     }, []);
@@ -496,6 +503,28 @@ export default function QuestionScreen() {
                 gameOverTimeoutRef.current = null;
             }
             return;
+        }
+
+        let topScore = 0;
+        leaderboard.map((p, i) => {
+            if (topScore < p.score) {
+                topScore = p.score;
+            } 
+        });
+        if (score == topScore) {
+            try {
+                fetch("/api/receive-xp", 
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({username, reward})
+                    }
+                );
+            } catch (err) {
+                throw new Error("Add XP Error");
+            }
         }
 
         // Auto-return after 10 seconds
@@ -695,7 +724,6 @@ export default function QuestionScreen() {
             {/* Top navigation header */}
             <HeaderBar
                 title="Tournaments"
-                xp={currentXP}
                 collapsed={collapsed}
             />
 

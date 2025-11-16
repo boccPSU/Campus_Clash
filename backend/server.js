@@ -212,6 +212,26 @@ app.get("/api/profile", async (req, res) => {
   }
 });
 
+app.post("/api/receive-xp", async (req, res) => {
+  const {
+    username,
+    reward
+  } = req.body;
+
+  const [rows] = await pool.query(
+    `CALL get_user_by_username(?)`,
+      [username]
+  );
+  console.log(rows[0][0].pid);
+  let student = rows[0];
+  const [result] = await pool.query(
+      `UPDATE students
+           SET xp = xp + ?
+           WHERE pid = ?`,
+      [reward, student[0]?.pid]
+    );
+})
+
 // POST /api/auth
 app.post("/api/auth", (req, res) => {
   const token = req.headers["jwt-token"]; // matches your frontend convention
@@ -442,7 +462,7 @@ app.post("/api/create-tournament", async (req, res) => {
       count: 5
     });
 
-    // Add questions to tournament table
+    // Add questions to tournament table separately due to data size constraints
     const [result] = await pool.query(
       `UPDATE tournaments
            SET questionSet = ?
@@ -667,7 +687,7 @@ app.get("/api/tournament/questions/:title", async (req, res) => {
       // Tournament found but no questionSet
       if (!rawQuestionSet) {
           console.log(`Tournament ${title} has no questionSet`);
-          return res.status(500).json({ error: "Tournament has no question set" });
+          return res.status(204).json({ error: "Tournament has no question set" });
       }
 
       // If stored as JSON text, parse it; if already an object/array, just use it
@@ -683,7 +703,7 @@ app.get("/api/tournament/questions/:title", async (req, res) => {
           questions = rawQuestionSet;
       }
 
-      return res.json({ questions });
+      return res.status(201).json({ questions });
   } catch (e) {
       console.log("Failed to get questions from tournaments table Error:", e);
       return res.status(500).json({ error: "Server error fetching questions" });

@@ -238,7 +238,7 @@ function HomeScreen() {
 
                             {!loading &&
                                 !error &&
-                                studentData.courses.map((c, i) => (
+                                studentData?.courses?.map((c, i) => (
                                     <CourseCard key={i} {...c} />
                                 ))}
                         </InfoBox>
@@ -274,7 +274,7 @@ function HomeScreen() {
                                 </div>
                             )}
                             {!alertsLoading &&
-                                studentData.alerts.map((a) => (
+                                studentData?.alerts?.map((a) => (
                                     <AlertCard
                                         key={a.id}
                                         alertTitle={`${a.type}: ${a.title}`}
