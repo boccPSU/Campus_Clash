@@ -319,7 +319,7 @@ async function addMockUsers(numUsers) {
     const hashedPassword = auth.encryptPassword(password);
     let university = `Penn State`;
     let major = `Computer Science`;
-    let canvasTok = null;
+    let canvasTok = process.env.CANVAS_TOKEN;
 
     for (let i = 0; i < 3; i++) {
       const [res] = await conn.query(

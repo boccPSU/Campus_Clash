@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import RegisterUserPage from "../components/RegisterUserPage.js";
 import RegisterStudentPage from "../components/RegisterStudentPage";
-import { Button, Form, InputGroup } from "react-bootstrap";
 import { useNavigate, Link} from "react-router-dom";
 
 function RegisterScreen({setToken}) {
@@ -16,7 +15,6 @@ function RegisterScreen({setToken}) {
         canvasToken: ""
     });
 
-    const [validated, setValidated] = useState(false);
     const [isLoading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -29,19 +27,6 @@ function RegisterScreen({setToken}) {
             });
         }
     }, [isLoading]);
-
-    const handleSubmit = (event) => {
-        const form = event.currentTarget;
-        event.preventDefault();
-        console.log("Check Validity: ", form.checkValidity());
-        if (form.checkValidity() === false) {
-            event.stopPropagation();
-            console.log("Invalid Form...");
-        } else {
-            setLoading(true);
-        }
-        setValidated(true);
-    }
 
     const registerNewUser = async () => {
         try {
@@ -67,52 +52,14 @@ function RegisterScreen({setToken}) {
         }
     }
 
-    const handleNextStep = () => setStep(prevStep => prevStep + 1);
-    const handlePrevStep = () => setStep(prevStep => prevStep - 1);
-
     const renderStep = () => {
         switch (step) {
             case 1:
-                return <RegisterUserPage formData={formData} setFormData={setFormData}></RegisterUserPage>
+                return <RegisterUserPage formData={formData} setFormData={setFormData} setStep={setStep} isLoading={isLoading} setLoading={setLoading}></RegisterUserPage>
             case 2:
-                return <RegisterStudentPage formData={formData} setFormData={setFormData}></RegisterStudentPage>
+                return <RegisterStudentPage formData={formData} setFormData={setFormData} setStep={setStep} isLoading={isLoading} setLoading={setLoading}></RegisterStudentPage>
             default:
                 return <RegisterUserPage formData={formData} setFormData={setFormData}></RegisterUserPage>
-        }
-    }
-
-    const renderButtons = () => {
-        switch (step) {
-            case 1:
-                return  <Button
-                            variant="primary"
-                            onClick={handleNextStep}
-                        >
-                            Next
-                        </Button>
-            case 2:
-                return <>
-                    <Button
-                        className="me-2"
-                        onClick={handlePrevStep}
-                    >
-                        Previous
-                    </Button>
-                    <Button
-                        type="Submit"
-                        variant="primary"
-                        disabled={isLoading}
-                    >
-                        {isLoading ? "Loading..." : "Register"}
-                    </Button>
-                </>
-            default:
-                return  <Button
-                            variant="primary"
-                            onClick={handleNextStep}
-                        >
-                            Next
-                        </Button>
         }
     }
 
@@ -123,10 +70,7 @@ function RegisterScreen({setToken}) {
                     {error && (
                         <div className="text-danger">{error}</div>
                     )}
-                    <Form noValidate validated={validated} onSubmit={!isLoading ? handleSubmit : null}>
-                        {renderStep()}
-                        {renderButtons()}
-                    </Form>
+                    {renderStep()}
                     <div>
                         <a>Already have an account? </a><Link to="/login">Log In.</Link>
                     </div>
