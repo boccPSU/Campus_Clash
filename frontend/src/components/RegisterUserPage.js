@@ -24,6 +24,7 @@ function RegisterUserPage({formData, setFormData, setStep, isLoading, setLoading
         username: yup.string()
             .min(6, "Your username must be 6-32 characters long.")
             .max(32, "Your username must be 6-32 characters long.")
+            .matches(/^[A-Za-z0-9'-_]*$/, "Please enter a username without special characters.")
             .required("Please enter your username."),
         password: yup.string()
             .min(8, "Your password must be 8-20 characters long.")
@@ -135,9 +136,9 @@ function RegisterUserPage({formData, setFormData, setStep, isLoading, setLoading
                             }}
                             onBlur={handleBlur}
                             isInvalid={touched.password && !!errors.password}
-                            maxLength={32}
+                            maxLength={20}
                         />
-                        <Form.Control.Feedback type="invalid">{touched.password && (errors.password)}</Form.Control.Feedback>
+                        <Form.Control.Feedback type="invalid">{errors.password}</Form.Control.Feedback>
                     </Form.Group>
                     <Button
                         type="submit"

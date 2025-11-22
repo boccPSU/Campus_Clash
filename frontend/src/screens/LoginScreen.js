@@ -1,6 +1,9 @@
+import { Formik } from "formik";
 import { useEffect, useState } from "react";
-import { Form, InputGroup, Button } from "react-bootstrap";
+import { Form, Button } from "react-bootstrap";
 import { useNavigate, Link} from "react-router-dom";
+import * as formik from "formik";
+import * as yup from "yup";
 
 function LoginScreen({setToken}) {
     const navigate = useNavigate();
@@ -22,15 +25,8 @@ function LoginScreen({setToken}) {
         }
     }, [isLoading]);
 
-    const handleSubmit = (event) => {
-        const form = event.currentTarget;
-        event.preventDefault();
-        if (form.checkValidity() === false) {
-            event.stopPropagation();
-        } else {
-            setLoading(true);
-        }
-        setValidated(true);
+    const handleSubmit = () => {
+        setLoading(true);
     }
 
     const login = async () => {
@@ -58,65 +54,96 @@ function LoginScreen({setToken}) {
         }
     };
 
-    return (
-        <>
-            <div className="register template d-flex justify-content-center align-items-center 100-w vh-100 bg-primary">
-                <div className='40-w p-5 rounded bg-light'>
-                    <Form noValidate validated={validated} onSubmit={!isLoading ? handleSubmit : null}>
-                        <h3>Login</h3>
-                        {error && (
-                            <div className="text-danger">{error}</div>
-                        )}
-                        <Form.Label>Username</Form.Label>
-                        <InputGroup className="mb-3" hasValidation>
-                            <Form.Control
-                                value={formData.username}
-                                required
-                                placeholder="Username"
-                                aria-label="Username"
-                                aria-describedby="basic-addon1"
-                                onChange={(event) => {
-                                    setFormData({
-                                        username: event.target.value,
-                                        password: formData.password
-                                    })
-                                }}
-                            />
-                            <Form.Control.Feedback type="invalid">Please enter your Username.</Form.Control.Feedback>
-                        </InputGroup>
+    const {Formik} = formik;
 
-                        <Form.Label>Password</Form.Label>
-                        <InputGroup className="mb-3" hasValidation>
-                            <Form.Control
-                                value={formData.password}
-                                required
-                                placeholder="Password"
-                                aria-label="Password"
-                                aria-describedby="basic-addon1"
-                                onChange={(event) => {
-                                    setFormData({
-                                        username: formData.username,
-                                        password: event.target.value
-                                    })
-                                }}
-                            />
-                            <Form.Control.Feedback type="invalid">Please enter your Password.</Form.Control.Feedback>
-                        </InputGroup>
-                        <Button
-                            type="Submit"
-                            variant="primary"
-                            disabled={isLoading}
-                        >
-                            {isLoading ? "Loading..." : "Log In"}
-                        </Button>
-                    </Form>
-                    <div>
-                        <Link to="" >Forgot Password?</Link><br />
-                        <a>Don't have an account? </a><Link to="/register">Sign Up.</Link>
+    const schema = yup.object().shape({
+        username: yup.string()
+            .matches(/^[A-Za-z0-9'-_]*$/, "Please enter your username without special characters.")
+            .required("Please enter your username."),
+        password: yup.string()
+            .required("Please enter a password.")
+        });
+
+    return (
+        <Formik
+            validationSchema={schema}
+            onSubmit={handleSubmit}
+            initialValues={{
+                username: "",
+                password: ""
+            }}
+        >
+            {({ handleSubmit, handleChange, handleBlur, values, touched, errors}) => (
+                <div className="register template d-flex justify-content-center align-items-center 100-w vh-100 bg-primary">
+                    <div className='40-w p-5 rounded bg-light'>
+                        <Form noValidate onSubmit={handleSubmit}>
+                            <h3>Login</h3>
+                            {error && (
+                                <div className="text-danger">{error}</div>
+                            )}
+                            <Form.Label>Username</Form.Label>
+                            <Form.Group className="mb-3">
+                                <Form.Control
+                                    type="text"
+                                    name="username"
+                                    value={values.username}
+                                    required
+                                    placeholder="Username"
+                                    aria-label="Username"
+                                    aria-describedby="basic-addon1"
+                                    onChange={(event) => {
+                                        handleChange(event);
+                                        setFormData({
+                                            username: event.target.value,
+                                            password: formData.password
+                                        })
+                                    }}
+                                    onBlur={handleBlur}
+                                    isInvalid={touched.username && !!errors.username}
+                                    maxLength={32}
+                                />
+                                <Form.Control.Feedback type="invalid">{errors.username}</Form.Control.Feedback>
+                            </Form.Group>
+
+                            <Form.Label>Password</Form.Label>
+                            <Form.Group className="mb-3">
+                                <Form.Control
+                                    type="password"
+                                    name="password"
+                                    value={values.password}
+                                    required
+                                    placeholder="Password"
+                                    aria-label="Password"
+                                    aria-describedby="basic-addon1"
+                                    onChange={(event) => {
+                                        handleChange(event);
+                                        setFormData({
+                                            username: formData.username,
+                                            password: event.target.value
+                                        })
+                                    }}
+                                    isInvalid={touched.password && !!errors.password}
+                                    onBlur={handleBlur}
+                                    maxLength={20}
+                                />
+                                <Form.Control.Feedback type="invalid">{errors.password}</Form.Control.Feedback>
+                            </Form.Group>
+                            <Button
+                                type="submit"
+                                variant="primary"
+                                disabled={isLoading}
+                            >
+                                {isLoading ? "Loading..." : "Log In"}
+                            </Button>
+                        </Form>
+                        <div>
+                            <Link to="" >Forgot Password?</Link><br />
+                            <a>Don't have an account? </a><Link to="/register">Sign Up.</Link>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </>
+            )}
+        </Formik>
     );
 }
 
