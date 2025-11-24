@@ -7,7 +7,7 @@ import {useEffect, useState} from 'react';
 // needed to use bootstrap components
 //import "bootstrap/dist/css/bootstrap.min.css";
 // New components
-import NewHomeScreen from "./screens/newHomeScreen";
+import NewHomeScreen from "./screens/NewHomeScreen/newHomeScreen";
 
 // import all currently finished screens
 import HomeScreen from "./screens/HomeScreen";

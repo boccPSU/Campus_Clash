@@ -1,70 +1,67 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Container, Button, Spinner } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 
-//New components
+import BottomNavBar from "../../newComponents/BottomNavBar/BottomNavBar.js";
+import InfoTile from "../../newComponents/InfoTile/InfoTile.js";
 
-import BottomNavBar from "../newComponents/BottomNavBar/BottomNavBar.js";
+import CourseCard from "../../components/CourseCard/CourseCard.js";
+import AlertCard from "../../components/AlertCard/AlertCard.js";
 
-import CourseCard from "../components/CourseCard/CourseCard.js";
+import PullToRefresh from "../../components/interaction/PullToRefresh.js";
+import ScreenScroll from "../../components/ScreenScroll/ScreenScroll.js";
 
-import InfoBox from "../components/InfoBox/InfoBox.js";
-import AlertCard from "../components/AlertCard/AlertCard.js";
-import HeaderBar from "../components/HeaderBar/HeaderBar.js";
-import GpaDisplay from "../components/GpaDisplay/GpaDisplay.js";
-
-import useCollapseOnScroll from "../components/hooks/useCollapseOnScroll.js";
-import PullToRefresh from "../components/interaction/PullToRefresh.js";
-import ScreenScroll from "../components/ScreenScroll/ScreenScroll.js";
-
-import { createCanvasProxyClient } from "../api/canvasApi";
-import { computeGPAEqualCredits, percentToLetter } from "../utils/gpa";
-import { logUpcomingAssignmentsForSelectedCourses } from "../api/canvas.js";
-import { getUpcomingAssignmentAlerts } from "../api/canvas.js";
-
-import { getMySemesterCoursesWithGrades } from "../api/canvas.js";
-import { Award } from "react-bootstrap-icons";
-import { checkRecentSubmissions } from "../api/canvas.js";
-
+import { computeGPAEqualCredits, percentToLetter } from "../../utils/gpa.js";
+import { getUpcomingAssignmentAlerts } from "../../api/canvas.js";
+import { getMySemesterCoursesWithGrades } from "../../api/canvas.js";
+import { Bell } from "react-bootstrap-icons";
+import { checkRecentSubmissions } from "../../api/canvas.js";
 
 function NewHomeScreen() {
     const navigate = useNavigate();
 
-    // UI state
-    const [courses, setCourses] = useState([]); // [{ id, name, percent(int|undefined), grade(letter|'—') }]
-    const [gpa, setGpa] = useState(null); // number | null
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [alerts, setAlerts] = useState([]);
     const [alertsLoading, setAlertsLoading] = useState(true);
+    const [alerts, setAlerts] = useState([]);
 
-    const [studentData, setStudentData] = useState(JSON.parse(sessionStorage.getItem('studentData')));
+    const [studentData, setStudentData] = useState(
+        JSON.parse(sessionStorage.getItem("studentData"))
+    );
+
+    const [isDarkMode, setIsDarkMode] = useState(false);
 
     useEffect(() => {
-        sessionStorage.setItem('studentData', JSON.stringify(studentData));
+        sessionStorage.setItem("studentData", JSON.stringify(studentData));
     }, [studentData]);
 
-    // collapse header / pull-to-refresh
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === "d" || e.key === "D") {
+                console.log("CLICKED");
+                setIsDarkMode((prev) => !prev);
+            }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, []);
+
+    useEffect(() => {
+        document.body.classList.toggle("dark-mode", isDarkMode);
+    }, [isDarkMode]);
+
     const scrollerRef = useRef(null);
-    const collapsed = useCollapseOnScroll(scrollerRef);
 
     const loadCourses = async () => {
         setError("");
         setLoading(true);
         try {
-            // 1) Fetch filtered + deduped courses for THIS semester that HAVE grades.
-            //    Shape: [{ id, name, percent(number|null), grade(string|null), created_at }, ...]
             const raw = await getMySemesterCoursesWithGrades();
 
-            // 2) Compute GPA from RAW values (use precise percent if present)
             const nextGpa = computeGPAEqualCredits(
                 raw.map((c) => ({ grade: c.grade, percent: c.percent }))
             );
-            setGpa(nextGpa);
 
-            // 3) Normalize for display:
-            //    - Round percent only for the bar label (keep undefined if missing)
-            //    - Always show a letter: Canvas letter OR derived from percent; if neither → "—"
             const normalizedForUI = raw.map((c) => {
                 const rawPercent =
                     typeof c.percent === "number" ? c.percent : null;
@@ -74,17 +71,16 @@ function NewHomeScreen() {
                 return {
                     id: c.id,
                     name: c.name ?? `Course ${c.id}`,
-                    percent: roundedPercent, // integer for the bar
+                    percent: roundedPercent,
                     grade: letter,
                 };
             });
 
-            setCourses(normalizedForUI);
-            setStudentData(prevStudent => ({
+            setStudentData((prevStudent) => ({
                 ...prevStudent,
                 gpa: nextGpa,
                 courses: normalizedForUI,
-                filled: true
+                filled: true,
             }));
             console.log("Student Data Post-Course Load: ", studentData);
         } catch (e) {
@@ -92,8 +88,10 @@ function NewHomeScreen() {
             setError(
                 `Could not load courses from Canvas.\n${e?.message ?? ""}`
             );
-            setCourses([]);
-            setGpa(null);
+            setStudentData((prevStudent) => ({
+                ...prevStudent,
+                courses: [],
+            }));
         } finally {
             setLoading(false);
         }
@@ -106,10 +104,10 @@ function NewHomeScreen() {
                 daysAhead: 14,
             });
             setAlerts(upcoming);
-            setStudentData(prevStudent => ({
+            setStudentData((prevStudent) => ({
                 ...prevStudent,
                 alerts: upcoming,
-                filled: true
+                filled: true,
             }));
             console.log("Student Data Post-Alerts Load: ", studentData);
         } catch (e) {
@@ -120,10 +118,11 @@ function NewHomeScreen() {
         }
     };
 
-    // initial load
     useEffect(() => {
         (async () => {
-            let studentDataToken = JSON.parse(sessionStorage.getItem('studentData'));
+            let studentDataToken = JSON.parse(
+                sessionStorage.getItem("studentData")
+            );
             console.log(studentDataToken);
             if (studentDataToken?.filled ?? false) {
                 setStudentData(studentDataToken);
@@ -139,7 +138,6 @@ function NewHomeScreen() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // pull-to-refresh
     const refresh = async () => {
         await setTokens();
         await loadCourses();
@@ -150,7 +148,6 @@ function NewHomeScreen() {
 
     const setTokens = async () => {
         try {
-            //Get user token
             const tokenString = localStorage.getItem("token");
             const userToken = JSON.parse(tokenString);
             const tokenValue = userToken.token;
@@ -161,17 +158,21 @@ function NewHomeScreen() {
                     "jwt-token": tokenValue,
                 },
             });
-            if (res.status == 500) throw new Error("[PROFILE] Error", {cause: "Could not Connect."});
+            if (res.status == 500)
+                throw new Error("[PROFILE] Error", {
+                    cause: "Could not Connect.",
+                });
             const data = await res.json();
-            if (!res.ok) throw new Error("[PROFILE] Error", {cause: data.error});
+            if (!res.ok)
+                throw new Error("[PROFILE] Error", { cause: data.error });
             console.log(data);
-            setStudentData(prevStudent => ({
+            setStudentData((prevStudent) => ({
                 ...prevStudent,
                 username: data.username,
                 university: data.university,
                 major: data.major,
                 xp: data.xp,
-                filled: true
+                filled: true,
             }));
         } catch (err) {
             console.log(err);
@@ -181,24 +182,41 @@ function NewHomeScreen() {
 
     return (
         <>
-            <HeaderBar
-                title="Home"
-                aria-label="Home"
-                collapsed={collapsed}
-            />
-            <div
-                className={`headerSpacer ${collapsed ? "is-collapsed" : ""}`}
-            />
-
             <ScreenScroll ref={scrollerRef}>
                 <PullToRefresh scrollerRef={scrollerRef} onRefresh={refresh}>
-                    <Container className="py-3">
-                        {/* GPA Section — pass computed GPA */}
-                        <GpaDisplay gpa={studentData?.gpa ?? undefined} />
+                    <Container className="mainContainer">
+                        <div className="homeHeader">
+                            <div className="homeHeader-text">
+                                <h1 className="homeHeader-greeting">
+                                    Welcome back,{" "}
+                                    {studentData?.username ?? "Scholar"}
+                                </h1>
+                                <h3 className="homeHeader-xp">
+                                    XP: {studentData?.xp ?? 0}
+                                </h3>
+                            </div>
+                            <button
+                                type="button"
+                                className="homeHeader-notifications"
+                                aria-label="Notifications"
+                            >
+                                <Bell size={22} />
+                            </button>
+                        </div>
 
-                        {/* Courses */}
-                        <InfoBox title="Courses">
-                            {loading && (
+                        <InfoTile>
+                            <div className="gpaSection">
+                                <h1>GPA {studentData?.gpa ?? "—"}</h1>
+                                <h4>
+                                    Battle Team: {studentData?.major ?? "-"}
+                                </h4>
+                            </div>
+                        </InfoTile>
+
+                        <h1 className="sectionTitle">Courses</h1>
+
+                        {loading && (
+                            <InfoTile>
                                 <div
                                     className="d-flex align-items-center gap-2 py-2"
                                     aria-live="polite"
@@ -210,9 +228,11 @@ function NewHomeScreen() {
                                     />
                                     <span>Loading courses…</span>
                                 </div>
-                            )}
+                            </InfoTile>
+                        )}
 
-                            {!loading && error && (
+                        {!loading && error && (
+                            <InfoTile>
                                 <div
                                     className="d-flex flex-column gap-2"
                                     role="alert"
@@ -233,22 +253,28 @@ function NewHomeScreen() {
                                         </Button>
                                     </div>
                                 </div>
+                            </InfoTile>
+                        )}
+
+                        {!loading &&
+                            !error &&
+                            (!studentData?.courses ||
+                                studentData.courses.length === 0) && (
+                                <InfoTile>
+                                    <div className="text-muted">
+                                        No active courses found.
+                                    </div>
+                                </InfoTile>
                             )}
 
-                            {!loading && !error && courses.length === 0 && (
-                                <div className="text-muted">
-                                    No active courses found.
-                                </div>
-                            )}
+                        {!loading &&
+                            !error &&
+                            studentData?.courses?.map((c, i) => (
+                                <InfoTile key={c.id ?? i}>
+                                    <CourseCard {...c} />
+                                </InfoTile>
+                            ))}
 
-                            {!loading &&
-                                !error &&
-                                studentData?.courses?.map((c, i) => (
-                                    <CourseCard key={i} {...c} />
-                                ))}
-                        </InfoBox>
-
-                        {/* Progress Report and Study Plan Btns */}
                         <div className="d-flex justify-content-between mt-3">
                             <Button
                                 className="button"
@@ -264,29 +290,37 @@ function NewHomeScreen() {
                             </Button>
                         </div>
 
-                        {/* Alert Section */}
-                        <InfoBox title="Alerts">
-                            {alertsLoading && (
+                        <h1 className="sectionTitle">Alerts</h1>
+
+                        {alertsLoading && (
+                            <InfoTile>
                                 <AlertCard
                                     alertTitle="Loading alerts…"
                                     alertInfo="Fetching upcoming items"
                                 />
+                            </InfoTile>
+                        )}
+
+                        {!alertsLoading &&
+                            (!studentData?.alerts ||
+                                studentData.alerts.length === 0) && (
+                                <InfoTile>
+                                    <div className="text-muted">
+                                        No upcoming graded items in the next 14
+                                        days.
+                                    </div>
+                                </InfoTile>
                             )}
-                            {!alertsLoading && alerts.length === 0 && (
-                                <div className="text-muted">
-                                    No upcoming graded items in the next 14
-                                    days.
-                                </div>
-                            )}
-                            {!alertsLoading &&
-                                studentData?.alerts?.map((a) => (
+
+                        {!alertsLoading &&
+                            studentData?.alerts?.map((a) => (
+                                <InfoTile key={a.id}>
                                     <AlertCard
-                                        key={a.id}
                                         alertTitle={`${a.type}: ${a.title}`}
                                         alertInfo={`${a.courseName} • Due ${a.dueLabel}`}
                                     />
-                                ))}
-                        </InfoBox>
+                                </InfoTile>
+                            ))}
                     </Container>
                 </PullToRefresh>
 

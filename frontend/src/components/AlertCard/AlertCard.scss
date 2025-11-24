@@ -1,16 +1,34 @@
 @use "../../css/tokens.scss" as *;
 
 .alertCard {
-    @extend .mb-2;
-    @extend .shadow-sm;
-    @extend .text-center;
-}
-
-.alertBody {
-    @extend .p-2;
+    background-color: $light-secondary;
+    margin-bottom: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
 }
 
 .alertTitle {
-    @extend .mb-1;
-    @extend .fs-5;
+    color: $light-text-primary;
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+}
+
+.alertInfo {
+    color: $light-text-primary;
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+.alertBody {
+    padding: 0.5rem 0.75rem;
+}
+
+// Dark Mode
+body.dark-mode .alertCard {
+    background-color: $dark-secondary;
+}
+
+body.dark-mode .alertTitle,
+body.dark-mode .alertInfo {
+    color: $dark-text-primary;
 }

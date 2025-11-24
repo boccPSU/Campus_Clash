@@ -6,8 +6,8 @@
     @extend .border-top;
     @extend .py-2;
 
-    margin-left: 6px;
-    margin-right: 6px;
+    //margin-left: 6px;
+    //margin-right: 6px;
     background-color: $light-secondary;
 
     // Each div gets a minimum width and centers its content
@@ -34,4 +34,18 @@
         color: $primary;      // Change color to primary color
         font-weight: 600;     // bold label
     }
+}
+
+// Dark Mode
+
+body.dark-mode .bottomNavBar {
+    background-color: $dark-secondary;
+}
+
+body.dark-mode .bottomNavBar .navItem {
+    color: $dark-text-primary;
+}
+
+body.dark-mode .bottomNavBar .navItem.active {
+    color: $primary; // keep primary accent in dark mode
 }

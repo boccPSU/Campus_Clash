@@ -1,0 +1,31 @@
+@use "../../css/tokens.scss" as *;
+
+.infoTile {
+    //@extend allows us to add in bootsrap styles into our css
+    @extend .mx-auto; // centers horizontally
+    
+    
+    padding-bottom: 10px;
+    padding-left: 10px;
+    padding-right: 10px;
+    margin: 10px;
+    border-radius: 10px;
+    background-color: $light-secondary; // Background Color
+    color: $light-text-primary; //Text Color
+    
+    max-height: 35rem;
+    overflow-y: auto;
+    h2 {
+        @extend .text-center; // centers title
+    }
+}
+
+// Dark mode
+body.dark-mode .infoTile {
+    background-color: $dark-secondary;
+    color: $dark-text-primary;
+}
+
+body.dark-mode .infoTile h2 {
+    color: $dark-text-primary;
+}

@@ -1,46 +1,38 @@
 // Shows alerts, can be deleted by clicking red trash icon
-import React from "react";
-import { useState, useEffect, useId } from "react";
-import Spinner from 'react-bootstrap/Spinner';
-import { Card, ProgressBar } from "react-bootstrap";
+import { useState, useId } from "react";
+import Spinner from "react-bootstrap/Spinner";
 
-function AlertCard({ alertTitle, alertInfo}) {
+function AlertCard({ alertTitle, alertInfo }) {
     const titleId = useId();
+    const [loading, setLoading] = useState(false);
 
-    // Loading state
-    const [loading, setLoading] = useState(true);
-
-    // On page loading
-    useEffect(()=>{
-        //Simulating latency 1000ms to see spinner
-        const timer = setTimeout(()=>{
-            setLoading(false);
-        }, 1000)
-        return () => clearTimeout(timer);
-    }, [])
-    
-    // If loading data, show spinner
-    if(loading){
-        return(
-            <Card className="alertCard" aria-label="Loading Alert" aria-busy="true" tabIndex={0}>
-            <Card.Body className="alertBody" >
-                <Spinner animation="border" role="status" className="spinner">
-                    <span className="visually-hidden">Loading...</span>
-                </Spinner>
-            </Card.Body>
-            </Card>
-        )
-        
+    if (loading) {
+        return (
+            <div
+                className="alertCard"
+                tabIndex={0}
+                aria-label="Loading alert"
+                aria-busy="true"
+            >
+                <div className="alertBody d-flex justify-content-center">
+                    <Spinner
+                        animation="border"
+                        role="status"
+                        className="spinner"
+                        aria-label="Loading"
+                    />
+                </div>
+            </div>
+        );
     }
 
     return (
-        //creates a card for each course
-        <Card className="alertCard" aria-labelledby={titleId} tabIndex={0}>
-        <Card.Body className="alertBody">
-            <Card.Title id={titleId} className="alertTitle" >{alertTitle}</Card.Title>
-            <Card.Body>{alertInfo}</Card.Body>
-        </Card.Body>
-        </Card>
+        <div className="alertCard" aria-labelledby={titleId} tabIndex={0}>
+            <h3 id={titleId} className="alertTitle">
+                {alertTitle}
+            </h3>
+            <p className="alertInfo">{alertInfo}</p>
+        </div>
     );
 }
 

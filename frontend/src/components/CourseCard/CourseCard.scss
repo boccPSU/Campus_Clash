@@ -1,10 +1,27 @@
 @use "../../css/tokens.scss" as *;
 
 .courseCard {
-    @extend .mb-2;
-    @extend .shadow-sm;
+    background-color: $light-secondary;
 }
 
 .courseTitle {
-    @extend .mb-1;
+    color: $light-text-primary;
+    font-size: 1.0rem;
+}
+
+.progressBar {
+    border: solid 1px $dark-primary;
+}
+
+// Dark Mode
+body.dark-mode .courseCard {
+    background-color: $dark-secondary;
+}
+
+body.dark-mode .courseTitle {
+    color: $dark-text-primary;
+}
+
+body.dark-mode .progressBar {
+    border: solid 1px $light-secondary;
 }
