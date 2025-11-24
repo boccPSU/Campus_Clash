@@ -6,6 +6,8 @@ import {useEffect, useState} from 'react';
 
 // needed to use bootstrap components
 //import "bootstrap/dist/css/bootstrap.min.css";
+// New components
+import NewHomeScreen from "./screens/newHomeScreen";
 
 // import all currently finished screens
 import HomeScreen from "./screens/HomeScreen";
@@ -39,7 +41,7 @@ function App() {
                 <Route path="/" element={<Navigate to={token ? "/home" : "/login"} replace />}/>
                 
                 {/* /home path -> Home */}
-                <Route path="/home" element={<HomeScreen />} />
+                <Route path="/home" element={<NewHomeScreen />} />
 
                 {/* /events path -> Events screen */}
                 <Route path="/events" element={<EventsScreen />} />

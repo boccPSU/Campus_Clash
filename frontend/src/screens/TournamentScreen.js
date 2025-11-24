@@ -20,14 +20,11 @@ function TournamentScreen() {
             topics: "Computer Science, Algorithms",
             endDate: "Sept. 25, 12:00 a.m.",
             reward: 250,
-        },
-        {
-            title: "Mechanical Engineering Challenge",
-            topics: "Mechanical Engineering",
-            endDate: "Sept. 25, 12:00 a.m",
-            reward: 250,
         }
     ];
+
+    // User XP for header display
+    const currentXP = 10500;
 
     // Collapsing header + PTR wiring
     const scrollerRef = useRef(null);
@@ -40,7 +37,7 @@ function TournamentScreen() {
     return (
         <>
             {/* Top navigation header */}
-            <HeaderBar title="Tournaments" collapsed={collapsed} />
+            <HeaderBar title="Tournaments" xp={currentXP} collapsed={collapsed} />
             <div className={`headerSpacer ${collapsed ? "is-collapsed" : ""}`} />
 
             <ScreenScroll ref={scrollerRef}>
