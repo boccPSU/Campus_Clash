@@ -4,18 +4,19 @@ import { useNavigate } from "react-router-dom";
 
 import BottomNavBar from "../../newComponents/BottomNavBar/BottomNavBar.js";
 import InfoTile from "../../newComponents/InfoTile/InfoTile.js";
-
 import CourseCard from "../../components/CourseCard/CourseCard.js";
 import AlertCard from "../../components/AlertCard/AlertCard.js";
-
 import PullToRefresh from "../../components/interaction/PullToRefresh.js";
 import ScreenScroll from "../../components/ScreenScroll/ScreenScroll.js";
 
 import { computeGPAEqualCredits, percentToLetter } from "../../utils/gpa.js";
 import { getUpcomingAssignmentAlerts } from "../../api/canvas.js";
 import { getMySemesterCoursesWithGrades } from "../../api/canvas.js";
-import { Bell } from "react-bootstrap-icons";
+import { Bell, ChevronDown, ChevronUp } from "react-bootstrap-icons";
 import { checkRecentSubmissions } from "../../api/canvas.js";
+
+const COURSES_PREVIEW_COUNT = 3;
+const ALERTS_PREVIEW_COUNT = 3;
 
 function NewHomeScreen() {
     const navigate = useNavigate();
@@ -30,15 +31,17 @@ function NewHomeScreen() {
     );
 
     const [isDarkMode, setIsDarkMode] = useState(false);
+    const [showAllCourses, setShowAllCourses] = useState(false);
+    const [showAllAlerts, setShowAllAlerts] = useState(false);
 
     useEffect(() => {
         sessionStorage.setItem("studentData", JSON.stringify(studentData));
     }, [studentData]);
 
+    // Toggle dark mode on "d" / "D"
     useEffect(() => {
         const handleKeyDown = (e) => {
-            if (e.key === "d" || e.key === "D") {
-                console.log("CLICKED");
+            if (e.key && e.key.toLowerCase() === "d") {
                 setIsDarkMode((prev) => !prev);
             }
         };
@@ -46,6 +49,7 @@ function NewHomeScreen() {
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, []);
 
+    // Apply/remove class on <body>
     useEffect(() => {
         document.body.classList.toggle("dark-mode", isDarkMode);
     }, [isDarkMode]);
@@ -180,6 +184,17 @@ function NewHomeScreen() {
         }
     };
 
+    const courses = studentData?.courses ?? [];
+    const alertsData = studentData?.alerts ?? [];
+
+    const visibleCourses = showAllCourses
+        ? courses
+        : courses.slice(0, COURSES_PREVIEW_COUNT);
+
+    const visibleAlerts = showAllAlerts
+        ? alertsData
+        : alertsData.slice(0, ALERTS_PREVIEW_COUNT);
+
     return (
         <>
             <ScreenScroll ref={scrollerRef}>
@@ -258,8 +273,7 @@ function NewHomeScreen() {
 
                         {!loading &&
                             !error &&
-                            (!studentData?.courses ||
-                                studentData.courses.length === 0) && (
+                            (!courses || courses.length === 0) && (
                                 <InfoTile>
                                     <div className="text-muted">
                                         No active courses found.
@@ -269,11 +283,38 @@ function NewHomeScreen() {
 
                         {!loading &&
                             !error &&
-                            studentData?.courses?.map((c, i) => (
+                            visibleCourses.map((c, i) => (
                                 <InfoTile key={c.id ?? i}>
                                     <CourseCard {...c} />
                                 </InfoTile>
                             ))}
+
+                        {!loading &&
+                            !error &&
+                            courses.length > COURSES_PREVIEW_COUNT && (
+                                <div className="expandToggleWrapper">
+                                    <button
+                                        type="button"
+                                        className="expandToggleIcon"
+                                        onClick={() =>
+                                            setShowAllCourses(
+                                                (prev) => !prev
+                                            )
+                                        }
+                                        aria-label={
+                                            showAllCourses
+                                                ? "Show fewer courses"
+                                                : "Show all courses"
+                                        }
+                                    >
+                                        {showAllCourses ? (
+                                            <ChevronUp />
+                                        ) : (
+                                            <ChevronDown />
+                                        )}
+                                    </button>
+                                </div>
+                            )}
 
                         <div className="d-flex justify-content-between mt-3">
                             <Button
@@ -302,8 +343,7 @@ function NewHomeScreen() {
                         )}
 
                         {!alertsLoading &&
-                            (!studentData?.alerts ||
-                                studentData.alerts.length === 0) && (
+                            (!alertsData || alertsData.length === 0) && (
                                 <InfoTile>
                                     <div className="text-muted">
                                         No upcoming graded items in the next 14
@@ -313,7 +353,7 @@ function NewHomeScreen() {
                             )}
 
                         {!alertsLoading &&
-                            studentData?.alerts?.map((a) => (
+                            visibleAlerts.map((a) => (
                                 <InfoTile key={a.id}>
                                     <AlertCard
                                         alertTitle={`${a.type}: ${a.title}`}
@@ -321,6 +361,30 @@ function NewHomeScreen() {
                                     />
                                 </InfoTile>
                             ))}
+
+                        {!alertsLoading &&
+                            alertsData.length > ALERTS_PREVIEW_COUNT && (
+                                <div className="expandToggleWrapper">
+                                    <button
+                                        type="button"
+                                        className="expandToggleIcon"
+                                        onClick={() =>
+                                            setShowAllAlerts((prev) => !prev)
+                                        }
+                                        aria-label={
+                                            showAllAlerts
+                                                ? "Show fewer alerts"
+                                                : "Show all alerts"
+                                        }
+                                    >
+                                        {showAllAlerts ? (
+                                            <ChevronUp />
+                                        ) : (
+                                            <ChevronDown />
+                                        )}
+                                    </button>
+                                </div>
+                            )}
                     </Container>
                 </PullToRefresh>
 

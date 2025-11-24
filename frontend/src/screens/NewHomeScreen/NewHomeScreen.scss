@@ -2,23 +2,23 @@
 
 body {
     background-color: $light-primary;
+    color: $light-text-primary;
 }
+
 .mainContainer {
-    //@extend allows us to add in bootsrap styles into our css
     @extend .mx-auto; // centers horizontally
     padding: 10px;
     background-color: $light-primary; // Background Color
-    color: $light-text-primary; //Text Color
-   
+    color: $light-text-primary;       // Text Color
 }
 
 .gpaSection {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    //margin: 10px;
-    
-    h1, h4 {
+
+    h1,
+    h4 {
         margin: 0;
     }
 }
@@ -26,7 +26,6 @@ body {
 .sectionTitle {
     margin-left: 6px;
     margin-top: 20px;
-    
 }
 
 .homeHeader {
@@ -40,18 +39,18 @@ body {
 .homeHeader-text {
     display: flex;
     flex-direction: column;
-    font-size: 1.0rem;
+    font-size: 1rem;
     gap: 0.15rem;
 }
 
 .homeHeader-greeting {
-    font-size: 1.25rem;  // h1 but scaled for mobile
+    font-size: 1.25rem;  
     font-weight: 600;
     margin: 0;
 }
 
 .homeHeader-xp {
-    font-size: 1rem;     // h3-ish, clearly larger than body
+    font-size: 1rem;     
     margin: 0.1rem 0 0;
 }
 
@@ -74,7 +73,32 @@ body {
 }
 
 
-// Dark mode
+
+.expandToggleWrapper {
+    display: flex;
+    justify-content: center;
+    margin: 4px 0 12px;
+}
+
+.expandToggleIcon {
+    border: none;
+    background: none;
+    padding: 4px;
+    cursor: pointer;
+    color: $light-text-primary;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.expandToggleIcon svg {
+    width: 32px;
+    height: 32px;
+    stroke-width: 2.5; 
+}
+
+// Dark Mode
+
 body.dark-mode {
     background-color: $dark-primary;
     color: $dark-text-primary;
@@ -100,4 +124,12 @@ body.dark-mode .homeHeader-notifications {
 
 body.dark-mode .homeHeader-notifications svg {
     color: $dark-text-primary;
+}
+
+body.dark-mode .expandToggleIcon {
+    color: $dark-text-primary;
+}
+
+body.dark-mode .expandToggleIcon svg {
+    stroke-width: 2.5;
 }
