@@ -89,10 +89,10 @@ async function initDb() {
       tid         INT NOT NULL AUTO_INCREMENT,
       title       VARCHAR(128) NOT NULL,
       topics      VARCHAR(255) NOT NULL,
-      difficulty  VARCHAR(32)  NOT NULL,
       reward      INT          NOT NULL,
       questionSet JSON  NULL,
       startTime   DATETIME     NOT NULL,
+      endDate     DATETIME     NOT NULL,
       PRIMARY KEY (tid)
     ) ENGINE=InnoDB
       DEFAULT CHARSET=utf8mb4
@@ -121,6 +121,20 @@ async function initDb() {
           COLLATE=utf8mb4_0900_ai_ci;
     `);
 
+    // Create a tournaments topic table for each major, storing the major, possible topics, and already used topics
+    await pool.query(
+  `
+  CREATE TABLE IF NOT EXISTS tournament_topics (
+    mid           INT NOT NULL AUTO_INCREMENT,
+    major         VARCHAR(64) NOT NULL,
+    topics        JSON NOT NULL,
+    used_topics   JSON NULL,
+    PRIMARY KEY (mid),
+    UNIQUE KEY uk_major (major)
+  )
+  `
+);
+
 // Drop + recreate tournament procedures
 await pool.query(`DROP PROCEDURE IF EXISTS create_tournament`);
 await pool.query(`DROP PROCEDURE IF EXISTS join_tournament`);
@@ -131,16 +145,16 @@ await pool.query(`DROP PROCEDURE IF EXISTS join_tournament`);
 
 await pool.query(`
     CREATE PROCEDURE create_tournament(
-      IN p_questionSet VARCHAR(64),
+      IN p_questionSet JSON,
       IN p_startTime   DATETIME,
+      IN p_endDate     DATETIME,
       IN p_title       VARCHAR(128),
       IN p_topics      VARCHAR(255),
-      IN p_difficulty  VARCHAR(32),
       IN p_reward      INT
     )
     BEGIN
-      INSERT INTO tournaments (questionSet, startTime, title, topics, difficulty, reward)
-      VALUES (p_questionSet, p_startTime, p_title, p_topics, p_difficulty, p_reward);
+      INSERT INTO tournaments (questionSet, startTime, endDate, title, topics, reward)
+      VALUES (p_questionSet, p_startTime, p_endDate, p_title, p_topics, p_reward);
       SELECT LAST_INSERT_ID() AS tid;
     END
   `);
@@ -367,7 +381,7 @@ async function addMockUsers(numUsers) {
 
 // Tournement
 
-// Need table to store active tornament
-//Should have a list of users participating, and questions with answer index
+
+
 
 module.exports = { pool, initDb, addMockUsers };

@@ -45,7 +45,7 @@ const verifyToken = (token) => {
 
 // Decrypts user token and returns username
 const decryptToken = (token) => {  
-  console.log('[decryptToken] Decrypting token:', token);
+  //console.log('[decryptToken] Decrypting token:', token);
   try {
     if (!token) {
       console.warn('[decryptToken] No token provided');
