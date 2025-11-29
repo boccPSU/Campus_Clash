@@ -11,10 +11,10 @@ function NewTournamentScreen() {
     // Time variables for tournament refresh
 
     //Short times for testing
-    //const dailyRefreshTime = 60000; // 10s
+    const dailyRefreshTime = 60000; // 10s
     //const weeklyRefreshTime = 90000; // 30s
     //const rankedRefreshTime = 100000; // 60s
-     const dailyRefreshTime = 24 * 60 * 60 * 1000;
+     //const dailyRefreshTime = 24 * 60 * 60 * 1000;
      const weeklyRefreshTime = 7 * 24 * 60 * 60 * 1000;
      const rankedRefreshTime = 14 * 24 * 60 * 60 * 1000;
 

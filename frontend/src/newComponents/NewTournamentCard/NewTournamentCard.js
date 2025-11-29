@@ -53,6 +53,8 @@ function NewTournamentCard({
         // Load leaderboard + check if user already joined (once tid is known)
         useEffect(() => {
             async function initForTid() {
+                // Set join button back to true
+                setCanJoin(true);
                 if (!tid) {
                     console.log(
                         "[NewTournamentCard] No tid yet for",
@@ -62,7 +64,7 @@ function NewTournamentCard({
                     return;
                 }
 
-                console.log("[NewTournamentCard] Initializing for tid:", tid);
+                //console.log("[NewTournamentCard] Initializing for tid:", tid);
 
                 // Check if user is already in tournament or already joined
                 const tokenString = sessionStorage.getItem("token");
@@ -136,11 +138,7 @@ function NewTournamentCard({
                         return;
                     }
 
-                    console.log(
-                        "[NewTournamentCard] Leaderboard data for tid=",
-                        tid,
-                        data
-                    );
+                    //console.log("[NewTournamentCard] Leaderboard data for tid=",tid,data);
                     setLeaderboard(data.participants || []);
                 } catch (e) {
                     console.log(
