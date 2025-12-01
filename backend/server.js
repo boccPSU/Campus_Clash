@@ -1775,7 +1775,48 @@ app.post("/api/tournament/update-ranked-leaderboard", async (req, res) => {
   }
 });
 
+// Get total XP for a given username
+app.post("/api/users/xp", async (req, res) => {
+  const { username } = req.body || {};
 
+  if (!username) {
+    return res
+      .status(400)
+      .json({ successful: false, error: "Missing username" });
+  }
+
+  try {
+    const [rows] = await pool.query(
+      `
+      SELECT s.XP AS xp
+      FROM students s
+      INNER JOIN users u ON s.pid = u.pid
+      WHERE u.username = ?
+      LIMIT 1
+      `,
+      [username]
+    );
+
+    if (!rows || rows.length === 0) {
+      return res
+        .status(404)
+        .json({ successful: false, error: "User not found" });
+    }
+
+    const xp = rows[0].xp ?? 0;
+
+    return res.json({
+      successful: true,
+      username,
+      xp,
+    });
+  } catch (e) {
+    console.error("[BACKEND] /api/users/xp error:", e);
+    return res
+      .status(500)
+      .json({ successful: false, error: "Failed to fetch XP" });
+  }
+});
 
 
 
