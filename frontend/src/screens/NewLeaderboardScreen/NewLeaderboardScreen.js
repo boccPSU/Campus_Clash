@@ -40,7 +40,7 @@ function NewLeaderboardScreen() {
     const scrollerRef = useRef(null);
     const collapsed = useCollapseOnScroll(scrollerRef);
 
-    // --- Fetch MAJOR leaderboard on mount ---
+    // Fetch major on mount
     useEffect(() => {
         (async () => {
             setLoadingMajors(true);
@@ -80,7 +80,7 @@ function NewLeaderboardScreen() {
         })();
     }, []);
 
-    // --- Fetch STUDENT leaderboard when mode switches to "students" ---
+    // Fetch student leaderboard when mode switches to "students"
     useEffect(() => {
         if (mode !== "students") return;
         if (studentData.length > 0) return; // already loaded once
@@ -128,7 +128,7 @@ function NewLeaderboardScreen() {
                 setLoadingStudents(false);
             }
         })();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+      
     }, [mode]);
 
     // Get current user + compute their rank on the given leaderboard
@@ -136,7 +136,7 @@ function NewLeaderboardScreen() {
         try {
             setUserRankLoading(true);
 
-            // Get token from localStorage (same pattern as your other code)
+            // Get token from localStorage
             const tokenString = localStorage.getItem("token");
             if (!tokenString) {
                 setUserRankInfo(null);
@@ -199,7 +199,7 @@ function NewLeaderboardScreen() {
         }
     };
 
-    // Pull-to-refresh: simple demo – bump top major XP slightly
+   
     const refresh = async () => {
         await new Promise((r) => setTimeout(r, 900));
         setMajorData((prev) =>
@@ -291,7 +291,7 @@ function NewLeaderboardScreen() {
                         {/* STUDENT LEADERBOARD */}
                         {mode === "students" && (
                             <div className="leaderboardList">
-                                {/* Your Rank summary */}
+                                {/* Rank summary */}
                                 <div className="userRankSummary">
                                     {userRankLoading ? (
                                         <span>Calculating your rank…</span>

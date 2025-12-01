@@ -8,13 +8,6 @@ function LeaderboardTable({ data = [] }) {
     const [loading, setLoading] = useState(true);
     const [studentMajor, setStudentMajor] = useState(null);
 
-    // Fake latency just for visual spinner
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setLoading(false);
-        }, 1000);
-        return () => clearTimeout(timer);
-    }, []);
 
     // Fetch current student's major
     useEffect(() => {
@@ -115,8 +108,8 @@ function LeaderboardTable({ data = [] }) {
                     normalizedStudentMajor &&
                     normalizedRowMajor === normalizedStudentMajor;
 
-                // If we know the student's major and this row matches it → highlight.
-                // If we *don't* know the major, fall back to highlighting rank 1.
+                // If we know the student's major and this row matches it highlight.
+                // If we don't know the major, fall back to highlighting rank 1.
                 const rowClass =
                     isStudentMajor ||
                     (!normalizedStudentMajor && i === 0)

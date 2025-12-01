@@ -193,13 +193,7 @@ function NewTournamentCard({
     const isFinalRankedTournament =
         isRanked && tournamentOver && newTournament;
 
-    // For status icons:
-    //  - Final ranked (tournamentOver && newTournament): top 3 are winners ✅
-    //  - Non-final ranked & tournamentOver: use baseKeepCount (who advances to next round);
-    //    if somehow baseKeepCount is 0 but players exist, treat all as advancing for safety
-    //  - Active ranked (NOT tournamentOver):
-    //      * If < 4 players, treat everyone as "currently advancing" (all ✅)
-    //      * Else use baseKeepCount
+    
     let keepCountForStatus = 0;
 
     if (isRanked) {

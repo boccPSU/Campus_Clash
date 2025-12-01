@@ -28,7 +28,7 @@ function NewTournamentScreen() {
     const [rankedInBetween, setRankedInBetween] = useState(false);
 
     // Logged-in student's major (default to CS so existing behavior still works until we fetch real major)
-    const [major, setMajor] = useState("Computer Science");
+    const [major, setMajor] = useState(null);
 
     // Remaining time for display purposes (always "relevant" countdown)
     const [dailyRemainingTime, setDailyRemainingTime] = useState(); // in ms
@@ -337,8 +337,8 @@ function NewTournamentScreen() {
                                 updateData
                             );
                         } else {
-                            // If continues is false, this means total <= 3 → that round was FINAL.
-                            // So this newTid is a BRAND NEW tournament, not a continuation.
+                            // If continues is false, this means total <= 3 that round was final
+                            // So this newTid is a brand new tournament
                             if (updateData.continues === false) {
                                 console.log(
                                     "[Ranked] Previous round was final (<=3 players).",
@@ -692,10 +692,7 @@ function NewTournamentScreen() {
         return parts.join(" ");
     }
 
-    // For ranked: decide if the just-ended thing is a final tournament or just a round.
-    // During in-between:
-    //  - if we HAVE an upcoming ranked tournament → there is another round → NewTournament = false ("Round Over")
-    //  - if we DON'T have an upcoming ranked tournament → no next round → NewTournament = true ("Tournament Over – Winners")
+    // For ranked: decide if the just-ended tournament is a final tournament or just a round.
     const rankedIsFinalInBetween = rankedInBetween && !rankedUpcomingTournament;
 
     return (
@@ -833,9 +830,7 @@ function NewTournamentScreen() {
                                         rankedTournament[0].tournamentType
                                     }
                                     tournamentOver={rankedInBetween}
-                                    // When we are in-between:
-                                    //  - rankedUpcomingTournament exists → another round → NewTournament=false ("Round Over")
-                                    //  - no upcoming tournament → final → NewTournament=true ("Tournament Over – Winners")
+                                    
                                     NewTournament={
                                         rankedInBetween
                                             ? rankedIsFinalInBetween
