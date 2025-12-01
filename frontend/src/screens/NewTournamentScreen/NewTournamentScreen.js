@@ -8,14 +8,13 @@ import BottomNavBar from "../../newComponents/BottomNavBar/BottomNavBar.js";
 import NewTournamentCard from "../../newComponents/NewTournamentCard/NewTournamentCard.js";
 import XpHeaderBar from "../../newComponents/XpHeaderBar/XpHeaderBar.js";
 
-
 function NewTournamentScreen() {
     // Time variables for tournament refresh
 
     // Short times for testing
     const dailyRefreshTime = 30000; // 10s
     // const weeklyRefreshTime = 90000; // 30s
-    const rankedRefreshTime = 4 * 60000; // 60s
+    const rankedRefreshTime = 5 * 60000; // 60s
     //const dailyRefreshTime = 24 * 60 * 60 * 1000;
     const weeklyRefreshTime = 7 * 24 * 60 * 60 * 1000;
     // const rankedRefreshTime = 14 * 24 * 60 * 60 * 1000;
@@ -28,7 +27,8 @@ function NewTournamentScreen() {
     const [weeklyInBetween, setWeeklyInBetween] = useState(false);
     const [rankedInBetween, setRankedInBetween] = useState(false);
 
-    const major = "Computer Science"; // later: use logged-in student’s major
+    // Logged-in student's major (default to CS so existing behavior still works until we fetch real major)
+    const [major, setMajor] = useState("Computer Science");
 
     // Remaining time for display purposes (always "relevant" countdown)
     const [dailyRemainingTime, setDailyRemainingTime] = useState(); // in ms
@@ -75,15 +75,17 @@ function NewTournamentScreen() {
             isRanked: true,
             tournamentType: "ranked",
             newTournament: true, // indicates if this is a brand new ranked tournament
-            tournamentCount: 0, // number of ranked tournaments held so far
             startTime: Date.now(),
         },
     ]);
 
     // Upcoming tournaments (created in DB, but not shown yet)
-    const [dailyUpcomingTournament, setDailyUpcomingTournament] = useState(null);
-    const [weeklyUpcomingTournament, setWeeklyUpcomingTournament] = useState(null);
-    const [rankedUpcomingTournament, setRankedUpcomingTournament] = useState(null);
+    const [dailyUpcomingTournament, setDailyUpcomingTournament] =
+        useState(null);
+    const [weeklyUpcomingTournament, setWeeklyUpcomingTournament] =
+        useState(null);
+    const [rankedUpcomingTournament, setRankedUpcomingTournament] =
+        useState(null);
 
     const scrollerRef = useRef(null);
     const collapsed = useCollapseOnScroll(scrollerRef);
@@ -93,7 +95,66 @@ function NewTournamentScreen() {
         await new Promise((r) => setTimeout(r, 700));
     };
 
-    // Ensures topics exist for major on mount
+    // Fetch logged-in student's major once on mount
+    useEffect(() => {
+        async function fetchStudentMajor() {
+            try {
+                const tokenString = localStorage.getItem("token");
+                if (!tokenString) {
+                    console.log(
+                        "[NewTournamentScreen] No token, skipping student-major fetch."
+                    );
+                    return;
+                }
+
+                let tokenValue = "";
+                try {
+                    const parsed = JSON.parse(tokenString);
+                    tokenValue = parsed.token || tokenString;
+                } catch {
+                    tokenValue = tokenString;
+                }
+
+                const res = await fetch(
+                    "http://localhost:5000/api/student-major",
+                    {
+                        method: "GET",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "jwt-token": tokenValue,
+                        },
+                    }
+                );
+
+                if (!res.ok) {
+                    const body = await res.json().catch(() => ({}));
+                    console.warn(
+                        "[NewTournamentScreen] Failed to fetch student major:",
+                        body
+                    );
+                    return;
+                }
+
+                const body = await res.json();
+                if (body.major) {
+                    setMajor(body.major);
+                    console.log(
+                        "[NewTournamentScreen] Using student major:",
+                        body.major
+                    );
+                }
+            } catch (e) {
+                console.error(
+                    "[NewTournamentScreen] Error fetching student major:",
+                    e
+                );
+            }
+        }
+
+        fetchStudentMajor();
+    }, []);
+
+    // Ensures topics exist for major on mount / major change
     useEffect(() => {
         async function ensureTopicsForMajor() {
             try {
@@ -111,21 +172,10 @@ function NewTournamentScreen() {
             }
         }
 
-        ensureTopicsForMajor();
-    }, [major]);
-
-    // Helper function to update users XP and level after tournament (still TODO)
-    async function updateUserXp(uid, xpGained) {
-        try {
-            await fetch("http://localhost:5000/api/users/update-xp-level", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ uid, xpGained }),
-            });
-        } catch (e) {
-            console.log("Failed to update user XP and level. Error: " + e);
+        if (major) {
+            ensureTopicsForMajor();
         }
-    }
+    }, [major]);
 
     // Gets a random unused topic and marks it used for a certain major
     async function getRandomTopicForMajor(majorParam) {
@@ -160,7 +210,7 @@ function NewTournamentScreen() {
 
     /**
      * Creates a tournament of a certain type for a major.
-     * If isUpcoming = true → we store it in the "*UpcomingTournament" state,
+     * If isUpcoming = true we store it in the UpcomingTournament state,
      * but keep showing the old tournament card until the between phase ends.
      */
     async function createTournamentForType(
@@ -259,35 +309,66 @@ function NewTournamentScreen() {
                     setWeeklyTournament([newTournamentObj]);
                 }
             } else if (tournamentType === "ranked") {
-                // Increase tournament count
-                rankedTournament[0].tournamentCount += 1;
+                // If there is an existing ranked tournament, try to carry over participants.
+                // If not, this is the very first ranked tournament and we skip the update.
+                let isFinalRound = false;
 
-                // If tournament count is equal to 2 for now, we "reset" the ranked tournament
-                if (rankedTournament[0].tournamentCount >= 2) {
-                    console.log(
-                        "Resetting ranked tournament count and marking as new tournament"
-                    );
-                    rankedTournament[0].tournamentCount = 0;
-                    rankedTournament[0].newTournament = true;
-                }
+                if (rankedTournament[0] && rankedTournament[0].id) {
+                    try {
+                        const updateRes = await fetch(
+                            "http://localhost:5000/api/tournament/update-ranked-leaderboard",
+                            {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    oldTid: rankedTournament[0].id, // previous round
+                                    newTid: newTid, // this new round
+                                }),
+                            }
+                        );
 
-                // If not a brand new ranked tournament, carry over leaderboard
-                if (!rankedTournament[0].newTournament) {
-                    console.log(
-                        "Carrying over leaderboard from old ranked tournament"
-                    );
-                    await fetch(
-                        "http://localhost:5000/api/tournament/update-ranked-leaderboard",
-                        {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                oldTid: rankedTournament[0].id,
-                                newTid: newTid,
-                            }),
+                        const updateData = await updateRes
+                            .json()
+                            .catch(() => null);
+
+                        if (!updateRes.ok || !updateData?.successful) {
+                            console.error(
+                                "[Ranked] Failed to update ranked leaderboard",
+                                updateData
+                            );
+                        } else {
+                            // If continues is false, this means total <= 3 → that round was FINAL.
+                            // So this newTid is a BRAND NEW tournament, not a continuation.
+                            if (updateData.continues === false) {
+                                console.log(
+                                    "[Ranked] Previous round was final (<=3 players).",
+                                    "Starting a brand new ranked tournament."
+                                );
+                                isFinalRound = true;
+                            } else {
+                                console.log(
+                                    "[Ranked] Ranked tournament continues to next round.",
+                                    "keepCount =",
+                                    updateData.keepCount
+                                );
+                            }
                         }
+                    } catch (err) {
+                        console.error(
+                            "[Ranked] Error calling update-ranked-leaderboard:",
+                            err
+                        );
+                    }
+                } else {
+                    console.log(
+                        "[Ranked] No existing ranked tournament id, treating this as a brand new ranked tournament."
                     );
+                    // First ranked ever: no oldTid to carry from, so it's a brand new tournament.
+                    isFinalRound = true;
                 }
+
+                // Mark on the *new* tournament whether it's a brand new bracket (no previous winners carrying in)
+                newTournamentObj.newTournament = isFinalRound;
 
                 if (isUpcoming) {
                     setRankedUpcomingTournament(newTournamentObj);
@@ -435,7 +516,9 @@ function NewTournamentScreen() {
             }
         }
 
-        loadOrCreate();
+        if (major) {
+            loadOrCreate();
+        }
     }, [major]);
 
     // Timer to rotate tournaments out when their endTime passes
@@ -463,24 +546,16 @@ function NewTournamentScreen() {
                             setDailyUpcomingTournament(null);
                         }
                     }
-                } else if (
-                    daily.id &&
-                    daily.endTime &&
-                    now >= daily.endTime
-                ) {
+                } else if (daily.id && daily.endTime && now >= daily.endTime) {
                     // Tournament is over
 
-                    // Award XP to winners here 
-                    
-                    
-                    
-
+                    // Award XP to winners here
 
                     // Just ended: go into between phase & schedule the next tournament
                     setDailyInBetween(true);
 
                     const nextStartTime = now + betweenTournamentTime;
-                    
+
                     await createTournamentForType(
                         major,
                         "daily",
@@ -513,15 +588,12 @@ function NewTournamentScreen() {
                     weekly.endTime &&
                     now >= weekly.endTime
                 ) {
-
-                    // Award XP to winners here 
-
-
+                    // Award XP to winners here
 
                     setWeeklyInBetween(true);
 
                     const nextStartTime = now + betweenTournamentTime;
-                    
+
                     await createTournamentForType(
                         major,
                         "weekly",
@@ -553,9 +625,7 @@ function NewTournamentScreen() {
                     ranked.endTime &&
                     now >= ranked.endTime
                 ) {
-                    // Award XP to winners here 
-
-                    
+                    // Award XP to winners here
 
                     setRankedInBetween(true);
 
@@ -604,9 +674,7 @@ function NewTournamentScreen() {
         const totalSeconds = Math.floor(ms / 1000);
 
         const days = Math.floor(totalSeconds / (24 * 60 * 60));
-        const hours = Math.floor(
-            (totalSeconds % (24 * 60 * 60)) / (60 * 60)
-        );
+        const hours = Math.floor((totalSeconds % (24 * 60 * 60)) / (60 * 60));
         const minutes = Math.floor((totalSeconds % (60 * 60)) / 60);
         const seconds = totalSeconds % 60;
 
@@ -628,8 +696,7 @@ function NewTournamentScreen() {
     // During in-between:
     //  - if we HAVE an upcoming ranked tournament → there is another round → NewTournament = false ("Round Over")
     //  - if we DON'T have an upcoming ranked tournament → no next round → NewTournament = true ("Tournament Over – Winners")
-    const rankedIsFinalInBetween =
-        rankedInBetween && !rankedUpcomingTournament;
+    const rankedIsFinalInBetween = rankedInBetween && !rankedUpcomingTournament;
 
     return (
         <>
@@ -655,10 +722,8 @@ function NewTournamentScreen() {
                         {/* Daily Section */}
                         <div className="tournamentSection">
                             <div className="sectionHeader">
-                                <h2 className="sectionTitle">
-                                    Daily Flashcards
-                                </h2>
-                                <p>
+                                <h2 className="sectionTitle">Daily</h2>
+                                <p className="tournamentTimer">
                                     {dailyInBetween ? (
                                         <>
                                             Next tournament starts in:{" "}
@@ -698,10 +763,8 @@ function NewTournamentScreen() {
                         {/* Weekly Section */}
                         <div className="tournamentSection">
                             <div className="sectionHeader">
-                                <h2 className="sectionTitle">
-                                    Weekly Flashcards
-                                </h2>
-                                <p>
+                                <h2 className="sectionTitle">Weekly</h2>
+                                <p className="tournamentTimer">
                                     {weeklyInBetween ? (
                                         <>
                                             Next tournament starts in:{" "}
@@ -739,10 +802,8 @@ function NewTournamentScreen() {
                         {/* Ranked Section */}
                         <div className="tournamentSection">
                             <div className="sectionHeader">
-                                <h2 className="sectionTitle">
-                                    Ranked Flashcards
-                                </h2>
-                                <p>
+                                <h2 className="sectionTitle">Ranked</h2>
+                                <p className="tournamentTimer">
                                     {rankedInBetween ? (
                                         <>
                                             Next tournament starts in:{" "}

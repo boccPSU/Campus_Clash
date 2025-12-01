@@ -13,3 +13,21 @@ export async function getSortedMajors() {
   `);
   return rows;
 }
+
+// Groups all students and returns them sorted by highest XP to lowest XP
+// Includes username, major, university, and total XP.
+export async function getSortedStudents() {
+  const [rows] = await pool.query(`
+    SELECT 
+      u.username,
+      COALESCE(s.XP, 0) AS totalXp,
+      COALESCE(NULLIF(TRIM(s.major), ''), 'Unknown') AS major,
+      COALESCE(NULLIF(TRIM(s.university), ''), 'Unknown') AS university
+    FROM students s
+    INNER JOIN users u ON u.pid = s.pid
+    ORDER BY totalXp DESC, u.username ASC;
+  `);
+
+  return rows;
+}
+

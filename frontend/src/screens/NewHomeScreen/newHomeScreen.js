@@ -208,13 +208,10 @@ function NewHomeScreen() {
                         ></XpHeaderBar>
                         <div className="homeHeader">
                             <div className="homeHeader-text">
-                                <h1 className="homeHeader-greeting">
+                                <h1 className="homeHeaderGreeting">
                                     Welcome back,{" "}
                                     {studentData?.username ?? "Scholar"}
                                 </h1>
-                                <h3 className="homeHeader-xp">
-                                    XP: {studentData?.xp ?? 0}
-                                </h3>
                             </div>
                             <button
                                 type="button"
@@ -227,10 +224,10 @@ function NewHomeScreen() {
 
                         <InfoTile>
                             <div className="gpaSection">
-                                <h1>GPA {studentData?.gpa ?? "—"}</h1>
-                                <h4>
+                                <h3>GPA {studentData?.gpa ?? "—"}</h3>
+                                <h3>
                                     Battle Team: {studentData?.major ?? "-"}
-                                </h4>
+                                </h3>
                             </div>
                         </InfoTile>
 

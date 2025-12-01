@@ -9,12 +9,12 @@ import { ChevronDown, ChevronUp, Check, X } from "react-bootstrap-icons";
 const LEADERBOARD_PREVIEW_COUNT = 3; // How many users on leaderboard are shown before expanding
 
 // Match backend ranked elimination logic used for NEXT ROUND
-// - total <= 3  -> final round, no one advances (0)
+// - total <= 3  -> final round, no next round (0 advance if we're ending the round)
 // - total == 4  -> keep 3
 // - even >= 6   -> keep half
 // - odd >= 5    -> keep ceil(n/2)
 function computeKeepCount(total) {
-    if (total <= 3) return 0; // final round, no next round
+    if (total <= 3) return 0; // NOTE: we will override this for active tournaments with < 4 players
     if (total === 4) return 3;
     if (total % 2 === 0) return total / 2;
     return Math.ceil(total / 2);
@@ -30,7 +30,7 @@ function NewTournamentCard({
     tournamentType = "daily", // (daily, weekly, ranked)
     remainingTime = 0,
     tournamentOver = false,
-    newTournament = false, // determines if this finished ranked tourney is final (true) vs between-round (false)
+    newTournament = false, // ranked only: true if this finished tournament is the FINAL one (no more rounds)
 }) {
     const navigate = useNavigate();
 
@@ -66,7 +66,7 @@ function NewTournamentCard({
     // Load leaderboard + check if user already joined (once tid is known)
     useEffect(() => {
         async function initForTid() {
-            // If tournament is already over, don't bother enabling join
+            // If tournament is already over, don't allow joining
             if (tournamentOver) {
                 console.log(
                     "[NewTournamentCard] Tournament is over, disabling join for",
@@ -74,7 +74,6 @@ function NewTournamentCard({
                 );
                 setCanJoin(false);
             } else {
-                // Set join button back to true (unless checks below turn it off)\
                 console.log(
                     "[NewTournamentCard] Tournament not over, enabling join for",
                     title
@@ -91,7 +90,7 @@ function NewTournamentCard({
                 return;
             }
 
-            // Check if user is already in tournament or already joined
+            // Check if user is already in tournament
             const tokenString = localStorage.getItem("token");
             if (!tokenString) {
                 console.log(
@@ -120,7 +119,6 @@ function NewTournamentCard({
                         }
                     );
 
-                    // If backend returns a simple boolean
                     const hasJoined = await resHasJoined
                         .json()
                         .catch(() => false);
@@ -189,16 +187,50 @@ function NewTournamentCard({
 
     // How many players advance, based on full leaderboard length
     const totalParticipants = leaderboard.length;
-    const keepCount = computeKeepCount(totalParticipants);
+    const baseKeepCount = computeKeepCount(totalParticipants);
+
+    // FINAL ranked tournament? (tournament ended, ranked, flagged as final)
+    const isFinalRankedTournament =
+        isRanked && tournamentOver && newTournament;
+
+    // For status icons:
+    //  - Final ranked (tournamentOver && newTournament): top 3 are winners ✅
+    //  - Non-final ranked & tournamentOver: use baseKeepCount (who advances to next round);
+    //    if somehow baseKeepCount is 0 but players exist, treat all as advancing for safety
+    //  - Active ranked (NOT tournamentOver):
+    //      * If < 4 players, treat everyone as "currently advancing" (all ✅)
+    //      * Else use baseKeepCount
+    let keepCountForStatus = 0;
+
+    if (isRanked) {
+        if (isFinalRankedTournament) {
+            // Final tournament: winners are top 3 (or fewer if <3 players)
+            keepCountForStatus = Math.min(3, totalParticipants);
+        } else if (tournamentOver) {
+            // Round over, not final
+            keepCountForStatus =
+                baseKeepCount === 0 && totalParticipants > 0
+                    ? totalParticipants // safety net
+                    : baseKeepCount;
+        } else {
+            // Active ranked tournament
+            if (totalParticipants > 0 && totalParticipants <= 3) {
+                // Under 4 people: everyone currently in is "advancing"
+                keepCountForStatus = totalParticipants;
+            } else {
+                keepCountForStatus = baseKeepCount;
+            }
+        }
+    }
 
     // Decide leaderboard title text
     let leaderboardTitle = "";
     if (tournamentOver) {
         if (isRanked) {
-            // Ranked & over: between rounds vs fully finished
+            // Ranked & over: final vs round
             leaderboardTitle = newTournament
                 ? "Tournament Over – Winners"
-                : "Round Over";
+                : "Round Over – Advancing Players";
         } else {
             // Non-ranked & over
             leaderboardTitle = "Tournament Over – Winners";
@@ -296,7 +328,6 @@ function NewTournamentCard({
         }
     };
 
-    // Render
     return (
         <InfoTile title={title}>
             <div className="infoContainer">
@@ -347,7 +378,7 @@ function NewTournamentCard({
                                 <span className="leaderboardScore">Score</span>
                                 {isRanked && (
                                     <span className="leaderboardStatus">
-                                        Status
+                                        Advancing
                                     </span>
                                 )}
                             </div>
@@ -370,7 +401,7 @@ function NewTournamentCard({
 
                                     {isRanked && (
                                         <span className="leaderboardStatus">
-                                            {index < keepCount ? (
+                                            {index < keepCountForStatus ? (
                                                 <Check className="rankedCheck" />
                                             ) : (
                                                 <X className="rankedX" />

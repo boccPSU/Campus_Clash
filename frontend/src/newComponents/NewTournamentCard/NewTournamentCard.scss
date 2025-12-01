@@ -21,18 +21,17 @@
 }
 
 .btnGroup {
-    @extend .justify-content-between;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    width: 100%;          
+    text-align: center;   
 }
 
 .joinBtn {
     @extend .px-4;
     @extend .rounded-pill;
     @extend .fw-semibold;
-    margin: 10px;
 
+    display: block;      
+    margin: 10px auto;   
 }
 
 .difficultyBtn {

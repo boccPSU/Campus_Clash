@@ -6,7 +6,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const { pool, initDb, addMockUsers } = require("./db/db.js");
-const { getSortedMajors } = require("./db/sortData.js");
+const { getSortedMajors, getSortedStudents } = require("./db/sortData.js");
 const auth = require("./db/authentication.js");
 const { decryptToken } = require("./db/authentication.js");
 
@@ -59,21 +59,21 @@ function startTournamentFinalizer() {
         return; // nothing to do this cycle
       }
 
-      console.log("[Finalizer] Found", rows.length, "expired tournaments.");
+      //console.log("[Finalizer] Found", rows.length, "expired tournaments.");
 
       for (const row of rows) {
         const tid = row.tid;
-        console.log("[Finalizer] Finalizing tournament tid =", tid);
+        //console.log("[Finalizer] Finalizing tournament tid =", tid);
 
         try {
           await pool.query("CALL finalize_tournament(?)", [tid]);
-          console.log("[Finalizer] finalize_tournament OK for tid =", tid);
+          //console.log("[Finalizer] finalize_tournament OK for tid =", tid);
         } catch (e) {
-          console.error(
-            "[Finalizer] Error finalizing tournament tid =",
-            tid,
-            e
-          );
+          //console.error(
+            //"[Finalizer] Error finalizing tournament tid =",
+            //tid,
+            //e
+          //);
         }
       }
     } catch (e) {
@@ -337,6 +337,25 @@ app.get("/api/major-xp", async (_req, res) => {
   }
 });
 
+app.get("/api/leaderboard/students", async (req, res) => {
+  try {
+    const rows = await getSortedStudents();
+
+    
+    // …or wrap in an object if you prefer consistency:
+    return res.json({
+      successful: true,
+      rows,
+    });
+  } catch (e) {
+    console.error("[API] /api/leaderboard/students error:", e);
+    return res.status(500).json({
+      successful: false,
+      error: "Failed to load student leaderboard",
+    });
+  }
+});
+
 // Generates tournement questions using opneai wrapper
 const client = new OpenAI({ apiKey: process.env.OPENAI_KEY });
 
@@ -555,7 +574,7 @@ app.post("/api/create-tournament", async (req, res) => {
       ];
     } else if (tournamentType === "ranked") {
       questionConfig = [
-        { difficulty: "easy", count: 5 },
+        { difficulty: "easy", count: 2 },
         //{ difficulty: "medium", count: 4 },
         //{ difficulty: "hard", count: 3 },
       ];
@@ -1680,6 +1699,8 @@ app.post("/api/tournament/update-ranked-leaderboard", async (req, res) => {
   try {
     const { oldTid, newTid } = req.body || {};
 
+    console.log("[Ranked Leaderboard] Updating from oldTid:", oldTid, "to newTid:", newTid);
+    
     if (!oldTid || !newTid) {
       return res.status(400).json({
         successful: false,
@@ -1708,42 +1729,96 @@ app.post("/api/tournament/update-ranked-leaderboard", async (req, res) => {
 
     const total = rows.length;
 
-    // If 3 or fewer players remain, this round is the final one.
-    // We DO NOT carry anyone to the next leaderboard.
-    if (total <= 3) {
-      return res.json({
-        successful: true,
-        continues: false,              // tournament ended
-        oldTid,
-        newTid,
-        totalParticipants: total,
-        winners: rows,                // sorted by score desc
+    // Check if we've already processed this tournament (round or final)
+    const [tournamentRows] = await pool.query(
+      "SELECT xpAwarded FROM tournaments WHERE tid = ?",
+      [oldTid]
+    );
+
+    if (!tournamentRows || tournamentRows.length === 0) {
+      return res.status(404).json({
+        successful: false,
+        error: "Tournament not found for oldTid",
       });
     }
 
-    // More than 3 players: tournament continues, carry some forward.
+    const alreadyProcessed = !!tournamentRows[0].xpAwarded;
+
+    if (alreadyProcessed) {
+      console.log(
+        "[Ranked Leaderboard] Tournament",
+        oldTid,
+        "already processed (xpAwarded=1). Skipping."
+      );
+      return res.json({
+        successful: true,
+        continues: total > 3, // informational
+        oldTid,
+        newTid,
+        totalParticipants: total,
+        winners: total <= 3 ? rows : [],
+      });
+    }
+
+    // ===== FINAL TOURNAMENT CASE (<= 3 players) → PAY XP & MARK PROCESSED =====
+    if (total <= 3) {
+      console.log("[Ranked Leaderboard] 3 or fewer players remain, ending tournament & awarding XP.");
+
+      // XP payouts: 1st, 2nd, 3rd
+      const xpByPlace = [1000, 800, 600];
+
+      for (let i = 0; i < rows.length && i < 3; i++) {
+        const award = xpByPlace[i];
+        const pid = rows[i].pid;
+
+        // Increment XP for this student
+        await pool.query(
+          "UPDATE students SET XP = XP + ? WHERE pid = ?",
+          [award, pid]
+        );
+
+        // Attach award info so frontend can see who got what (optional)
+        rows[i].xpAward = award;
+      }
+
+      // Mark this tournament as processed so no background job (or repeat call) double-awards XP
+      await pool.query(
+        "UPDATE tournaments SET xpAwarded = 1 WHERE tid = ?",
+        [oldTid]
+      );
+
+      return res.json({
+        successful: true,
+        continues: false,        // tournament ended
+        oldTid,
+        newTid,
+        totalParticipants: total,
+        winners: rows,           // includes xpAward if just awarded
+      });
+    }
+
+    // ===== ROUND CASE (> 3 players) → ELIMINATE, CARRY FORWARD, NO XP =====
     let keepCount;
 
     if (total === 4) {
-      // Special case: with 4 players, eliminate only the last one → keep 3
+      console.log("[Ranked Leaderboard] 4 players remain, carrying top 3 forward.");
       keepCount = 3;
     } else if (total % 2 === 0) {
-      // Even (6, 8, 10, ...) → keep top half
+      console.log(`[Ranked Leaderboard] ${total} players remain, carrying top ${total / 2} forward.`);
       keepCount = total / 2;
     } else {
-      // Odd >= 5 (5, 7, 9, ...) → keep more than half (ceil)
-      // 5 -> 3, 7 -> 4, etc.
+      console.log(
+        `[Ranked Leaderboard] ${total} players remain, carrying top ${Math.ceil(total / 2)} forward.`
+      );
       keepCount = Math.ceil(total / 2);
     }
 
     const topParticipants = rows.slice(0, keepCount);
     const eliminatedParticipants = rows.slice(keepCount);
-
-    // Carry selected participants into the NEW tournament's leaderboard
     const topPids = topParticipants.map((p) => p.pid);
 
     if (topPids.length > 0) {
-      // Reset score for new round (0). Change to p.score if you want carry-over.
+      // Reset score for new round (0)
       const values = topPids.map((pid) => [newTid, pid, 0]);
 
       await pool.query(
@@ -1755,10 +1830,17 @@ app.post("/api/tournament/update-ranked-leaderboard", async (req, res) => {
       );
     }
 
-    // No deletes from oldTid — we only "carry over" people logically
+    // IMPORTANT:
+    // Even though we did NOT give XP, we still mark this round as "processed"
+    // so your background XP job will ignore it.
+    await pool.query(
+      "UPDATE tournaments SET xpAwarded = 1 WHERE tid = ?",
+      [oldTid]
+    );
+
     return res.json({
       successful: true,
-      continues: true,                 // tournament keeps going
+      continues: true,                 // tournament continues to next round
       oldTid,
       newTid,
       totalParticipants: total,
@@ -1774,6 +1856,7 @@ app.post("/api/tournament/update-ranked-leaderboard", async (req, res) => {
     });
   }
 });
+
 
 // Get total XP for a given username
 app.post("/api/users/xp", async (req, res) => {
@@ -1817,6 +1900,64 @@ app.post("/api/users/xp", async (req, res) => {
       .json({ successful: false, error: "Failed to fetch XP" });
   }
 });
+
+// Get the logged-in student's major
+app.get("/api/student-major", async (req, res) => {
+  try {
+    // Get JWT from headers
+    const token = req.headers["jwt-token"];
+    if (!token) {
+      return res.status(401).json({
+        successful: false,
+        error: "Missing token",
+      });
+    }
+
+    // Decode token into username
+    //   Adjust this line depending on how you named it in authentication.js
+    const username = decryptToken(token);
+
+    if (!username) {
+      return res.status(401).json({
+        successful: false,
+        error: "Invalid token",
+      });
+    }
+
+    //Look up student's major
+    const [rows] = await pool.query(
+      `
+      SELECT
+        COALESCE(NULLIF(TRIM(s.major), ''), 'Unknown') AS major
+      FROM students s
+      INNER JOIN users u ON u.pid = s.pid
+      WHERE u.username = ?
+      LIMIT 1;
+      `,
+      [username]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        successful: false,
+        error: "Student not found",
+      });
+    }
+
+    return res.json({
+      successful: true,
+      username,
+      major: rows[0].major,
+    });
+  } catch (e) {
+    console.error("[API] /api/student-major error:", e);
+    return res.status(500).json({
+      successful: false,
+      error: "Failed to fetch student major",
+    });
+  }
+});
+
 
 
 

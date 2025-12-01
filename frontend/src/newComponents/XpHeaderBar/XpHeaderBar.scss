@@ -25,17 +25,19 @@
 }
 
 .xpHeaderBarLevel {
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
+    //letter-spacing: 0.03em;
+    font-size: large;
 }
 
 .xpHeaderBarGems {
     opacity: 0.9;
+    font-size: large;
     // later you can swap this for an icon + number
 }
 
 .xpHeaderBarXp {
     opacity: 0.85;
+    font-size: larger;
 }
 
 .xpHeaderBarProgressBar {

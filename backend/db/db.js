@@ -95,7 +95,7 @@ async function initDb() {
       questionSet JSON  NULL,
       startTime   DATETIME     NOT NULL,
       endDate     DATETIME     NOT NULL,
-      xpAwarded   BOOLEAN       NOT NULL DEFAULT FALSE,
+      xpAwarded   BOOLEAN      NOT NULL DEFAULT FALSE,
       PRIMARY KEY (tid)
     ) ENGINE=InnoDB
       DEFAULT CHARSET=utf8mb4

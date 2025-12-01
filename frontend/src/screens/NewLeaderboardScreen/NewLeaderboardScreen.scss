@@ -1,40 +1,104 @@
-@use "../../css/tokens.scss" as *;
-
-
-.leaderboardScreen {
-    padding: 8px 14px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+.leaderboardTitle {
+    font-size: x-large;  
+    font-weight: 600;
+    margin: 10px 0 0 0;
 }
 
-/* XP header strip at top */
-.leaderboardScreen-xpHeader {
+.leaderboardToggle {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin: 30px 0 20px 0;
+
+    .toggleBtn {
+        padding: 6px 16px;
+        border-radius: 20px;
+        border: none;
+        font-weight: 600;
+        cursor: pointer;
+        background: $light-secondary;
+        color: $light-text-primary;
+        transition: all 0.2s ease;
+
+        &.active {
+            background: $primary;
+            color: #fff;
+            transform: scale(1.05);
+        }
+    }
+}
+
+.leaderboardList {
+    animation: fadeIn 0.25s ease;
+}
+
+.leaderboardLoading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 12px 0;
+}
+
+.userRankSummary {
+    font-size: 0.9rem;
     margin-bottom: 8px;
+    text-align: center;
 }
 
-/* Main content column */
-.leaderboardScreen-content {
+.leaderboardSearch {
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: center;
+
+    .leaderboardSearchInput {
+        width: 100%;
+        max-width: 340px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid $secondary;
+        font-size: 0.9rem;
+    }
+}
+
+.studentLeaderboard {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 6px;
 }
 
-/* "Leaderboard" page title */
-.leaderboardScreen-title {
-    font-size: 1.2rem;
-    font-weight: 700;
-    margin: 0 0 4px 0;
+.studentRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-radius: 10px;
+    //background: red;
+    background: $light-secondary;
+    //border: 1px solid $secondary;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    font-size: 0.9rem;
+
+    .studentRank {
+        font-weight: 700;
+    }
+
+    .studentName {
+        flex: 1;
+        margin: 0 8px;
+    }
+
+    .studentXp {
+        font-weight: 600;
+    }
 }
 
-/* Error text styling */
-.leaderboardScreen-error {
-    color: #c0392b;
-    font-size: 0.85rem;
-    margin-bottom: 4px;
-}
-
-/* Extra space so the fixed bottom nav doesn't overlay content */
-.leaderboardScreen-bottomSpacer {
-    height: var(--bottom-nav-height, 72px);
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }

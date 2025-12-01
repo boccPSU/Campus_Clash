@@ -1,77 +1,147 @@
 import { useState, useEffect } from "react";
-import Spinner from 'react-bootstrap/Spinner';
+import Spinner from "react-bootstrap/Spinner";
 import InfoBox from "../InfoBox/InfoBox";
+import InfoTile from "../../newComponents/InfoTile/InfoTile";
 
 // Component displaying a leaderboard of majors ranked by XP
 function LeaderboardTable({ data = [] }) {
-    // Loading state
     const [loading, setLoading] = useState(true);
+    const [studentMajor, setStudentMajor] = useState(null);
 
-    // On page loading
-    useEffect(()=>{
-        //Simulating latency 1000ms to see spinner
-        const timer = setTimeout(()=>{
+    // Fake latency just for visual spinner
+    useEffect(() => {
+        const timer = setTimeout(() => {
             setLoading(false);
-        }, 1000)
+        }, 1000);
         return () => clearTimeout(timer);
-    }, [])
+    }, []);
 
+    // Fetch current student's major
+    useEffect(() => {
+        (async () => {
+            try {
+                const tokenString = localStorage.getItem("token");
+                if (!tokenString) {
+                    console.log(
+                        "[LeaderboardTable] No token, cannot fetch student major."
+                    );
+                    setStudentMajor(null);
+                    return;
+                }
 
-    // Use provided leaderboard data, or default sample if none is passed
+                let tokenValue = "";
+                try {
+                    const parsed = JSON.parse(tokenString);
+                    tokenValue = parsed.token || tokenString;
+                } catch {
+                    tokenValue = tokenString;
+                }
+
+                const res = await fetch(
+                    "http://localhost:5000/api/student-major",
+                    {
+                        method: "GET",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "jwt-token": tokenValue,
+                        },
+                    }
+                );
+
+                if (!res.ok) {
+                    const body = await res.json().catch(() => ({}));
+                    console.warn(
+                        "[LeaderboardTable] Failed to fetch student major:",
+                        body
+                    );
+                    setStudentMajor(null);
+                    return;
+                }
+
+                const body = await res.json();
+                const major = body.major ?? null;
+                setStudentMajor(major);
+                console.log(
+                    "[LeaderboardTable] Current student's major:",
+                    major
+                );
+            } catch (e) {
+                console.error(
+                    "[LeaderboardTable] Error fetching student major:",
+                    e
+                );
+                setStudentMajor(null);
+            }
+        })();
+    }, []);
+
+    // Filter + rank majors
     const leaderboardData = data
-    .filter(item => (item.major ?? '').toLowerCase() !== 'unknown' && Number(item.xp) > 0)
-    .map((item, idx) => ({ ...item, rank: idx + 1 }));
+        .filter(
+            (item) =>
+                (item.major ?? "").toLowerCase() !== "unknown" &&
+                Number(item.xp) > 0
+        )
+        .map((item, idx) => ({ ...item, rank: idx + 1 }));
 
-    // If loading data, show spinner
-    if(false){
-        return(
-            <InfoBox title={"Major Leaderboard"}>
-            {/* Loop through leaderboard data and render each row */}
-            {leaderboardData.map((item, i) => (
-                <div
-                    key={i}
-                    className={`row ${
-                        i === 0
-                            ? "topMajor" // Highlight top-ranked major
-                            : "normalMajor" // Default style for others
-                    }`}
-                >
-                    <Spinner animation="border" role="status" className="spinner">
+    const normalizedStudentMajor =
+        studentMajor && typeof studentMajor === "string"
+            ? studentMajor.trim().toLowerCase()
+            : null;
+
+    if (loading) {
+        return (
+            <InfoTile>
+                <div className="row normalMajor">
+                    <Spinner
+                        animation="border"
+                        role="status"
+                        className="spinner"
+                    >
                         <span className="visually-hidden">Loading...</span>
                     </Spinner>
                 </div>
-            ))}
-        </InfoBox>
-        )
-        
+            </InfoTile>
+        );
     }
 
     return (
-        <InfoBox title={"Major Leaderboard"}>
-            {/* Loop through leaderboard data and render each row */}
-            {leaderboardData.map((item, i) => (
-                <div
-                    key={i}
-                    className={`row ${
-                        i === 0
-                            ? "topMajor" // Highlight top-ranked major
-                            : "normalMajor" // Default style for others
-                    }`}
-                >
-                    {/* Major name and rank */}
-                    <div className="left">
-                        <span className="rankMajor">{`${item.rank}: ${item.major}`}</span>
-                    </div>
+        <InfoTile>
+            {leaderboardData.map((item, i) => {
+                const normalizedRowMajor =
+                    (item.major ?? "").trim().toLowerCase();
 
-                    {/* XP points, formatted with commas */}
-                    <div className="right">
-                        <span className="xp">
-                            {item.xp.toLocaleString()} XP
-                        </span>
+                const isStudentMajor =
+                    normalizedStudentMajor &&
+                    normalizedRowMajor === normalizedStudentMajor;
+
+                // If we know the student's major and this row matches it → highlight.
+                // If we *don't* know the major, fall back to highlighting rank 1.
+                const rowClass =
+                    isStudentMajor ||
+                    (!normalizedStudentMajor && i === 0)
+                        ? "topMajor"
+                        : "normalMajor";
+
+                return (
+                    <div key={i} className={`row ${rowClass}`}>
+                        {/* Major name and rank */}
+                        <div className="left">
+                            <span className="rankMajor">
+                                {`${item.rank}: ${item.major}`}
+                            </span>
+                        </div>
+
+                        {/* XP points, formatted with commas */}
+                        <div className="right">
+                            <span className="xp">
+                                {item.xp.toLocaleString()} XP
+                            </span>
+                        </div>
                     </div>
-                </div>
-            ))}
-        </InfoBox>
+                );
+            })}
+        </InfoTile>
     );
 }
 

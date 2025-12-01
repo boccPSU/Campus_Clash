@@ -17,15 +17,16 @@ body {
     justify-content: space-between;
     align-items: center;
 
-    h1,
-    h4 {
+    h3 {
         margin: 0;
+        font-size: larger;
     }
 }
 
 .sectionTitle {
     margin-left: 6px;
-    margin-top: 20px;
+    margin-top: 30px;
+    font-size: xx-large;
 }
 
 .homeHeader {
@@ -43,8 +44,8 @@ body {
     gap: 0.15rem;
 }
 
-.homeHeader-greeting {
-    font-size: 1.25rem;  
+.homeHeaderGreeting {
+    font-size: x-large;  
     font-weight: 600;
     margin: 0;
 }

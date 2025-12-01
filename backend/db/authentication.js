@@ -59,6 +59,7 @@ const decryptToken = (token) => {
     }
 
     return decoded.username;
+    
   } catch (err) {
     console.error('[decryptToken] Failed to verify token:', err.message);
     return null;
