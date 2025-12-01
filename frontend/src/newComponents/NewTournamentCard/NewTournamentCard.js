@@ -8,11 +8,7 @@ import { ChevronDown, ChevronUp, Check, X } from "react-bootstrap-icons";
 // Const values
 const LEADERBOARD_PREVIEW_COUNT = 3; // How many users on leaderboard are shown before expanding
 
-// Match backend ranked elimination logic used for NEXT ROUND
-// - total <= 3  -> final round, no next round (0 advance if we're ending the round)
-// - total == 4  -> keep 3
-// - even >= 6   -> keep half
-// - odd >= 5    -> keep ceil(n/2)
+// Helper function to compute how many players advance in ranked tournaments
 function computeKeepCount(total) {
     if (total <= 3) return 0; // NOTE: we will override this for active tournaments with < 4 players
     if (total === 4) return 3;
