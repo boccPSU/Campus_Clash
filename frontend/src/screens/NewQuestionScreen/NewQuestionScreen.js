@@ -17,22 +17,22 @@ const REVEAL_PHASE_SECONDS = 5; // last 5 seconds
 const REVEAL_AT_SECONDS = REVEAL_PHASE_SECONDS; // when timeLeft === 5
 
 export default function NewQuestionScreen() {
-
     // Data passed from tournament card using navigate()
     const location = useLocation();
     const navState = location.state || {};
     const navTitle = navState.title || "Tournament";
-    const navId    = navState.tournamentId;
+    const navId = navState.tournamentId;
+    const navType = navState.tournamentType;
 
     const navigate = useNavigate();
 
     // Important states
 
-    const [questions, setQuestions] = useState([]);         // List of questions
-    const [currentIndex, setCurrentIndex] = useState(0);    // Current question index (question 1, question 2, ...)
+    const [questions, setQuestions] = useState([]); // List of questions
+    const [currentIndex, setCurrentIndex] = useState(0); // Current question index (question 1, question 2, ...)
 
     const [selectedIndex, setSelectedIndex] = useState(null); // which answer user clicked or auto-revealed
-    const [isCorrect, setIsCorrect] = useState(null); // true / false 
+    const [isCorrect, setIsCorrect] = useState(null); // true / false
     const [score, setScore] = useState(0);
 
     const [loading, setLoading] = useState(false);
@@ -53,7 +53,7 @@ export default function NewQuestionScreen() {
     const scrollerRef = useRef(null);
     const collapsed = useCollapseOnScroll(scrollerRef);
 
-    // Load questions for this tournament  
+    // Load questions for this tournament
     const loadQuestions = async () => {
         try {
             setLoading(true);
@@ -66,7 +66,7 @@ export default function NewQuestionScreen() {
                 )}`
             );
 
-            // If there are no questions go to game over screen 
+            // If there are no questions go to game over screen
             if (res.status === 204) {
                 console.log("No questions available for this tournament yet.");
                 setQuestions([]);
@@ -211,8 +211,10 @@ export default function NewQuestionScreen() {
                     tokenValue = tokenString;
                 }
 
-                console.log("Trying to set new score:", score);
-                console.log("Nav id " + navId);
+                console.log(
+                    "Trying to set new score:",
+                    score + " for tournament " + navId
+                );
                 const res = await fetch(
                     "http://localhost:5000/api/tournament/update-score",
                     {
@@ -239,6 +241,129 @@ export default function NewQuestionScreen() {
                 console.log("Error updating score:", e);
             }
         };
+
+        // Update users xp amount based on tournament type
+        // Can adjust scores later
+        const giveXpToUser = async (navType) => {
+            let xpAmount;
+            let username;
+
+            try {
+                // Get token from localStorage
+                const tokenString = localStorage.getItem("token");
+                if (!tokenString) {
+                    console.warn(
+                        "No token in localStorage, skipping XP update"
+                    );
+                    return;
+                }
+
+                let parsed;
+                try {
+                    parsed = JSON.parse(tokenString);
+                } catch (err) {
+                    console.error(
+                        "Failed to parse token from localStorage:",
+                        err
+                    );
+                    return;
+                }
+
+                const token = parsed?.token;
+                if (!token) {
+                    console.warn(
+                        "Parsed token object has no .token field, skipping XP update"
+                    );
+                    return;
+                }
+
+                // Get current user from backend
+                const res = await fetch(
+                    "http://localhost:5000/api/current-user",
+                    {
+                        method: "GET",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "jwt-token": token,
+                        },
+                    }
+                );
+
+                if (!res.ok) {
+                    console.error(
+                        "Failed to get current user:",
+                        res.status,
+                        res.statusText
+                    );
+                    return;
+                }
+
+                const data = await res.json();
+                username = data.username;
+
+                if (!username) {
+                    console.error(
+                        "No username returned from /api/current-user",
+                        data
+                    );
+                    return;
+                }
+
+                // Decide XP based on navType
+                if (navType === "daily") {
+                    xpAmount = 200;
+                } else if (navType === "weekly") {
+                    xpAmount = 300;
+                } else if (navType === "ranked") {
+                    xpAmount = 400;
+                } else {
+                    console.warn("Unknown navType for XP:", navType);
+                    return;
+                }
+
+                console.log("Giving", xpAmount, "XP to user", username);
+            } catch (e) {
+                console.log("Error getting username or xp amount", e);
+                return; // don't continue if we failed here
+            }
+
+            // If we get here, username & xpAmount should be valid
+            try {
+                console.log("About to call /api/receive-xp with", {
+                    username,
+                    reward: xpAmount,
+                });
+
+                const res = await fetch(
+                    "http://localhost:5000/api/receive-xp",
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            username: username,
+                            reward: xpAmount,
+                        }),
+                    }
+                );
+
+                if (!res.ok) {
+                    console.error(
+                        "Failed to add XP:",
+                        res.status,
+                        res.statusText
+                    );
+                    return;
+                }
+
+                console.log("Added", xpAmount, "XP to user", username);
+            } catch (e) {
+                console.log("Error adding XP:", e);
+            }
+        };
+
+        giveXpToUser(navType);
         sendFinalScore();
     }, [stage, score, navId]);
 

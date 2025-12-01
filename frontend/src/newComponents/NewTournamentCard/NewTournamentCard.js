@@ -7,7 +7,18 @@ import { ChevronDown, ChevronUp, Check, X } from "react-bootstrap-icons";
 
 // Const values
 const LEADERBOARD_PREVIEW_COUNT = 3; // How many users on leaderboard are shown before expanding
-const KEEP_TOP_N = 3; // How many users are kept in the ranked tournament
+
+// Match backend ranked elimination logic used for NEXT ROUND
+// - total <= 3  -> final round, no one advances (0)
+// - total == 4  -> keep 3
+// - even >= 6   -> keep half
+// - odd >= 5    -> keep ceil(n/2)
+function computeKeepCount(total) {
+    if (total <= 3) return 0; // final round, no next round
+    if (total === 4) return 3;
+    if (total % 2 === 0) return total / 2;
+    return Math.ceil(total / 2);
+}
 
 // Display and join component for a tournament
 function NewTournamentCard({
@@ -17,7 +28,9 @@ function NewTournamentCard({
     reward,
     isRanked = false,
     tournamentType = "daily", // (daily, weekly, ranked)
-    endTime,
+    remainingTime = 0,
+    tournamentOver = false,
+    newTournament = false, // determines if this finished ranked tourney is final (true) vs between-round (false)
 }) {
     const navigate = useNavigate();
 
@@ -49,115 +62,150 @@ function NewTournamentCard({
             setXp(200);
         }
     }, [tournamentType]);
-    (
-        // Load leaderboard + check if user already joined (once tid is known)
-        useEffect(() => {
-            async function initForTid() {
-                // Set join button back to true
+
+    // Load leaderboard + check if user already joined (once tid is known)
+    useEffect(() => {
+        async function initForTid() {
+            // If tournament is already over, don't bother enabling join
+            if (tournamentOver) {
+                console.log(
+                    "[NewTournamentCard] Tournament is over, disabling join for",
+                    title
+                );
+                setCanJoin(false);
+            } else {
+                // Set join button back to true (unless checks below turn it off)\
+                console.log(
+                    "[NewTournamentCard] Tournament not over, enabling join for",
+                    title
+                );
                 setCanJoin(true);
-                if (!tid) {
-                    console.log(
-                        "[NewTournamentCard] No tid yet for",
-                        title,
-                        "skipping leaderboard join check"
-                    );
-                    return;
-                }
+            }
 
-                //console.log("[NewTournamentCard] Initializing for tid:", tid);
+            if (!tid) {
+                console.log(
+                    "[NewTournamentCard] No tid yet for",
+                    title,
+                    "skipping leaderboard/join check"
+                );
+                return;
+            }
 
-                // Check if user is already in tournament or already joined
-                const tokenString = sessionStorage.getItem("token");
-                if (!tokenString) {
-                    console.log(
-                        "[NewTournamentCard] No token, disabling join button"
-                    );
-                    setCanJoin(false);
-                } else {
-                    let tokenValue = "";
-                    try {
-                        const parsed = JSON.parse(tokenString);
-                        tokenValue = parsed.token || tokenString;
-                    } catch {
-                        tokenValue = tokenString;
-                    }
-
-                    try {
-                        const resHasJoined = await fetch(
-                            "http://localhost:5000/api/tournament/has-joined",
-                            {
-                                method: "POST",
-                                headers: {
-                                    "Content-Type": "application/json",
-                                    "jwt-token": tokenValue,
-                                },
-                                body: JSON.stringify({ tid }),
-                            }
-                        );
-
-                        // If backend returns a simple boolean
-                        const hasJoined = await resHasJoined
-                            .json()
-                            .catch(() => false);
-
-                        if (hasJoined) {
-                            console.log(
-                                "[NewTournamentCard] User already joined tid =",
-                                tid
-                            );
-                            setCanJoin(false);
-                        }
-                    } catch (e) {
-                        console.log(
-                            "[NewTournamentCard] Failed has-joined check. Error:",
-                            e
-                        );
-                    }
-                }
-
-                // Load leaderboard for this tid
+            // Check if user is already in tournament or already joined
+            const tokenString = localStorage.getItem("token");
+            if (!tokenString) {
+                console.log(
+                    "[NewTournamentCard] No token, disabling join button"
+                );
+                setCanJoin(false);
+            } else {
+                let tokenValue = "";
                 try {
-                    setLeaderboardLoading(true);
+                    const parsed = JSON.parse(tokenString);
+                    tokenValue = parsed.token || tokenString;
+                } catch {
+                    tokenValue = tokenString;
+                }
 
-                    const res = await fetch(
-                        "http://localhost:5000/api/tournament/participating-users-info",
+                try {
+                    const resHasJoined = await fetch(
+                        "http://localhost:5000/api/tournament/has-joined",
                         {
                             method: "POST",
-                            headers: { "Content-Type": "application/json" },
+                            headers: {
+                                "Content-Type": "application/json",
+                                "jwt-token": tokenValue,
+                            },
                             body: JSON.stringify({ tid }),
                         }
                     );
 
-                    const data = await res.json().catch(() => null);
+                    // If backend returns a simple boolean
+                    const hasJoined = await resHasJoined
+                        .json()
+                        .catch(() => false);
 
-                    if (!res.ok || !data?.successful) {
+                    if (hasJoined) {
                         console.log(
-                            "[NewTournamentCard] Leaderboard failed to load for tid=",
+                            "[NewTournamentCard] User already joined tid =",
                             tid
                         );
-                        return;
+                        setCanJoin(false);
                     }
-
-                    //console.log("[NewTournamentCard] Leaderboard data for tid=",tid,data);
-                    setLeaderboard(data.participants || []);
                 } catch (e) {
                     console.log(
-                        "[NewTournamentCard] Failed to fetch leaderboard. Error:",
+                        "[NewTournamentCard] Failed has-joined check. Error:",
                         e
                     );
-                } finally {
-                    setLeaderboardLoading(false);
                 }
             }
 
-            initForTid();
-        }, [tid, title])
-    );
+            // Load leaderboard for this tid
+            try {
+                setLeaderboardLoading(true);
+
+                const res = await fetch(
+                    "http://localhost:5000/api/tournament/participating-users-info",
+                    {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ tid }),
+                    }
+                );
+
+                const data = await res.json().catch(() => null);
+
+                if (!res.ok || !data?.successful) {
+                    console.log(
+                        "[NewTournamentCard] Leaderboard failed to load for tid=",
+                        tid
+                    );
+                    return;
+                }
+
+                console.log(
+                    "[NewTournamentCard] Leaderboard data for tid=",
+                    tid,
+                    data
+                );
+                setLeaderboard(data.participants || []);
+            } catch (e) {
+                console.log(
+                    "[NewTournamentCard] Failed to fetch leaderboard. Error:",
+                    e
+                );
+            } finally {
+                setLeaderboardLoading(false);
+            }
+        }
+
+        initForTid();
+    }, [tid, title, tournamentOver]);
 
     // Visible leaderboard depending on expanded/collapsed
     const visibleLeaderboard = showLeaderboard
         ? leaderboard
         : leaderboard.slice(0, LEADERBOARD_PREVIEW_COUNT);
+
+    // How many players advance, based on full leaderboard length
+    const totalParticipants = leaderboard.length;
+    const keepCount = computeKeepCount(totalParticipants);
+
+    // Decide leaderboard title text
+    let leaderboardTitle = "";
+    if (tournamentOver) {
+        if (isRanked) {
+            // Ranked & over: between rounds vs fully finished
+            leaderboardTitle = newTournament
+                ? "Tournament Over – Winners"
+                : "Round Over";
+        } else {
+            // Non-ranked & over
+            leaderboardTitle = "Tournament Over – Winners";
+        }
+    } else {
+        leaderboardTitle = isRanked ? "Ranked Leaderboard" : "Leaderboard";
+    }
 
     // Handle joining a tournament
     const handleJoin = async () => {
@@ -169,8 +217,18 @@ function NewTournamentCard({
             return;
         }
 
+        // Don't allow joining if tournament logically over
+        if (tournamentOver) {
+            console.log(
+                "[NewTournamentCard] Tournament is over, cannot join:",
+                tid
+            );
+            setCanJoin(false);
+            return;
+        }
+
         // Get user's token
-        const tokenString = sessionStorage.getItem("token");
+        const tokenString = localStorage.getItem("token");
         if (!tokenString) {
             console.log("[NewTournamentCard] No token, cannot join tournament");
             setCanJoin(false);
@@ -199,6 +257,8 @@ function NewTournamentCard({
                     body: JSON.stringify({ tid }),
                 }
             );
+
+            console.log("[NewTournamentCard] joining tournament " + tid);
 
             if (!res.ok) {
                 console.error(
@@ -262,11 +322,7 @@ function NewTournamentCard({
 
             {/* Leaderboard */}
             <div className="leaderboard">
-                {isRanked ? (
-                    <h3 className="leaderboardTitle">Ranked Leaderboard</h3>
-                ) : (
-                    <h3 className="leaderboardTitle">Leaderboard</h3>
-                )}
+                <h3 className="leaderboardTitle">{leaderboardTitle}</h3>
 
                 {leaderboardLoading ? (
                     <div className="leaderboardLoading">
@@ -313,8 +369,8 @@ function NewTournamentCard({
                                     </span>
 
                                     {isRanked && (
-                                        <span>
-                                            {index + 1 <= KEEP_TOP_N ? (
+                                        <span className="leaderboardStatus">
+                                            {index < keepCount ? (
                                                 <Check className="rankedCheck" />
                                             ) : (
                                                 <X className="rankedX" />
@@ -326,7 +382,8 @@ function NewTournamentCard({
                         </div>
 
                         {leaderboard &&
-                            leaderboard.length > LEADERBOARD_PREVIEW_COUNT && (
+                            leaderboard.length >
+                                LEADERBOARD_PREVIEW_COUNT && (
                                 <button
                                     type="button"
                                     className="leaderboardToggle"
@@ -350,8 +407,8 @@ function NewTournamentCard({
                 )}
             </div>
 
-            {/* Join button below the leaderboard, only rendered if canJoin is true */}
-            {canJoin && (
+            {/* Join button below the leaderboard, only rendered if canJoin is true AND tournament isn't over */}
+            {canJoin && !tournamentOver && (
                 <div className="btnGroup">
                     <Button
                         variant="primary"

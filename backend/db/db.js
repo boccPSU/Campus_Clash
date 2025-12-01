@@ -17,7 +17,7 @@ const pool = mysql.createPool({
 async function initDb() {
 
   // Drop dependent table first (if it exists)
-  await pool.query(`
+  /*await pool.query(`
     DROP TABLE IF EXISTS tournament_participants;
   `);
 
@@ -26,6 +26,7 @@ async function initDb() {
     DROP TABLE IF EXISTS tournaments;
   `);
 
+  // Tables are being dropped here, REMOVE IF NOT TESTING
   await pool.query(`
     DROP TABLE IF EXISTS events;
   `);
@@ -36,23 +37,23 @@ async function initDb() {
 
   await pool.query(`
     DROP TABLE IF EXISTS users;
-  `);
+  `);*/
 
 
   // Create users table
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS users (
-      pid       INT NOT NULL AUTO_INCREMENT,
-      firstName VARCHAR(32) NOT NULL,
-      lastName  VARCHAR(32) NOT NULL,
-      username  VARCHAR(32) NOT NULL UNIQUE,
-      password  CHAR(60)    NOT NULL,
-      PRIMARY KEY (pid)
-    ) ENGINE=InnoDB
-      DEFAULT CHARSET=utf8mb4
-      COLLATE=utf8mb4_0900_ai_ci;
-  `);
-
+  // ADDED NEW FIELDS FOR XP AND LEVEL
+ await pool.query(`
+  CREATE TABLE IF NOT EXISTS users (
+    pid       INT NOT NULL AUTO_INCREMENT,
+    firstName VARCHAR(32) NOT NULL,
+    lastName  VARCHAR(32) NOT NULL,
+    username  VARCHAR(32) NOT NULL UNIQUE,
+    password  CHAR(60)    NOT NULL,
+    PRIMARY KEY (pid)
+  ) ENGINE=InnoDB
+    DEFAULT CHARSET=utf8mb4
+    COLLATE=utf8mb4_0900_ai_ci;
+`);
   // Create students table
   await pool.query(`
   CREATE TABLE IF NOT EXISTS students (
@@ -84,10 +85,11 @@ async function initDb() {
   `);
 
   // Create tournaments table
+  // Each tournament type (daily, weekly, ranked) should have the same title
   await pool.query(`
     CREATE TABLE IF NOT EXISTS tournaments (
       tid         INT NOT NULL AUTO_INCREMENT,
-      title       VARCHAR(128) NOT NULL,
+      title       VARCHAR(128) NOT NULL,    
       topics      VARCHAR(255) NOT NULL,
       reward      INT          NOT NULL,
       questionSet JSON  NULL,
@@ -378,8 +380,6 @@ async function addMockUsers(numUsers) {
     conn.release();
   }
 }
-
-// Tournement
 
 
 

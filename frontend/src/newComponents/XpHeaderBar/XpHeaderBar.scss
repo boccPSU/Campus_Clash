@@ -1,0 +1,51 @@
+@use "../../css/tokens.scss" as *;
+
+.xpHeaderBar {
+    width: 100%;
+    padding: 8px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.xpHeaderBarTop {
+    display: flex;
+    justify-content: space-between; // level left, gems right
+    align-items: center;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.xpHeaderBarBottom {
+    display: flex;
+    justify-content: center; // XP centered under bar
+    align-items: center;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.xpHeaderBarLevel {
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.xpHeaderBarGems {
+    opacity: 0.9;
+    // later you can swap this for an icon + number
+}
+
+.xpHeaderBarXp {
+    opacity: 0.85;
+}
+
+.xpHeaderBarProgressBar {
+    height: 15px; // keep bar size
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+/* Inner fill of the bar */
+.xpHeaderBarProgressBar .progress-bar {
+    background-color: $secondary;
+    transition: width 0.25s ease-out;
+}

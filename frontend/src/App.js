@@ -25,6 +25,7 @@ import QuestionTester from "./screens/QuestionTester";
 import useToken from "./api/userTokens";
 import NewTournamentScreen from "./screens/NewTournamentScreen/NewTournamentScreen";
 import NewQuestionScreen from "./screens/NewQuestionScreen/NewQuestionScreen";
+import NewLeaderboardScreen from "./screens/NewLeaderboardScreen/NewLeaderboardScreen";
 
 function App() {
     const {token, setToken, logout} = useToken();
@@ -52,7 +53,7 @@ function App() {
                 <Route path="/tournament" element={<NewTournamentScreen />} />
 
                 {/* /leaderboard path -> Leaderboard screen */}
-                <Route path="/leaderboard" element={<LeaderboardScreen />} />
+                <Route path="/leaderboard" element={<NewLeaderboardScreen />} />
 
                 {/* /studyPlan -> Study Plan screen */}
                 <Route path="/studyPlan" element={<StudyPlan />} />

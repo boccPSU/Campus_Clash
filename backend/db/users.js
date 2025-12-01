@@ -31,3 +31,4 @@ export const getUser = async (con, name) => {
         throw Error("Failed to get Users from database");
     }
 };
+

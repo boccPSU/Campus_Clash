@@ -1,37 +1,40 @@
 import React, { useRef, useEffect, useState } from "react";
-import { Container, ProgressBar } from "react-bootstrap";
+import { Container } from "react-bootstrap";
 
 import useCollapseOnScroll from "../../components/hooks/useCollapseOnScroll.js";
 import PullToRefresh from "../../components/interaction/PullToRefresh.js";
 import ScreenScroll from "../../components/ScreenScroll/ScreenScroll.js";
 import BottomNavBar from "../../newComponents/BottomNavBar/BottomNavBar.js";
 import NewTournamentCard from "../../newComponents/NewTournamentCard/NewTournamentCard.js";
+import XpHeaderBar from "../../newComponents/XpHeaderBar/XpHeaderBar.js";
 
 function NewTournamentScreen() {
     // Time variables for tournament refresh
 
-    //Short times for testing
-    const dailyRefreshTime = 60000; // 10s
-    //const weeklyRefreshTime = 90000; // 30s
-    //const rankedRefreshTime = 100000; // 60s
+    // Short times for testing
+    const dailyRefreshTime = 30000; // 10s
+    // const weeklyRefreshTime = 90000; // 30s
+    const rankedRefreshTime = 4 * 60000; // 60s
     //const dailyRefreshTime = 24 * 60 * 60 * 1000;
     const weeklyRefreshTime = 7 * 24 * 60 * 60 * 1000;
-    const rankedRefreshTime = 14 * 24 * 60 * 60 * 1000;
+    // const rankedRefreshTime = 14 * 24 * 60 * 60 * 1000;
+
+    const betweenTournamentTime = 30000; // For testing
+    //const betweenTournamentTime = 5 * 60 * 1000; // 5 minutes between tournaments to alert users of winners
+
+    // In-between flags (show old card, count down to next start)
+    const [dailyInBetween, setDailyInBetween] = useState(false);
+    const [weeklyInBetween, setWeeklyInBetween] = useState(false);
+    const [rankedInBetween, setRankedInBetween] = useState(false);
 
     const major = "Computer Science"; // later: use logged-in student’s major
 
-    // Remaining time for display purposes
-    const [dailyRemainingTime, setDailyRemainingTime] = useState(
-        
-    ); // in ms
-    const [weeklyRemainingTime, setWeeklyRemainingTime] = useState(
-        
-    ); // in ms
-    const [rankedRemainingTime, setRankedRemainingTime] = useState(
-        
-    ); // in ms
+    // Remaining time for display purposes (always "relevant" countdown)
+    const [dailyRemainingTime, setDailyRemainingTime] = useState(); // in ms
+    const [weeklyRemainingTime, setWeeklyRemainingTime] = useState(); // in ms
+    const [rankedRemainingTime, setRankedRemainingTime] = useState(); // in ms
 
-    // Tournament states
+    // Current tournaments (what cards are showing)
     const [dailyTournament, setDailyTournament] = useState([
         {
             id: "", // tid from backend
@@ -42,10 +45,9 @@ function NewTournamentScreen() {
             reward: 150,
             isRanked: false,
             tournamentType: "daily",
+            startTime: Date.now(),
         },
     ]);
-
-    
 
     const [weeklyTournament, setWeeklyTournament] = useState([
         {
@@ -57,6 +59,7 @@ function NewTournamentScreen() {
             reward: 150,
             isRanked: false,
             tournamentType: "weekly",
+            startTime: Date.now(),
         },
     ]);
 
@@ -70,31 +73,26 @@ function NewTournamentScreen() {
             reward: 150,
             isRanked: true,
             tournamentType: "ranked",
+            newTournament: true, // indicates if this is a brand new ranked tournament
+            tournamentCount: 0, // number of ranked tournaments held so far
+            startTime: Date.now(),
         },
     ]);
 
+    // Upcoming tournaments (created in DB, but not shown yet)
+    const [dailyUpcomingTournament, setDailyUpcomingTournament] = useState(null);
+    const [weeklyUpcomingTournament, setWeeklyUpcomingTournament] = useState(null);
+    const [rankedUpcomingTournament, setRankedUpcomingTournament] = useState(null);
+
     const scrollerRef = useRef(null);
     const collapsed = useCollapseOnScroll(scrollerRef);
-
-    // Current time for countdowns
-    const [now, setNow] = useState(Date.now());
-
-    // Tick every second
-    useEffect(() => {
-        const id = setInterval(() => {
-            //console.log("Tick");
-            setNow(Date.now());
-        }, 1000); // 1 second
-
-        return () => clearInterval(id);
-    }, []);
 
     const refresh = async () => {
         // later: maybe reload from backend
         await new Promise((r) => setTimeout(r, 700));
     };
 
-    // Ensures topics exists for major on mount
+    // Ensures topics exist for major on mount
     useEffect(() => {
         async function ensureTopicsForMajor() {
             try {
@@ -115,9 +113,21 @@ function NewTournamentScreen() {
         ensureTopicsForMajor();
     }, [major]);
 
-    // Gets a random un used topic and marks it used for a certain major
+    // Helper function to update users XP and level after tournament (still TODO)
+    async function updateUserXp(uid, xpGained) {
+        try {
+            await fetch("http://localhost:5000/api/users/update-xp-level", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ uid, xpGained }),
+            });
+        } catch (e) {
+            console.log("Failed to update user XP and level. Error: " + e);
+        }
+    }
+
+    // Gets a random unused topic and marks it used for a certain major
     async function getRandomTopicForMajor(majorParam) {
-        //console.log("Fetching a topic for ", majorParam);
         const unusedRes = await fetch(
             "http://localhost:5000/api/tournament/get-topics",
             {
@@ -128,7 +138,6 @@ function NewTournamentScreen() {
         );
         const unusedData = await unusedRes.json();
         const topics = unusedData.topics || [];
-        //console.log("Topic fetched ", topics);
 
         if (!Array.isArray(topics) || topics.length === 0) {
             console.log("No topics available");
@@ -137,7 +146,6 @@ function NewTournamentScreen() {
 
         const randomIndex = Math.floor(Math.random() * topics.length);
         const randomTopic = topics[randomIndex];
-        //console.log("Chosen Topic: ", randomTopic);
 
         // Mark as used
         await fetch("http://localhost:5000/api/tournament/add-used-topic", {
@@ -149,9 +157,17 @@ function NewTournamentScreen() {
         return randomTopic;
     }
 
-    // Creates a tournament of a certain type for a major
-
-    async function createTournamentForType(majorParam, tournamentType) {
+    /**
+     * Creates a tournament of a certain type for a major.
+     * If isUpcoming = true → we store it in the "*UpcomingTournament" state,
+     * but keep showing the old tournament card until the between phase ends.
+     */
+    async function createTournamentForType(
+        majorParam,
+        tournamentType,
+        startTime,
+        isUpcoming = false
+    ) {
         try {
             // First get a random topic
             const topic = await getRandomTopicForMajor(majorParam);
@@ -173,10 +189,11 @@ function NewTournamentScreen() {
                 intervalMs = rankedRefreshTime;
             }
 
-            const now = Date.now();
-            const endTime = now + intervalMs; // time new torunament will end
+            const nowMs = Date.now();
+            // If no explicit startTime passed, start now
+            const startMs = startTime ?? nowMs;
+            const endTime = startMs + intervalMs; // time new tournament will end
 
-            // Get title depending on tournamnet type
             const title =
                 tournamentType === "daily"
                     ? "Daily Tournament"
@@ -184,13 +201,7 @@ function NewTournamentScreen() {
                     ? "Weekly Tournament"
                     : "Ranked Tournament";
 
-            console.log(
-                `Creating tournament of type ${tournamentType} with topic ${topic} and end time ${new Date(
-                    endTime
-                ).toISOString()}`
-            );
-
-            // Create touranament in backend
+            // Create tournament in backend
             const res = await fetch(
                 "http://localhost:5000/api/create-tournament",
                 {
@@ -202,6 +213,7 @@ function NewTournamentScreen() {
                         reward: 150,
                         tournamentType,
                         endTime, // ms timestamp
+                        startTime: startMs,
                     }),
                 }
             );
@@ -210,7 +222,7 @@ function NewTournamentScreen() {
 
             if (!res.ok || !data?.successful) {
                 console.error(
-                    "Failed to create tournametn of type " + tournamentType,
+                    "Failed to create tournament of type " + tournamentType,
                     data
                 );
                 return;
@@ -219,48 +231,68 @@ function NewTournamentScreen() {
             const newTid = data.tid;
             const newTopics = topic;
             const newEndtime = new Date(data.endDate).getTime();
-            console.log("Successfully created tournament:", data);
+            const newStartTime = new Date(data.startDate).getTime();
 
-            // Update tournament state locally
+            const newTournamentObj = {
+                id: newTid,
+                title,
+                topics: newTopics,
+                endDateLabel: "",
+                endTime: newEndtime,
+                reward: 150,
+                isRanked: tournamentType === "ranked",
+                tournamentType,
+                startTime: newStartTime,
+            };
+
             if (tournamentType === "daily") {
-                setDailyTournament([
-                    {
-                        id: newTid,
-                        title,
-                        topics: newTopics,
-                        endDateLabel: "",
-                        endTime: newEndtime,
-                        reward: 150,
-                        isRanked: false,
-                        tournamentType: "daily",
-                    },
-                ]);
+                if (isUpcoming) {
+                    setDailyUpcomingTournament(newTournamentObj);
+                } else {
+                    setDailyTournament([newTournamentObj]);
+                }
             } else if (tournamentType === "weekly") {
-                setWeeklyTournament([
-                    {
-                        id: newTid,
-                        title,
-                        topics: newTopics,
-                        endDateLabel: "",
-                        endTime: newEndtime,
-                        reward: 150,
-                        isRanked: false,
-                        tournamentType: "weekly",
-                    },
-                ]);
+                if (isUpcoming) {
+                    setWeeklyUpcomingTournament(newTournamentObj);
+                } else {
+                    setWeeklyTournament([newTournamentObj]);
+                }
             } else if (tournamentType === "ranked") {
-                setRankedTournament([
-                    {
-                        id: newTid,
-                        title,
-                        topics: newTopics,
-                        endDateLabel: "",
-                        endTime: newEndtime,
-                        reward: 150,
-                        isRanked: true,
-                        tournamentType: "ranked",
-                    },
-                ]);
+                // Increase tournament count
+                rankedTournament[0].tournamentCount += 1;
+
+                // If tournament count is equal to 2 for now, we "reset" the ranked tournament
+                if (rankedTournament[0].tournamentCount >= 2) {
+                    console.log(
+                        "Resetting ranked tournament count and marking as new tournament"
+                    );
+                    rankedTournament[0].tournamentCount = 0;
+                    rankedTournament[0].newTournament = true;
+                }
+
+                // If not a brand new ranked tournament, carry over leaderboard
+                if (!rankedTournament[0].newTournament) {
+                    console.log(
+                        "Carrying over leaderboard from old ranked tournament"
+                    );
+                    await fetch(
+                        "http://localhost:5000/api/tournament/update-ranked-leaderboard",
+                        {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                oldTid: rankedTournament[0].id,
+                                newTid: newTid,
+                            }),
+                        }
+                    );
+                }
+
+                if (isUpcoming) {
+                    setRankedUpcomingTournament(newTournamentObj);
+                } else {
+                    setRankedTournament([newTournamentObj]);
+                }
             }
         } catch (err) {
             console.error("Error creating tournament:", err);
@@ -273,7 +305,6 @@ function NewTournamentScreen() {
             const now = Date.now();
 
             try {
-                // Load most current tournaments from backend
                 const res = await fetch(
                     "http://localhost:5000/api/tournament/current-tournaments",
                     {
@@ -286,7 +317,7 @@ function NewTournamentScreen() {
 
                 if (!res.ok || !data?.successful) {
                     console.log(
-                        " Failed to load current tournaments, creating new ones"
+                        "Failed to load current tournaments, creating new ones"
                     );
                     await createTournamentForType(major, "daily");
                     await createTournamentForType(major, "weekly");
@@ -294,7 +325,7 @@ function NewTournamentScreen() {
                     return;
                 }
 
-                // Daily tournaments
+                // DAILY
                 if (data.daily) {
                     const endMs = data.daily.endDate
                         ? new Date(data.daily.endDate).getTime()
@@ -306,7 +337,6 @@ function NewTournamentScreen() {
                     );
 
                     if (endMs > now) {
-                        // Tournament not expired yet, use it
                         setDailyTournament([
                             {
                                 id: data.daily.tid,
@@ -317,6 +347,9 @@ function NewTournamentScreen() {
                                 reward: data.daily.reward,
                                 isRanked: false,
                                 tournamentType: "daily",
+                                // If backend returns startTime, you can map it here:
+                                // startTime: new Date(data.daily.startTime).getTime(),
+                                startTime: Date.now(),
                             },
                         ]);
                     } else {
@@ -347,6 +380,7 @@ function NewTournamentScreen() {
                                 reward: data.weekly.reward,
                                 isRanked: false,
                                 tournamentType: "weekly",
+                                startTime: Date.now(),
                             },
                         ]);
                     } else {
@@ -377,6 +411,9 @@ function NewTournamentScreen() {
                                 reward: data.ranked.reward,
                                 isRanked: true,
                                 tournamentType: "ranked",
+                                startTime: Date.now(),
+                                newTournament: true,
+                                tournamentCount: 0,
                             },
                         ]);
                     } else {
@@ -398,119 +435,195 @@ function NewTournamentScreen() {
         }
 
         loadOrCreate();
-    }, [major]); // run once on mount
+    }, [major]);
 
-    // Timer to rotate tournaments out when there endtime passes
+    // Timer to rotate tournaments out when their endTime passes
     useEffect(() => {
         const tick = async () => {
-            // Get current time
             const now = Date.now();
 
-            // Get all current tournaments
             const daily = dailyTournament[0];
             const weekly = weeklyTournament[0];
             const ranked = rankedTournament[0];
 
-            console.log(
-                "Checking each tournament expiration. Daily ends at:",
-                daily.endTime,
-                "Weekly ends at:",
-                weekly.endTime,
-                "Ranked ends at:",
-                ranked.endTime,
-                "Now:",
-                now
-            );
+            // ---- DAILY ----
+            if (daily) {
+                if (dailyInBetween) {
+                    // Between tournaments: we use upcoming's startTime for countdown
+                    if (dailyUpcomingTournament) {
+                        setDailyRemainingTime(
+                            dailyUpcomingTournament.startTime - now
+                        );
 
-            if (daily && daily.id && daily.endTime && now >= daily.endTime) {
-                console.log("Daily timer expired, creating new daily");
-                await createTournamentForType(major, "daily");
-            } else {
-                // Update remaining time
-                console.log("Daily still active, updating remaining time");
-                setDailyRemainingTime(daily.endTime - now);
+                        if (now >= dailyUpcomingTournament.startTime) {
+                            console.log("Ending daily in between state");
+                            setDailyInBetween(false);
+                            setDailyTournament([dailyUpcomingTournament]);
+                            setDailyUpcomingTournament(null);
+                        }
+                    }
+                } else if (
+                    daily.id &&
+                    daily.endTime &&
+                    now >= daily.endTime
+                ) {
+                    // Just ended: go into between phase & schedule the next tournament
+                    setDailyInBetween(true);
+
+                    const nextStartTime = now + betweenTournamentTime;
+                    // TODO: Update winners XP here before this if you want
+                    await createTournamentForType(
+                        major,
+                        "daily",
+                        nextStartTime,
+                        true // isUpcoming
+                    );
+                } else if (daily.endTime) {
+                    // Active tournament: count down to end
+                    setDailyRemainingTime(daily.endTime - now);
+                }
             }
 
-            if (
-                weekly &&
-                weekly.id &&
-                weekly.endTime &&
-                now >= weekly.endTime
-            ) {
-                console.log("Weekly timer expired, creating new weekly");
-                await createTournamentForType(major, "weekly");
-            } else {
-                // Update remaining time
-                console.log("Weekly still active, updating remaining time");
-                setWeeklyRemainingTime(weekly.endTime - now);
+            // ---- WEEKLY ----
+            if (weekly) {
+                if (weeklyInBetween) {
+                    if (weeklyUpcomingTournament) {
+                        setWeeklyRemainingTime(
+                            weeklyUpcomingTournament.startTime - now
+                        );
+
+                        if (now >= weeklyUpcomingTournament.startTime) {
+                            console.log("Ending weekly in between state");
+                            setWeeklyInBetween(false);
+                            setWeeklyTournament([weeklyUpcomingTournament]);
+                            setWeeklyUpcomingTournament(null);
+                        }
+                    }
+                } else if (
+                    weekly.id &&
+                    weekly.endTime &&
+                    now >= weekly.endTime
+                ) {
+                    setWeeklyInBetween(true);
+
+                    const nextStartTime = now + betweenTournamentTime;
+                    // TODO: Update winners XP here
+                    await createTournamentForType(
+                        major,
+                        "weekly",
+                        nextStartTime,
+                        true
+                    );
+                } else if (weekly.endTime) {
+                    setWeeklyRemainingTime(weekly.endTime - now);
+                }
             }
 
-            if (
-                ranked &&
-                ranked.id &&
-                ranked.endTime &&
-                now >= ranked.endTime
-            ) {
-                console.log("Ranked timer expired, creating new ranked");
-                await createTournamentForType(major, "ranked");
-            } else {
-                // Update remaining time
-                console.log("Ranked still active, updating remaining time");
-                setRankedRemainingTime(ranked.endTime - now);
+            // ---- RANKED ----
+            if (ranked) {
+                if (rankedInBetween) {
+                    if (rankedUpcomingTournament) {
+                        setRankedRemainingTime(
+                            rankedUpcomingTournament.startTime - now
+                        );
+
+                        if (now >= rankedUpcomingTournament.startTime) {
+                            console.log("Ending ranked in between state");
+                            setRankedInBetween(false);
+                            setRankedTournament([rankedUpcomingTournament]);
+                            setRankedUpcomingTournament(null);
+                        }
+                    }
+                } else if (
+                    ranked.id &&
+                    ranked.endTime &&
+                    now >= ranked.endTime
+                ) {
+                    setRankedInBetween(true);
+
+                    const nextStartTime = now + betweenTournamentTime;
+                    // TODO: Update winners XP here (and handle final winner if keepGoing=false)
+                    await createTournamentForType(
+                        major,
+                        "ranked",
+                        nextStartTime,
+                        true
+                    );
+                } else if (ranked.endTime) {
+                    setRankedRemainingTime(ranked.endTime - now);
+                }
             }
         };
 
-        // Check every 1 second
         const intervalId = setInterval(() => {
             tick();
-        },  1000);
+        }, 1000);
 
         return () => clearInterval(intervalId);
-    }, [dailyTournament, weeklyTournament, rankedTournament, major]);
+    }, [
+        dailyTournament,
+        weeklyTournament,
+        rankedTournament,
+        major,
+        dailyInBetween,
+        weeklyInBetween,
+        rankedInBetween,
+        dailyUpcomingTournament,
+        weeklyUpcomingTournament,
+        rankedUpcomingTournament,
+    ]);
 
     // Helper function to format time from ms to d h m s
     function formatRemainingTime(ms) {
-    // Guard against bad values
-    if (!Number.isFinite(ms) ) {
-        return "";
+        if (!Number.isFinite(ms)) {
+            return "";
+        }
+
+        if (ms <= 0) {
+            return "Expired";
+        }
+
+        const totalSeconds = Math.floor(ms / 1000);
+
+        const days = Math.floor(totalSeconds / (24 * 60 * 60));
+        const hours = Math.floor(
+            (totalSeconds % (24 * 60 * 60)) / (60 * 60)
+        );
+        const minutes = Math.floor((totalSeconds % (60 * 60)) / 60);
+        const seconds = totalSeconds % 60;
+
+        const parts = [];
+
+        if (days > 0) parts.push(`${days}d`);
+        if (hours > 0) parts.push(`${hours}h`);
+        if (minutes > 0) parts.push(`${minutes}m`);
+
+        // Only show seconds if we have < 1 minute left and no larger units
+        if (parts.length === 0 && seconds > 0) {
+            parts.push(`${seconds}s`);
+        }
+
+        return parts.join(" ");
     }
 
-    if (ms <= 0) {
-        return "Expired";
-    }
-
-    const totalSeconds = Math.floor(ms / 1000);
-
-    const days = Math.floor(totalSeconds / (24 * 60 * 60));
-    const hours = Math.floor((totalSeconds % (24 * 60 * 60)) / (60 * 60));
-    const minutes = Math.floor((totalSeconds % (60 * 60)) / 60);
-    const seconds = totalSeconds % 60;
-
-    const parts = [];
-
-    if (days > 0) parts.push(`${days}d`);
-    if (hours > 0) parts.push(`${hours}h`);
-    if (minutes > 0) parts.push(`${minutes}m`);
-
-    // Only show seconds if we have < 1 minute left and no larger units
-    if (parts.length === 0 && seconds > 0) {
-        parts.push(`${seconds}s`);
-    }
-
-    return parts.join(" ");
-}
+    // For ranked: decide if the just-ended thing is a final tournament or just a round.
+    // During in-between:
+    //  - if we HAVE an upcoming ranked tournament → there is another round → NewTournament = false ("Round Over")
+    //  - if we DON'T have an upcoming ranked tournament → no next round → NewTournament = true ("Tournament Over – Winners")
+    const rankedIsFinalInBetween =
+        rankedInBetween && !rankedUpcomingTournament;
 
     return (
         <>
             <ScreenScroll ref={scrollerRef}>
                 <PullToRefresh scrollerRef={scrollerRef} onRefresh={refresh}>
                     <Container className="mainContainer">
-                        {/* Progress Bar */}
-                        <div className="xpHeader">
-                            <h3>Level 10</h3>
-                            <ProgressBar now={60} />
-                            <p>100 / 1000 XP</p>
-                        </div>
+                        {/* Progress bar */}
+                        <XpHeaderBar
+                            level={1}
+                            currentXp={50}
+                            xpForNextLevel={100}
+                        ></XpHeaderBar>
 
                         {/* Tournament Screen Header */}
                         <div
@@ -527,11 +640,27 @@ function NewTournamentScreen() {
                                 <h2 className="sectionTitle">
                                     Daily Flashcards
                                 </h2>
-                                {/* Display remaining time until next tournament */}
-                                <p>Next tournament starts in: {formatRemainingTime(dailyRemainingTime)}</p>
+                                <p>
+                                    {dailyInBetween ? (
+                                        <>
+                                            Next tournament starts in:{" "}
+                                            {formatRemainingTime(
+                                                dailyRemainingTime
+                                            )}
+                                        </>
+                                    ) : (
+                                        <>
+                                            Tournament ends in:{" "}
+                                            {formatRemainingTime(
+                                                dailyRemainingTime
+                                            )}
+                                        </>
+                                    )}
+                                </p>
                             </div>
 
                             <div className="tournamentCardWrapper">
+                                {/* During in-between, we still show the OLD tournament card */}
                                 <NewTournamentCard
                                     tid={dailyTournament[0].id}
                                     title={dailyTournament[0].title}
@@ -542,15 +671,36 @@ function NewTournamentScreen() {
                                     tournamentType={
                                         dailyTournament[0].tournamentType
                                     }
+                                    tournamentOver={dailyInBetween}
+                                    NewTournament={true} // not used for non-ranked, safe default
                                 />
                             </div>
                         </div>
 
                         {/* Weekly Section */}
                         <div className="tournamentSection">
-                            <h2 className="sectionTitle">Weekly Flashcards</h2>
-                            {/* Display remaining time until next tournament */}
-                            <p>Next tournament starts in: {formatRemainingTime(weeklyRemainingTime)}</p>
+                            <div className="sectionHeader">
+                                <h2 className="sectionTitle">
+                                    Weekly Flashcards
+                                </h2>
+                                <p>
+                                    {weeklyInBetween ? (
+                                        <>
+                                            Next tournament starts in:{" "}
+                                            {formatRemainingTime(
+                                                weeklyRemainingTime
+                                            )}
+                                        </>
+                                    ) : (
+                                        <>
+                                            Tournament ends in:{" "}
+                                            {formatRemainingTime(
+                                                weeklyRemainingTime
+                                            )}
+                                        </>
+                                    )}
+                                </p>
+                            </div>
                             <div className="tournamentCardWrapper">
                                 <NewTournamentCard
                                     tid={weeklyTournament[0].id}
@@ -562,16 +712,36 @@ function NewTournamentScreen() {
                                     tournamentType={
                                         weeklyTournament[0].tournamentType
                                     }
+                                    tournamentOver={weeklyInBetween}
+                                    NewTournament={true} // not used for non-ranked
                                 />
                             </div>
                         </div>
 
                         {/* Ranked Section */}
                         <div className="tournamentSection">
-                            <h2 className="sectionTitle">Ranked Flashcards</h2>
-                            {/* Display remaining time until next tournament */}
-                            <p>Next tournament starts in: {formatRemainingTime(rankedRemainingTime)}</p>
-                            <p></p>
+                            <div className="sectionHeader">
+                                <h2 className="sectionTitle">
+                                    Ranked Flashcards
+                                </h2>
+                                <p>
+                                    {rankedInBetween ? (
+                                        <>
+                                            Next tournament starts in:{" "}
+                                            {formatRemainingTime(
+                                                rankedRemainingTime
+                                            )}
+                                        </>
+                                    ) : (
+                                        <>
+                                            Tournament ends in:{" "}
+                                            {formatRemainingTime(
+                                                rankedRemainingTime
+                                            )}
+                                        </>
+                                    )}
+                                </p>
+                            </div>
                             <div className="tournamentCardWrapper">
                                 <NewTournamentCard
                                     tid={rankedTournament[0].id}
@@ -582,6 +752,15 @@ function NewTournamentScreen() {
                                     isRanked={rankedTournament[0].isRanked}
                                     tournamentType={
                                         rankedTournament[0].tournamentType
+                                    }
+                                    tournamentOver={rankedInBetween}
+                                    // When we are in-between:
+                                    //  - rankedUpcomingTournament exists → another round → NewTournament=false ("Round Over")
+                                    //  - no upcoming tournament → final → NewTournament=true ("Tournament Over – Winners")
+                                    NewTournament={
+                                        rankedInBetween
+                                            ? rankedIsFinalInBetween
+                                            : false
                                     }
                                 />
                             </div>

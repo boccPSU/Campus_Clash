@@ -1,0 +1,40 @@
+@use "../../css/tokens.scss" as *;
+
+
+.leaderboardScreen {
+    padding: 8px 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* XP header strip at top */
+.leaderboardScreen-xpHeader {
+    margin-bottom: 8px;
+}
+
+/* Main content column */
+.leaderboardScreen-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* "Leaderboard" page title */
+.leaderboardScreen-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin: 0 0 4px 0;
+}
+
+/* Error text styling */
+.leaderboardScreen-error {
+    color: #c0392b;
+    font-size: 0.85rem;
+    margin-bottom: 4px;
+}
+
+/* Extra space so the fixed bottom nav doesn't overlay content */
+.leaderboardScreen-bottomSpacer {
+    height: var(--bottom-nav-height, 72px);
+}

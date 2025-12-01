@@ -1,6 +1,7 @@
 import { Nav } from "react-bootstrap";
 import { useLocation } from "react-router-dom";
 
+
 import {
     House,
     Calendar,
@@ -11,10 +12,14 @@ import {
 
 function BottomNavBar() {
     // Used to highlight active nav item
-    const location = useLocation();               
+    const location = useLocation();
 
     return (
-        <Nav className="bottomNavBar" activeKey={location.pathname}>
+        // Create progress bar to store xp and levels avove nav bar
+        <>
+            
+            <Nav className="bottomNavBar" activeKey={location.pathname}>
+            
             <div>
                 <Nav.Link
                     href="/leaderboard"
@@ -27,33 +32,21 @@ function BottomNavBar() {
             </div>
 
             <div>
-                <Nav.Link
-                    href="/events"
-                    eventKey="/events"
-                    className="navItem"
-                >
+                <Nav.Link href="/events" eventKey="/events" className="navItem">
                     <Calendar size={24} />
                     <div className="nav-label">Events</div>
                 </Nav.Link>
             </div>
 
             <div>
-                <Nav.Link
-                    href="/home"
-                    eventKey="/home"
-                    className="navItem"
-                >
+                <Nav.Link href="/home" eventKey="/home" className="navItem">
                     <House size={24} />
                     <div className="nav-label">Home</div>
                 </Nav.Link>
             </div>
 
             <div>
-                <Nav.Link
-                    href="/battle"
-                    eventKey="/battle"
-                    className="navItem"
-                >
+                <Nav.Link href="/battle" eventKey="/battle" className="navItem">
                     <Trophy size={24} />
                     <div className="nav-label">Battle</div>
                 </Nav.Link>
@@ -70,6 +63,8 @@ function BottomNavBar() {
                 </Nav.Link>
             </div>
         </Nav>
+        </>
+        
     );
 }
 

@@ -27,7 +27,7 @@ app.use(cors({ origin: "http://localhost:3000" })); //Bybass CORS
 (async () => {
   try {
     await initDb(); // Initializies DB
-    await addMockUsers(1000); // Drops users table, comment out if you want to keep users
+    //await addMockUsers(500); // Drops users table, comment out if you want to keep users
 
     app.listen(PORT, () => {
       console.log(`API listening on http://localhost:${PORT}`);
@@ -420,6 +420,7 @@ app.post("/api/create-tournament", async (req, res) => {
     reward,         // XP given for tournament
     tournamentType, // "daily", "weekly", "ranked"
     endTime = null, // ms timestamp from frontend or null
+    startTime
   } = req.body || {};
 
   // Basic validation
@@ -457,11 +458,9 @@ app.post("/api/create-tournament", async (req, res) => {
       });
     }
 
-    // No existing tournament, then create one
-    console.log("Creating new tournament:", title, topics);
-    
+    // Create end date and start time
     let endDate;
-
+    let startDate = new Date(startTime);
     // If frontend passed an endTime (ms), use it; otherwise compute based on type
     if (endTime !== null && endTime !== undefined) {
       const endMs = Number(endTime);
@@ -514,8 +513,8 @@ app.post("/api/create-tournament", async (req, res) => {
     } else if (tournamentType === "ranked") {
       questionConfig = [
         { difficulty: "easy", count: 5 },
-        { difficulty: "medium", count: 4 },
-        { difficulty: "hard", count: 3 },
+        //{ difficulty: "medium", count: 4 },
+        //{ difficulty: "hard", count: 3 },
       ];
     } else {
       return res.status(400).json({
@@ -571,7 +570,7 @@ app.post("/api/create-tournament", async (req, res) => {
       "CALL create_tournament(?, ?, ?, ?, ?, ?)",
       [
         questionSetJson, // p_questionSet 
-        now,             // p_startTime (Date  MySQL DATETIME)
+        startDate,       // p_startTime (Date  MySQL DATETIME)
         endDate,         // p_endDate   (Date  MySQL DATETIME) 
         title,
         topics,
@@ -590,10 +589,11 @@ app.post("/api/create-tournament", async (req, res) => {
       });
     }
 
+    console.log("Created new tournament:", tid);
     return res.status(201).json({
       successful: true,
       tid,
-      startTime: now,
+      startDate,
       endDate,
       tournamentType,
     });
@@ -612,9 +612,14 @@ app.post("/api/create-tournament", async (req, res) => {
 // New endpoint to return the userName of the currently loggeed in user
 app.get("/api/current-user", async (req, res) => {
   const token = req.headers["jwt-token"]; 
+  console.log("Current User Token: " + token);
+  if (!token) {
+    return res.status(401).json({ error: "Unauthorized no token" });
+  }
   const username = decryptToken(token);
+  console.log("Decrypted username in current user:", username);
   if (!username) {
-    return res.status(401).json({ error: "Unauthorized" });
+    return res.status(401).json({ error: "Unauthorized no username" });
   }
   return res.json({ username });
 });
@@ -666,8 +671,8 @@ app.post("/api/join-tournament", async (req, res) => {
     const token = req.headers["jwt-token"];
     const { tid } = req.body || {};
 
-    console.log("[join-tournament] Token:", token);
-    console.log("[join-tournament] TID:", tid);
+    //console.log("[join-tournament] Token:", token);
+    //console.log("[join-tournament] TID:", tid);
 
     if (!token) {
       return res.status(401).json({ error: "Missing token" });
@@ -678,7 +683,7 @@ app.post("/api/join-tournament", async (req, res) => {
     }
 
     const username = decryptToken(token);
-    console.log("[join-tournament] Decrypted username:", username);
+    //console.log("[join-tournament] Decrypted username:", username);
     if (!username) {
       return res.status(401).json({ error: "Invalid token" });
     }
@@ -1276,7 +1281,7 @@ app.post("/api/tournament/generate-topics", async (req, res) => {
     );
 
     if (rows.length > 0) {
-      console.log("Major already has topics, exiting endpoint");
+      //console.log("Major already has topics, exiting endpoint");
       return res.json({
         successful: true,
         skipped: true,
@@ -1626,3 +1631,109 @@ app.post("/api/tournament/current-tournaments", async (req, res) => {
     });
   }
 });
+
+// Updates ranked tournament by carrying top portion of leaderboard to next tournament
+app.post("/api/tournament/update-ranked-leaderboard", async (req, res) => {
+  try {
+    const { oldTid, newTid } = req.body || {};
+
+    if (!oldTid || !newTid) {
+      return res.status(400).json({
+        successful: false,
+        error: "Missing oldTid or newTid",
+      });
+    }
+
+    // Get all participants and their scores from the OLD tournament
+    const [rows] = await pool.query(
+      `
+        SELECT u.username, tp.pid, tp.score
+        FROM tournament_participants tp
+        INNER JOIN users u ON u.pid = tp.pid
+        WHERE tp.tid = ?
+        ORDER BY tp.score DESC, u.username ASC
+      `,
+      [oldTid]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        successful: false,
+        error: "No participants found for this tournament",
+      });
+    }
+
+    const total = rows.length;
+
+    // If 3 or fewer players remain, this round is the final one.
+    // We DO NOT carry anyone to the next leaderboard.
+    if (total <= 3) {
+      return res.json({
+        successful: true,
+        continues: false,              // tournament ended
+        oldTid,
+        newTid,
+        totalParticipants: total,
+        winners: rows,                // sorted by score desc
+      });
+    }
+
+    // More than 3 players: tournament continues, carry some forward.
+    let keepCount;
+
+    if (total === 4) {
+      // Special case: with 4 players, eliminate only the last one → keep 3
+      keepCount = 3;
+    } else if (total % 2 === 0) {
+      // Even (6, 8, 10, ...) → keep top half
+      keepCount = total / 2;
+    } else {
+      // Odd >= 5 (5, 7, 9, ...) → keep more than half (ceil)
+      // 5 -> 3, 7 -> 4, etc.
+      keepCount = Math.ceil(total / 2);
+    }
+
+    const topParticipants = rows.slice(0, keepCount);
+    const eliminatedParticipants = rows.slice(keepCount);
+
+    // Carry selected participants into the NEW tournament's leaderboard
+    const topPids = topParticipants.map((p) => p.pid);
+
+    if (topPids.length > 0) {
+      // Reset score for new round (0). Change to p.score if you want carry-over.
+      const values = topPids.map((pid) => [newTid, pid, 0]);
+
+      await pool.query(
+        `
+          INSERT IGNORE INTO tournament_participants (tid, pid, score)
+          VALUES ?
+        `,
+        [values]
+      );
+    }
+
+    // No deletes from oldTid — we only "carry over" people logically
+    return res.json({
+      successful: true,
+      continues: true,                 // tournament keeps going
+      oldTid,
+      newTid,
+      totalParticipants: total,
+      keepCount,
+      carriedParticipants: topParticipants,
+      eliminatedParticipants,
+    });
+  } catch (err) {
+    console.error("[API] update-ranked-leaderboard error:", err);
+    return res.status(500).json({
+      successful: false,
+      error: "Failed to update ranked leaderboard",
+    });
+  }
+});
+
+
+
+
+
+

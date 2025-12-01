@@ -30,7 +30,7 @@ function RegisterScreen({setToken}) {
 
     const registerNewUser = async () => {
         try {
-            const res = await fetch("/api/register", {
+            const res = await fetch("http://localhost:5000/api/register", {
                 method: "post",
                 headers: {
                     "Content-Type": "application/json",

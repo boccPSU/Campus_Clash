@@ -14,6 +14,7 @@ import { getUpcomingAssignmentAlerts } from "../../api/canvas.js";
 import { getMySemesterCoursesWithGrades } from "../../api/canvas.js";
 import { Bell, ChevronDown, ChevronUp } from "react-bootstrap-icons";
 import { checkRecentSubmissions } from "../../api/canvas.js";
+import XpHeaderBar from "../../newComponents/XpHeaderBar/XpHeaderBar.js";
 
 const COURSES_PREVIEW_COUNT = 3;
 const ALERTS_PREVIEW_COUNT = 3;
@@ -200,6 +201,11 @@ function NewHomeScreen() {
             <ScreenScroll ref={scrollerRef}>
                 <PullToRefresh scrollerRef={scrollerRef} onRefresh={refresh}>
                     <Container className="mainContainer">
+                        <XpHeaderBar
+                            level={4}
+                            currentXp={1200}
+                            xpForNextLevel={1500}
+                        ></XpHeaderBar>
                         <div className="homeHeader">
                             <div className="homeHeader-text">
                                 <h1 className="homeHeader-greeting">
