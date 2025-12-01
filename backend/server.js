@@ -23,12 +23,14 @@ const app = express();
 app.use(express.json());
 app.use(cors({ origin: "http://localhost:3000" })); //Bybass CORS
 
+
+
 // Start Server
 (async () => {
   try {
     await initDb(); // Initializies DB
     //await addMockUsers(500); // Drops users table, comment out if you want to keep users
-
+    startTournamentFinalizer(); // Starts tournament finalizer interval
     app.listen(PORT, () => {
       console.log(`API listening on http://localhost:${PORT}`);
       console.log(`Canvas proxy upstream: ${BASE}`);
@@ -38,6 +40,47 @@ app.use(cors({ origin: "http://localhost:3000" })); //Bybass CORS
     process.exit(1);
   }
 })();
+
+// Checks for tournaments that have ended and finalizes them every minute
+function startTournamentFinalizer() {
+  const INTERVAL_MS = 5 * 1000; // check once per minute can teak if needed
+
+  setInterval(async () => {
+    try {
+      // Find tournaments that have ended and haven't had XP awarded yet
+      const [rows] = await pool.query(
+        `SELECT tid
+         FROM tournaments
+         WHERE endDate <= NOW()
+           AND xpAwarded = FALSE`
+      );
+
+      if (!rows || rows.length === 0) {
+        return; // nothing to do this cycle
+      }
+
+      console.log("[Finalizer] Found", rows.length, "expired tournaments.");
+
+      for (const row of rows) {
+        const tid = row.tid;
+        console.log("[Finalizer] Finalizing tournament tid =", tid);
+
+        try {
+          await pool.query("CALL finalize_tournament(?)", [tid]);
+          console.log("[Finalizer] finalize_tournament OK for tid =", tid);
+        } catch (e) {
+          console.error(
+            "[Finalizer] Error finalizing tournament tid =",
+            tid,
+            e
+          );
+        }
+      }
+    } catch (e) {
+      console.error("[Finalizer] Error scanning for expired tournaments:", e);
+    }
+  }, INTERVAL_MS);
+}
 
 // Healthcheck
 app.get("/health", (_req, res) => {

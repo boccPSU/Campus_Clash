@@ -95,6 +95,7 @@ async function initDb() {
       questionSet JSON  NULL,
       startTime   DATETIME     NOT NULL,
       endDate     DATETIME     NOT NULL,
+      xpAwarded   BOOLEAN       NOT NULL DEFAULT FALSE,
       PRIMARY KEY (tid)
     ) ENGINE=InnoDB
       DEFAULT CHARSET=utf8mb4
@@ -140,6 +141,7 @@ async function initDb() {
 // Drop + recreate tournament procedures
 await pool.query(`DROP PROCEDURE IF EXISTS create_tournament`);
 await pool.query(`DROP PROCEDURE IF EXISTS join_tournament`);
+await pool.query(`DROP PROCEDURE IF EXISTS finalize_tournament`);
 
 //-------------------------
 // List of Tournament procedures
@@ -172,6 +174,64 @@ await pool.query(`
   END
 `);   
 
+
+
+
+// Procedure to award XP to top 3 participants and mark tournament as processed
+await pool.query(`
+  CREATE PROCEDURE finalize_tournament(IN p_tid INT)
+  BEGIN
+    DECLARE done INT DEFAULT 0;
+    DECLARE v_pid INT;
+    DECLARE v_rank INT DEFAULT 0;
+
+    -- Cursor selecting top 3 participants by score for that tournament
+    DECLARE cur CURSOR FOR
+      SELECT tp.pid
+      FROM tournament_participants tp
+      WHERE tp.tid = p_tid
+      ORDER BY tp.score DESC
+      LIMIT 3;
+
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
+
+    OPEN cur;
+
+    read_loop: LOOP
+      FETCH cur INTO v_pid;
+      IF done THEN
+        LEAVE read_loop;
+      END IF;
+
+      SET v_rank = v_rank + 1;
+
+      -- Award XP based on placement
+      IF v_rank = 1 THEN
+        -- 1st place: +1000 XP
+        UPDATE students
+        SET XP = XP + 1000
+        WHERE pid = v_pid;
+      ELSEIF v_rank = 2 THEN
+        -- 2nd place: +800 XP
+        UPDATE students
+        SET XP = XP + 800
+        WHERE pid = v_pid;
+      ELSEIF v_rank = 3 THEN
+        -- 3rd place: +600 XP
+        UPDATE students
+        SET XP = XP + 600
+        WHERE pid = v_pid;
+      END IF;
+    END LOOP;
+
+    CLOSE cur;
+
+    -- Mark this tournament as processed so we don't double-award XP
+    UPDATE tournaments
+    SET xpAwarded = TRUE
+    WHERE tid = p_tid;
+  END
+`);
 //
 
 

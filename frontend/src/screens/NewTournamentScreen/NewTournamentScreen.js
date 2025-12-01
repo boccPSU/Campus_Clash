@@ -8,6 +8,7 @@ import BottomNavBar from "../../newComponents/BottomNavBar/BottomNavBar.js";
 import NewTournamentCard from "../../newComponents/NewTournamentCard/NewTournamentCard.js";
 import XpHeaderBar from "../../newComponents/XpHeaderBar/XpHeaderBar.js";
 
+
 function NewTournamentScreen() {
     // Time variables for tournament refresh
 
@@ -467,11 +468,19 @@ function NewTournamentScreen() {
                     daily.endTime &&
                     now >= daily.endTime
                 ) {
+                    // Tournament is over
+
+                    // Award XP to winners here 
+                    
+                    
+                    
+
+
                     // Just ended: go into between phase & schedule the next tournament
                     setDailyInBetween(true);
 
                     const nextStartTime = now + betweenTournamentTime;
-                    // TODO: Update winners XP here before this if you want
+                    
                     await createTournamentForType(
                         major,
                         "daily",
@@ -504,10 +513,15 @@ function NewTournamentScreen() {
                     weekly.endTime &&
                     now >= weekly.endTime
                 ) {
+
+                    // Award XP to winners here 
+
+
+
                     setWeeklyInBetween(true);
 
                     const nextStartTime = now + betweenTournamentTime;
-                    // TODO: Update winners XP here
+                    
                     await createTournamentForType(
                         major,
                         "weekly",
@@ -539,6 +553,10 @@ function NewTournamentScreen() {
                     ranked.endTime &&
                     now >= ranked.endTime
                 ) {
+                    // Award XP to winners here 
+
+                    
+
                     setRankedInBetween(true);
 
                     const nextStartTime = now + betweenTournamentTime;
