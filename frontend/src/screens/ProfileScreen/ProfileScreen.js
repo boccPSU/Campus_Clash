@@ -29,6 +29,7 @@ function ProfileScreen() {
 
     useEffect(() => {
         (async () => {
+            setLoading(true);
             if (isStudentDataFilled()) {
                 setLoading(false);
             } else {
@@ -43,38 +44,9 @@ function ProfileScreen() {
         })();
     }, []);
 
-    // const loadUser = async () => {
-    //     try {
-    //         //Get user token
-    //         const tokenString = localStorage.getItem("token");
-    //         const userToken = JSON.parse(tokenString);
-    //         const tokenValue = userToken.token;
-    //         const res = await fetch("/api/profile", {
-    //             method: "GET",
-    //             headers: {
-    //                 "Content-Type": "application/json",
-    //                 "jwt-token": tokenValue,
-    //             },
-    //         });
-    //         if (res.status == 500) throw new Error("[PROFILE] Error", {cause: "Could not Connect."});
-    //         const data = await res.json();
-    //         if (!res.ok) throw new Error("[PROFILE] Error", {cause: data.error});
-    //         setUser({
-    //             firstName: data.firstName,
-    //             lastName: data.lastName,
-    //             username: data.username,
-    //             university: data.university,
-    //             major: data.major,
-    //             xp: data.xp
-    //         });
-    //     } catch(e) {
-    //         console.log(e);
-    //         setError(e.cause);
-    //     }
-    // }
-
     // pull-to-refresh
     const refresh = async () => {
+        setLoading(true);
         loadStudentData.then( (err) => {
                         if (err) {
                             setError(err.cause);

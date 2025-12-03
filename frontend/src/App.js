@@ -1,8 +1,7 @@
 import React from "react";
 
 // import routing tools to switch between pages
-import {Routes, Route, useLocation, useNavigate, Navigate} from "react-router-dom";
-import {useEffect, useState} from 'react';
+import {Routes, Route, Navigate} from "react-router-dom";
 
 // needed to use bootstrap components
 //import "bootstrap/dist/css/bootstrap.min.css";
@@ -21,7 +20,7 @@ import QuestionScreen from "./screens/QuestionScreen";
 import QuestionTester from "./screens/QuestionTester";
 import SettingsScreen from "./screens/SettingsScreen";
 
-import {AuthProvider, useAuth} from "./api/AuthContext"
+import {AuthProvider} from "./api/AuthContext";
 import PrivateRoute from "./api/PrivateRoute";
 
 function App() {

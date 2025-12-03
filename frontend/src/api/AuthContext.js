@@ -1,4 +1,4 @@
-import {createContext, useContext, useState, useEffect} from 'react'
+import {createContext, useContext, useState} from 'react'
 import { checkRecentSubmissions, loadCourses, loadAlerts} from './canvas';
 
 const AuthContext = createContext();
@@ -69,7 +69,7 @@ export function AuthProvider({ children }) {
                     "jwt-token": token,
                 },
             });
-            if (res.status == 500) throw new Error("[PROFILE] Error", {cause: "Could not Connect."});
+            if (res.status === 500) throw new Error("[PROFILE] Error", {cause: "Could not Connect."});
             const newStudentData = await res.json();
             if (!res.ok) throw new Error("[PROFILE] Error", {cause: newStudentData.error});
             

@@ -2,7 +2,7 @@ import {useState, useEffect} from "react";
 import {Form, Button} from "react-bootstrap";
 import * as formik from "formik";
 
-import {useAuth} from "../../api/AuthContext"
+import {useAuth} from "../../api/AuthContext";
 import {singleFieldSchema} from "../../api/validationSchema";
 
 function SettingsEditWindow({state, onClose}) {
@@ -17,19 +17,6 @@ function SettingsEditWindow({state, onClose}) {
     const [isLoading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
-    useEffect(() => {
-            if (isLoading) {
-                save().then(() => {
-                    setLoading(false);
-                });
-            }
-        }, [isLoading]);
-
-    const onFormSubmit = () => {
-        console.log("Handling Submit");
-        setLoading(true);
-    }
-    
     const save = async () => {
         console.log("[Change-User-Info] Starting API Call.");
         const newData = {
@@ -65,6 +52,19 @@ function SettingsEditWindow({state, onClose}) {
             setError(e.cause);
         }
     };
+
+    useEffect(() => {
+            if (isLoading) {
+                save().then(() => {
+                    setLoading(false);
+                });
+            }
+        }, [isLoading]);
+
+    const onFormSubmit = () => {
+        console.log("Handling Submit");
+        setLoading(true);
+    }
 
     let schemaName;
     let label;

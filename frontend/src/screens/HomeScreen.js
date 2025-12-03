@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Container, Button, Spinner } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 
@@ -13,40 +13,20 @@ import useCollapseOnScroll from "../components/hooks/useCollapseOnScroll.js";
 import PullToRefresh from "../components/interaction/PullToRefresh.js";
 import ScreenScroll from "../components/ScreenScroll/ScreenScroll.js";
 
-import { createCanvasProxyClient } from "../api/canvasApi";
-import { computeGPAEqualCredits, percentToLetter } from "../utils/gpa";
-import { logUpcomingAssignmentsForSelectedCourses } from "../api/canvas.js";
-import { getUpcomingAssignmentAlerts } from "../api/canvas.js";
-
-import { getMySemesterCoursesWithGrades } from "../api/canvas.js";
-import { Award } from "react-bootstrap-icons";
-import { checkRecentSubmissions } from "../api/canvas.js";
-
-import {useAuth} from "../api/AuthContext.js"
+import {useAuth} from "../api/AuthContext.js";
 
 function HomeScreen() {
     const navigate = useNavigate();
 
-    const {token, studentData, loadStudentData, isStudentDataFilled} = useAuth();
+    const {studentData, loadStudentData, isStudentDataFilled} = useAuth();
 
-    // UI state
-    const [courses, setCourses] = useState([]); // [{ id, name, percent(int|undefined), grade(letter|'—') }]
-    const [gpa, setGpa] = useState(null); // number | null
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [alerts, setAlerts] = useState([]);
-
-    //const [studentData, setStudentData] = useState(JSON.parse(sessionStorage.getItem('studentData')));
-
-    // useEffect(() => {
-    //     sessionStorage.setItem('studentData', JSON.stringify(studentData));
-    // }, [studentData]);
 
     // collapse header / pull-to-refresh
     const scrollerRef = useRef(null);
     const collapsed = useCollapseOnScroll(scrollerRef);
 
-    // const loadCourses = async () => {
     //     setError("");
     //     setLoading(true);
     //     try {
@@ -140,10 +120,6 @@ function HomeScreen() {
 
     // pull-to-refresh
     const refresh = async () => {
-        // await setTokens();
-        // await loadCourses();
-        // await loadAlerts();
-        // await checkRecentSubmissions({ lookbackMinutes: 60 * 24 * 7 });
         setLoading(true);
         loadStudentData().then(
             (err) => {
@@ -155,40 +131,6 @@ function HomeScreen() {
         );
         await new Promise((r) => setTimeout(r, 300));
     };
-
-    // const setTokens = async () => {
-    //     try {
-    //         //Get user token
-    //         const tokenString = localStorage.getItem("token");
-    //         const userToken = JSON.parse(tokenString);
-    //         const tokenValue = userToken.token;
-    //         const res = await fetch("/api/profile", {
-    //             method: "GET",
-    //             headers: {
-    //                 "Content-Type": "application/json",
-    //                 "jwt-token": tokenValue,
-    //             },
-    //         });
-    //         if (res.status == 500) throw new Error("[PROFILE] Error", {cause: "Could not Connect."});
-    //         const data = await res.json();
-    //         if (!res.ok) throw new Error("[PROFILE] Error", {cause: data.error});
-    //         console.log(data);
-    //         setStudentData(prevStudent => ({
-    //             ...prevStudent,
-    //             firstName: data.firstName,
-    //             lastName: data.lastName,
-    //             username: data.username,
-    //             university: data.university,
-    //             major: data.major,
-    //             xp: data.xp,
-    //             canvasToken: data.canvasToken,
-    //             filled: true
-    //         }));
-    //     } catch (err) {
-    //         console.log(err);
-    //         setError(err.cause);
-    //     }
-    // };
 
     return (
         <>
