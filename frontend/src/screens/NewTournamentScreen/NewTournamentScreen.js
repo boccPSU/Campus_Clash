@@ -12,12 +12,12 @@ function NewTournamentScreen() {
     // Time variables for tournament refresh
 
     // Short times for testing
-    const dailyRefreshTime = 30000; // 10s
+    //const dailyRefreshTime = 30000; // 10s
     // const weeklyRefreshTime = 90000; // 30s
-    const rankedRefreshTime = 5 * 60000; // 60s
-    //const dailyRefreshTime = 24 * 60 * 60 * 1000;
+    // const rankedRefreshTime = 5 * 60000; // 60s
+    const dailyRefreshTime = 24 * 60 * 60 * 1000;
     const weeklyRefreshTime = 7 * 24 * 60 * 60 * 1000;
-    // const rankedRefreshTime = 14 * 24 * 60 * 60 * 1000;
+    const rankedRefreshTime = 14 * 24 * 60 * 60 * 1000;
 
     const betweenTournamentTime = 30000; // For testing
     //const betweenTournamentTime = 5 * 60 * 1000; // 5 minutes between tournaments to alert users of winners
@@ -34,6 +34,9 @@ function NewTournamentScreen() {
     const [dailyRemainingTime, setDailyRemainingTime] = useState(); // in ms
     const [weeklyRemainingTime, setWeeklyRemainingTime] = useState(); // in ms
     const [rankedRemainingTime, setRankedRemainingTime] = useState(); // in ms
+
+    // Loading a tournament
+    const [loadingTournament, setLoadingTournament] = useState(false);
 
     // Current tournaments (what cards are showing)
     const [dailyTournament, setDailyTournament] = useState([
@@ -155,10 +158,10 @@ function NewTournamentScreen() {
     }, []);
 
     // Ensures topics exist for major on mount / major change
-    useEffect(() => {
+    useEffect( () => {
         async function ensureTopicsForMajor() {
             try {
-                await fetch(
+                const res = await fetch(
                     "http://localhost:5000/api/tournament/generate-topics",
                     {
                         method: "POST",
@@ -166,7 +169,13 @@ function NewTournamentScreen() {
                         body: JSON.stringify({ major }),
                     }
                 );
-                // Endpoint will skip if topics already exist
+
+                // If we had to generate topics, create trounaments as well after
+                if ((await res.json()).topicsGenerated) {
+                    await createTournamentForType(major, "daily");
+                    await createTournamentForType(major, "weekly");
+                    await createTournamentForType(major, "ranked");
+                }
             } catch (e) {
                 console.log("Failed to generate topics for major. Error: " + e);
             }
@@ -220,6 +229,16 @@ function NewTournamentScreen() {
         isUpcoming = false
     ) {
         try {
+            setLoadingTournament(true);
+            console.log(
+                "Entering create tournament for tournament type ",
+                tournamentType,
+                " major ",
+                majorParam,
+                " isUpcoming = ",
+                isUpcoming
+            );
+
             // First get a random topic
             const topic = await getRandomTopicForMajor(majorParam);
             if (!topic) {
@@ -252,6 +271,15 @@ function NewTournamentScreen() {
                     ? "Weekly Tournament"
                     : "Ranked Tournament";
 
+            // First make sure we have the students major
+            if (!majorParam) {
+                console.log(
+                    "No major provided, can not create tournament of type",
+                    tournamentType
+                );
+                return;
+            }
+
             // Create tournament in backend
             const res = await fetch(
                 "http://localhost:5000/api/create-tournament",
@@ -265,9 +293,12 @@ function NewTournamentScreen() {
                         tournamentType,
                         endTime, // ms timestamp
                         startTime: startMs,
+                        studentMajor: major,
                     }),
                 }
             );
+
+            console.log("Response from create-tournament:", res);
 
             const data = await res.json().catch(() => null);
 
@@ -280,7 +311,7 @@ function NewTournamentScreen() {
             }
 
             const newTid = data.tid;
-            const newTopics = topic;
+            const newTopics = data.topics;
             const newEndtime = new Date(data.endDate).getTime();
             const newStartTime = new Date(data.startDate).getTime();
 
@@ -300,12 +331,20 @@ function NewTournamentScreen() {
                 if (isUpcoming) {
                     setDailyUpcomingTournament(newTournamentObj);
                 } else {
+                    console.log(
+                        "[1] Setting up dailiy tournament to ",
+                        newTournamentObj
+                    );
                     setDailyTournament([newTournamentObj]);
                 }
             } else if (tournamentType === "weekly") {
                 if (isUpcoming) {
                     setWeeklyUpcomingTournament(newTournamentObj);
                 } else {
+                    console.log(
+                        "[1] Setting up weekly tournament to ",
+                        newTournamentObj
+                    );
                     setWeeklyTournament([newTournamentObj]);
                 }
             } else if (tournamentType === "ranked") {
@@ -373,146 +412,30 @@ function NewTournamentScreen() {
                 if (isUpcoming) {
                     setRankedUpcomingTournament(newTournamentObj);
                 } else {
+                    console.log(
+                        "[1] Setting up ranked tournament to ",
+                        rankedTournament
+                    );
                     setRankedTournament([newTournamentObj]);
                 }
             }
         } catch (err) {
             console.error("Error creating tournament:", err);
+        } finally {
+            setLoadingTournament(false);
         }
     }
 
     // On mount, load current tournaments or create new ones
+    // On mount, load current tournaments or create new ones
     useEffect(() => {
         async function loadOrCreate() {
-            const now = Date.now();
-
             try {
-                const res = await fetch(
-                    "http://localhost:5000/api/tournament/current-tournaments",
-                    {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                    }
-                );
-
-                const data = await res.json().catch(() => null);
-
-                if (!res.ok || !data?.successful) {
-                    console.log(
-                        "Failed to load current tournaments, creating new ones"
-                    );
-                    await createTournamentForType(major, "daily");
-                    await createTournamentForType(major, "weekly");
-                    await createTournamentForType(major, "ranked");
-                    return;
-                }
-
-                // DAILY
-                if (data.daily) {
-                    const endMs = data.daily.endDate
-                        ? new Date(data.daily.endDate).getTime()
-                        : 0;
-
-                    console.log(
-                        "Loaded existing daily tournament with end time:",
-                        endMs
-                    );
-
-                    if (endMs > now) {
-                        setDailyTournament([
-                            {
-                                id: data.daily.tid,
-                                title: data.daily.title,
-                                topics: data.daily.topics,
-                                endDateLabel: "",
-                                endTime: endMs,
-                                reward: data.daily.reward,
-                                isRanked: false,
-                                tournamentType: "daily",
-                                // If backend returns startTime, you can map it here:
-                                // startTime: new Date(data.daily.startTime).getTime(),
-                                startTime: Date.now(),
-                            },
-                        ]);
-                    } else {
-                        console.log("Existing daily expired, creating new");
-                        await createTournamentForType(major, "daily");
-                    }
-                } else {
-                    await createTournamentForType(major, "daily");
-                }
-
-                // WEEKLY
-                if (data.weekly) {
-                    const endMs = data.weekly.endDate
-                        ? new Date(data.weekly.endDate).getTime()
-                        : 0;
-                    console.log(
-                        "Loaded existing weekly tournament with end time:",
-                        endMs
-                    );
-                    if (endMs > now) {
-                        setWeeklyTournament([
-                            {
-                                id: data.weekly.tid,
-                                title: data.weekly.title,
-                                topics: data.weekly.topics,
-                                endDateLabel: "",
-                                endTime: endMs,
-                                reward: data.weekly.reward,
-                                isRanked: false,
-                                tournamentType: "weekly",
-                                startTime: Date.now(),
-                            },
-                        ]);
-                    } else {
-                        console.log("Existing weekly expired, creating new");
-                        await createTournamentForType(major, "weekly");
-                    }
-                } else {
-                    await createTournamentForType(major, "weekly");
-                }
-
-                // RANKED
-                if (data.ranked) {
-                    const endMs = data.ranked.endDate
-                        ? new Date(data.ranked.endDate).getTime()
-                        : 0;
-                    console.log(
-                        "Loaded existing ranked tournament with end time:",
-                        endMs
-                    );
-                    if (endMs > now) {
-                        setRankedTournament([
-                            {
-                                id: data.ranked.tid,
-                                title: data.ranked.title,
-                                topics: data.ranked.topics,
-                                endDateLabel: "",
-                                endTime: endMs,
-                                reward: data.ranked.reward,
-                                isRanked: true,
-                                tournamentType: "ranked",
-                                startTime: Date.now(),
-                                newTournament: true,
-                                tournamentCount: 0,
-                            },
-                        ]);
-                    } else {
-                        console.log("Existing ranked expired, creating new");
-                        await createTournamentForType(major, "ranked");
-                    }
-                } else {
-                    await createTournamentForType(major, "ranked");
-                }
-            } catch (e) {
-                console.log(
-                    "Failed to load current tournaments. Creating fresh ones. Error:",
-                    e
-                );
                 await createTournamentForType(major, "daily");
                 await createTournamentForType(major, "weekly");
                 await createTournamentForType(major, "ranked");
+            } catch (e) {
+                console.log("Failed to create tournaments. Error:", e);
             }
         }
 
@@ -542,6 +465,10 @@ function NewTournamentScreen() {
                         if (now >= dailyUpcomingTournament.startTime) {
                             console.log("Ending daily in between state");
                             setDailyInBetween(false);
+                            console.log(
+                                "[3] Setting up daily tournament to ",
+                                dailyUpcomingTournament
+                            );
                             setDailyTournament([dailyUpcomingTournament]);
                             setDailyUpcomingTournament(null);
                         }
@@ -579,6 +506,10 @@ function NewTournamentScreen() {
                         if (now >= weeklyUpcomingTournament.startTime) {
                             console.log("Ending weekly in between state");
                             setWeeklyInBetween(false);
+                            console.log(
+                                "[3] Setting up weekly tournament to ",
+                                weeklyUpcomingTournament
+                            );
                             setWeeklyTournament([weeklyUpcomingTournament]);
                             setWeeklyUpcomingTournament(null);
                         }
@@ -616,6 +547,10 @@ function NewTournamentScreen() {
                         if (now >= rankedUpcomingTournament.startTime) {
                             console.log("Ending ranked in between state");
                             setRankedInBetween(false);
+                            console.log(
+                                "[3] Setting up ranked tournament to ",
+                                rankedUpcomingTournament
+                            );
                             setRankedTournament([rankedUpcomingTournament]);
                             setRankedUpcomingTournament(null);
                         }
@@ -830,7 +765,6 @@ function NewTournamentScreen() {
                                         rankedTournament[0].tournamentType
                                     }
                                     tournamentOver={rankedInBetween}
-                                    
                                     NewTournament={
                                         rankedInBetween
                                             ? rankedIsFinalInBetween

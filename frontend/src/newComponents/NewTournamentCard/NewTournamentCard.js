@@ -64,34 +64,22 @@ function NewTournamentCard({
         async function initForTid() {
             // If tournament is already over, don't allow joining
             if (tournamentOver) {
-                console.log(
-                    "[NewTournamentCard] Tournament is over, disabling join for",
-                    title
-                );
+                //console.log("[NewTournamentCard] Tournament is over, disabling join for",title);
                 setCanJoin(false);
             } else {
-                console.log(
-                    "[NewTournamentCard] Tournament not over, enabling join for",
-                    title
-                );
+                //console.log("[NewTournamentCard] Tournament not over, enabling join for",title);
                 setCanJoin(true);
             }
 
             if (!tid) {
-                console.log(
-                    "[NewTournamentCard] No tid yet for",
-                    title,
-                    "skipping leaderboard/join check"
-                );
+                //console.log("[NewTournamentCard] No tid yet for",title,"skipping leaderboard/join check");
                 return;
             }
 
             // Check if user is already in tournament
             const tokenString = localStorage.getItem("token");
             if (!tokenString) {
-                console.log(
-                    "[NewTournamentCard] No token, disabling join button"
-                );
+                //console.log("[NewTournamentCard] No token, disabling join button");
                 setCanJoin(false);
             } else {
                 let tokenValue = "";
@@ -120,17 +108,17 @@ function NewTournamentCard({
                         .catch(() => false);
 
                     if (hasJoined) {
-                        console.log(
-                            "[NewTournamentCard] User already joined tid =",
-                            tid
-                        );
+                        //console.log(
+                        //    "[NewTournamentCard] User already joined tid =",
+                        //    tid
+                        //);
                         setCanJoin(false);
                     }
                 } catch (e) {
-                    console.log(
-                        "[NewTournamentCard] Failed has-joined check. Error:",
-                        e
-                    );
+                        //console.log(
+                        //"[NewTournamentCard] Failed has-joined check. Error:",
+                        //e
+                    //);
                 }
             }
 
@@ -150,24 +138,23 @@ function NewTournamentCard({
                 const data = await res.json().catch(() => null);
 
                 if (!res.ok || !data?.successful) {
-                    console.log(
-                        "[NewTournamentCard] Leaderboard failed to load for tid=",
-                        tid
-                    );
+                    //console.log(
+                    //    "[NewTournamentCard] Leaderboard failed to load for tid=",
+                    //    tid
+                    //);
                     return;
                 }
 
-                console.log(
-                    "[NewTournamentCard] Leaderboard data for tid=",
-                    tid,
-                    data
-                );
+                //console.log(
+                //    "[NewTournamentCard] Leaderboard data for tid=",
+                //    tid,
+                //    data
+                //);
                 setLeaderboard(data.participants || []);
             } catch (e) {
-                console.log(
-                    "[NewTournamentCard] Failed to fetch leaderboard. Error:",
-                    e
-                );
+                //console.log("[NewTournamentCard] Failed to fetch leaderboard. Error:",
+                //    e
+                //);
             } finally {
                 setLeaderboardLoading(false);
             }
@@ -232,19 +219,19 @@ function NewTournamentCard({
     // Handle joining a tournament
     const handleJoin = async () => {
         if (!tid) {
-            console.log(
-                "[NewTournamentCard] Tried to join but no tid present for",
-                title
-            );
+            //console.log(
+            //    "[NewTournamentCard] Tried to join but no tid present for",
+            //    title
+            //);
             return;
         }
 
         // Don't allow joining if tournament logically over
         if (tournamentOver) {
-            console.log(
-                "[NewTournamentCard] Tournament is over, cannot join:",
-                tid
-            );
+            //console.log(
+            //    "[NewTournamentCard] Tournament is over, cannot join:",
+            //    tid
+            //);
             setCanJoin(false);
             return;
         }
@@ -252,7 +239,7 @@ function NewTournamentCard({
         // Get user's token
         const tokenString = localStorage.getItem("token");
         if (!tokenString) {
-            console.log("[NewTournamentCard] No token, cannot join tournament");
+            //console.log("[NewTournamentCard] No token, cannot join tournament");
             setCanJoin(false);
             return;
         }
@@ -280,7 +267,7 @@ function NewTournamentCard({
                 }
             );
 
-            console.log("[NewTournamentCard] joining tournament " + tid);
+            //console.log("[NewTournamentCard] joining tournament " + tid);
 
             if (!res.ok) {
                 console.error(
