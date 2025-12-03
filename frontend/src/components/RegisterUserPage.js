@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button, Form } from "react-bootstrap";
 import * as formik from "formik";
-import validationSchema from "../api/validationSchema";
+import {userValidationSchema} from "../api/validationSchema";
 
 
 function RegisterUserPage({formData, setFormData, setStep, isLoading, setLoading}) {
@@ -30,7 +30,7 @@ function RegisterUserPage({formData, setFormData, setStep, isLoading, setLoading
 
     return (
         <Formik
-            validationSchema={validationSchema()}
+            validationSchema={userValidationSchema()}
             onSubmit={handleNextStep}
             initialValues={formData}
         >

@@ -27,7 +27,7 @@ app.use(cors({ origin: "http://localhost:3000" })); //Bybass CORS
 (async () => {
   try {
     await initDb(); // Initializies DB
-    //await addMockUsers(500); // Drops users table, comment out if you want to keep users
+    await addMockUsers(500); // Drops users table, comment out if you want to keep users
     startTournamentFinalizer(); // Starts tournament finalizer interval
     app.listen(PORT, () => {
       console.log(`API listening on http://localhost:${PORT}`);
@@ -747,7 +747,7 @@ app.get("/api/current-user", async (req, res) => {
   if (!token) {
     return res.status(401).json({ error: "Unauthorized no token" });
   }
-  const username = decryptToken(token);
+  const {username} = decryptToken(token);
   //console.log("Decrypted username in current user:", username);
   if (!username) {
     return res.status(401).json({ error: "Unauthorized no username" });
@@ -1979,7 +1979,7 @@ app.get("/api/student-major", async (req, res) => {
 
     // Decode token into username
     //   Adjust this line depending on how you named it in authentication.js
-    const username = decryptToken(token);
+    const {username} = decryptToken(token);
 
     if (!username) {
       return res.status(401).json({

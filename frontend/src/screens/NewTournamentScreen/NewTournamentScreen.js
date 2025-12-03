@@ -8,7 +8,10 @@ import BottomNavBar from "../../newComponents/BottomNavBar/BottomNavBar.js";
 import NewTournamentCard from "../../newComponents/NewTournamentCard/NewTournamentCard.js";
 import XpHeaderBar from "../../newComponents/XpHeaderBar/XpHeaderBar.js";
 
+import {useAuth} from "../../api/AuthContext";
+
 function NewTournamentScreen() {
+    const {token} = useAuth();
     // Time variables for tournament refresh
 
     // Short times for testing
@@ -102,21 +105,21 @@ function NewTournamentScreen() {
     useEffect(() => {
         async function fetchStudentMajor() {
             try {
-                const tokenString = localStorage.getItem("token");
-                if (!tokenString) {
-                    console.log(
-                        "[NewTournamentScreen] No token, skipping student-major fetch."
-                    );
-                    return;
-                }
+                // const tokenString = localStorage.getItem("token");
+                // if (!tokenString) {
+                //     console.log(
+                //         "[NewTournamentScreen] No token, skipping student-major fetch."
+                //     );
+                //     return;
+                // }
 
-                let tokenValue = "";
-                try {
-                    const parsed = JSON.parse(tokenString);
-                    tokenValue = parsed.token || tokenString;
-                } catch {
-                    tokenValue = tokenString;
-                }
+                // let tokenValue = "";
+                // try {
+                //     const parsed = JSON.parse(tokenString);
+                //     tokenValue = parsed.token || tokenString;
+                // } catch {
+                //     tokenValue = tokenString;
+                // }
 
                 const res = await fetch(
                     "http://localhost:5000/api/student-major",
@@ -124,7 +127,7 @@ function NewTournamentScreen() {
                         method: "GET",
                         headers: {
                             "Content-Type": "application/json",
-                            "jwt-token": tokenValue,
+                            "jwt-token": token,
                         },
                     }
                 );

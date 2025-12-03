@@ -48,7 +48,7 @@ export function AuthProvider({ children }) {
     }
 
     const getStudentData = () => {
-        const studentDataString = localStorage.getItem(`studentData`);
+        const studentDataString = sessionStorage.getItem(`studentData`);
         const studentData = JSON.parse(studentDataString);
         return studentData ?? null;
     }

@@ -24,7 +24,7 @@ const schema = {
                 .matches(/[^a-zA-Z0-9]/, "Password must contain at least one special character."),
             university: yup.string()
                         .max(32, "Your first name cannot exceed 32 characters.")
-                        .matches(/^[A-Za-z'-]*$/, "Please enter the name of your University without special characters.")
+                        .matches(/^[A-Za-z '-]*$/, "Please enter the name of your University without special characters.")
                         .required("Please enter the name of your University."),
             major: yup.string()
                 .required("Please select your Major."),
@@ -35,6 +35,24 @@ const schema = {
 export function singleFieldSchema(fieldName) {
     return yup.object({ [fieldName]: schema[fieldName]});
 }
+
+export function userValidationSchema() {
+    return yup.object({ 
+        firstName: schema.firstName,
+        lastName: schema.lastName,
+        username: schema.username,
+        password: schema.password
+    });
+}
+
+export function studentValidationSchema() {
+    return yup.object({
+        university: schema.university,
+        major: schema.major,
+        canvasToken: schema.canvasToken
+    });
+}
+
 export default function validationSchema() {
     return  yup.object(schema);
 }

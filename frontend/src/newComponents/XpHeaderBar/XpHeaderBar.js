@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import ProgressBar from "react-bootstrap/ProgressBar";
 
+import {useAuth} from "../../api/AuthContext";
+
 // Leveling constraints
 const BASE_XP_PER_LEVEL = 200;
 const XP_INCREMENT_PER_LEVEL = 100;
@@ -26,6 +28,7 @@ function computeLevelInfo(totalXp) {
 }
 
 function XpHeaderBar() {
+    const {studentData, loadStudentData} = useAuth();
     // Important states
     const [level, setLevel] = useState(1);
     const [currentXp, setCurrentXp] = useState(0);
@@ -39,56 +42,61 @@ function XpHeaderBar() {
                 setLoading(true);
                 setError("");
 
-                // Get token from localStorage
-                const tokenString = localStorage.getItem("token");
-                if (!tokenString) {
-                    setError("Not logged in");
-                    setLoading(false);
-                    return;
-                }
+                // // Get token from localStorage
+                // const tokenString = localStorage.getItem("token");
+                // if (!tokenString) {
+                //     setError("Not logged in");
+                //     setLoading(false);
+                //     return;
+                // }
 
-                let parsed;
-                try {
-                    parsed = JSON.parse(tokenString);
-                } catch (err) {
-                    console.error("Failed to parse token from localStorage:", err);
-                    setError("Invalid auth token");
-                    setLoading(false);
-                    return;
-                }
+                // let parsed;
+                // try {
+                //     parsed = JSON.parse(tokenString);
+                // } catch (err) {
+                //     console.error("Failed to parse token from localStorage:", err);
+                //     setError("Invalid auth token");
+                //     setLoading(false);
+                //     return;
+                // }
 
-                const token = parsed?.token;
-                if (!token) {
-                    setError("Missing auth token");
-                    setLoading(false);
-                    return;
-                }
+                // const token = parsed?.token;
+                // if (!token) {
+                //     setError("Missing auth token");
+                //     setLoading(false);
+                //     return;
+                // }
 
-                // Get current user from backend
-                const userRes = await fetch(
-                    "http://localhost:5000/api/current-user",
-                    {
-                        method: "GET",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "jwt-token": token,
-                        },
-                    }
-                );
+                // // Get current user from backend
+                // const userRes = await fetch(
+                //     "http://localhost:5000/api/current-user",
+                //     {
+                //         method: "GET",
+                //         headers: {
+                //             "Content-Type": "application/json",
+                //             "jwt-token": token,
+                //         },
+                //     }
+                // );
 
-                if (!userRes.ok) {
-                    console.error(
-                        "Failed to get current user:",
-                        userRes.status,
-                        userRes.statusText
-                    );
-                    setError("Unable to load user");
-                    setLoading(false);
-                    return;
-                }
+                // if (!userRes.ok) {
+                //     console.error(
+                //         "Failed to get current user:",
+                //         userRes.status,
+                //         userRes.statusText
+                //     );
+                //     setError("Unable to load user");
+                //     setLoading(false);
+                //     return;
+                // }
 
-                const userData = await userRes.json();
-                const username = userData.username;
+
+                // const userData = await userRes.json();
+                // const username = userData.username;
+
+                console.log(studentData);
+                
+                const username = studentData?.username;
                 if (!username) {
                     setError("No username returned from server");
                     setLoading(false);

@@ -33,7 +33,7 @@ function ProfileScreen() {
             if (isStudentDataFilled()) {
                 setLoading(false);
             } else {
-                loadStudentData.then( (err) => {
+                loadStudentData().then( (err) => {
                         if (err) {
                             setError(err.cause);
                         }
@@ -47,7 +47,7 @@ function ProfileScreen() {
     // pull-to-refresh
     const refresh = async () => {
         setLoading(true);
-        loadStudentData.then( (err) => {
+        loadStudentData().then( (err) => {
                         if (err) {
                             setError(err.cause);
                         }

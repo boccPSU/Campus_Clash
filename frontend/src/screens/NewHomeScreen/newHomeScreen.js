@@ -27,7 +27,7 @@ function NewHomeScreen() {
 
     const {studentData, loadStudentData, isStudentDataFilled} = useAuth();
 
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [alertsLoading, setAlertsLoading] = useState(true);
     const [alerts, setAlerts] = useState([]);
@@ -410,7 +410,7 @@ function NewHomeScreen() {
 
                         <h1 className="sectionTitle">Alerts</h1>
 
-                        {alertsLoading && (
+                        {loading && (
                             <InfoTile>
                                 <AlertCard
                                     alertTitle="Loading alerts…"
@@ -419,7 +419,7 @@ function NewHomeScreen() {
                             </InfoTile>
                         )}
 
-                        {!alertsLoading &&
+                        {!loading &&
                             (!alertsData || alertsData.length === 0) && (
                                 <InfoTile>
                                     <div className="text-muted">
@@ -439,7 +439,7 @@ function NewHomeScreen() {
                                 </InfoTile>
                             ))}
 
-                        {!alertsLoading &&
+                        {!loading &&
                             alertsData.length > ALERTS_PREVIEW_COUNT && (
                                 <div className="expandToggleWrapper">
                                     <button

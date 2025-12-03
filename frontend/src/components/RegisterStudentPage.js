@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Button, Form} from "react-bootstrap";
 import {Link} from "react-router-dom"
 import * as formik from "formik";
-import validationSchema from "../api/validationSchema";
+import {studentValidationSchema} from "../api/validationSchema";
 
 function RegisterStudentPage({formData, setFormData, setStep, isLoading, setLoading}) {
     const [university, setUniversity] = useState(formData.university);
@@ -31,7 +31,7 @@ function RegisterStudentPage({formData, setFormData, setStep, isLoading, setLoad
 
     return (
         <Formik
-            validationSchema={validationSchema()}
+            validationSchema={studentValidationSchema()}
             onSubmit={!isLoading ? handleSubmit : null}
             initialValues={formData}
         >

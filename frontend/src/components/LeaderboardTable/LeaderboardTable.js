@@ -3,10 +3,14 @@ import Spinner from "react-bootstrap/Spinner";
 import InfoBox from "../InfoBox/InfoBox";
 import InfoTile from "../../newComponents/InfoTile/InfoTile";
 
+import {useAuth} from "../../api/AuthContext";
+
 // Component displaying a leaderboard of majors ranked by XP
 function LeaderboardTable({ data = [] }) {
     const [loading, setLoading] = useState(true);
     const [studentMajor, setStudentMajor] = useState(null);
+
+    const {token} = useAuth();
 
 
     // Fetch current student's major
@@ -22,13 +26,13 @@ function LeaderboardTable({ data = [] }) {
                     return;
                 }
 
-                let tokenValue = "";
-                try {
-                    const parsed = JSON.parse(tokenString);
-                    tokenValue = parsed.token || tokenString;
-                } catch {
-                    tokenValue = tokenString;
-                }
+                // let tokenValue = "";
+                // try {
+                //     const parsed = JSON.parse(tokenString);
+                //     tokenValue = parsed.token || tokenString;
+                // } catch {
+                //     tokenValue = tokenString;
+                // }
 
                 const res = await fetch(
                     "http://localhost:5000/api/student-major",
@@ -36,7 +40,7 @@ function LeaderboardTable({ data = [] }) {
                         method: "GET",
                         headers: {
                             "Content-Type": "application/json",
-                            "jwt-token": tokenValue,
+                            "jwt-token": token,
                         },
                     }
                 );
