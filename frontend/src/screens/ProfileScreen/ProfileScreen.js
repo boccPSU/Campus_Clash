@@ -16,16 +16,7 @@ function ProfileScreen() {
     const navigate = useNavigate();
     const location = useLocation();
 
-    const {logout} = useAuth();
-
-    const [user, setUser] = useState({
-        firstName: "",
-        lastName: "",
-        username: "",
-        university: "",
-        major: "",
-        xp: ""
-    })
+    const {logout, studentData, isStudentDataFilled, loadStudentData} = useAuth();
 
     const returnPath = location.state?.returnPath;
 
@@ -38,43 +29,59 @@ function ProfileScreen() {
 
     useEffect(() => {
         (async () => {
-            await loadUser();
+            if (isStudentDataFilled()) {
+                setLoading(false);
+            } else {
+                loadStudentData.then( (err) => {
+                        if (err) {
+                            setError(err.cause);
+                        }
+                        setLoading(false);
+                    }
+                );
+            }
         })();
     }, []);
 
-    const loadUser = async () => {
-        try {
-            //Get user token
-            const tokenString = localStorage.getItem("token");
-            const userToken = JSON.parse(tokenString);
-            const tokenValue = userToken.token;
-            const res = await fetch("/api/profile", {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                    "jwt-token": tokenValue,
-                },
-            });
-            if (res.status == 500) throw new Error("[PROFILE] Error", {cause: "Could not Connect."});
-            const data = await res.json();
-            if (!res.ok) throw new Error("[PROFILE] Error", {cause: data.error});
-            setUser({
-                firstName: data.firstName,
-                lastName: data.lastName,
-                username: data.username,
-                university: data.university,
-                major: data.major,
-                xp: data.xp
-            });
-        } catch(e) {
-            console.log(e);
-            setError(e.cause);
-        }
-    }
+    // const loadUser = async () => {
+    //     try {
+    //         //Get user token
+    //         const tokenString = localStorage.getItem("token");
+    //         const userToken = JSON.parse(tokenString);
+    //         const tokenValue = userToken.token;
+    //         const res = await fetch("/api/profile", {
+    //             method: "GET",
+    //             headers: {
+    //                 "Content-Type": "application/json",
+    //                 "jwt-token": tokenValue,
+    //             },
+    //         });
+    //         if (res.status == 500) throw new Error("[PROFILE] Error", {cause: "Could not Connect."});
+    //         const data = await res.json();
+    //         if (!res.ok) throw new Error("[PROFILE] Error", {cause: data.error});
+    //         setUser({
+    //             firstName: data.firstName,
+    //             lastName: data.lastName,
+    //             username: data.username,
+    //             university: data.university,
+    //             major: data.major,
+    //             xp: data.xp
+    //         });
+    //     } catch(e) {
+    //         console.log(e);
+    //         setError(e.cause);
+    //     }
+    // }
 
     // pull-to-refresh
     const refresh = async () => {
-        await loadUser();
+        loadStudentData.then( (err) => {
+                        if (err) {
+                            setError(err.cause);
+                        }
+                        setLoading(false);
+                    }
+                );
     };
 
     const handleBack = () => {
@@ -115,7 +122,7 @@ function ProfileScreen() {
             )}
             <ScreenScroll ref={scrollerRef}>
                 <PullToRefresh scrollerRef={scrollerRef} onRefresh={refresh}>
-                    <ProfileInfo user={user}></ProfileInfo>
+                    <ProfileInfo user={studentData}></ProfileInfo>
                 </PullToRefresh>
                 <div className="center">
                     <SettingsButton></SettingsButton>

@@ -22,8 +22,12 @@ import { getMySemesterCoursesWithGrades } from "../api/canvas.js";
 import { Award } from "react-bootstrap-icons";
 import { checkRecentSubmissions } from "../api/canvas.js";
 
+import {useAuth} from "../api/AuthContext.js"
+
 function HomeScreen() {
     const navigate = useNavigate();
+
+    const {token, studentData, loadStudentData, isStudentDataFilled} = useAuth();
 
     // UI state
     const [courses, setCourses] = useState([]); // [{ id, name, percent(int|undefined), grade(letter|'—') }]
@@ -31,104 +35,104 @@ function HomeScreen() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [alerts, setAlerts] = useState([]);
-    const [alertsLoading, setAlertsLoading] = useState(true);
 
-    const [studentData, setStudentData] = useState(JSON.parse(sessionStorage.getItem('studentData')));
+    //const [studentData, setStudentData] = useState(JSON.parse(sessionStorage.getItem('studentData')));
 
-    useEffect(() => {
-        sessionStorage.setItem('studentData', JSON.stringify(studentData));
-    }, [studentData]);
+    // useEffect(() => {
+    //     sessionStorage.setItem('studentData', JSON.stringify(studentData));
+    // }, [studentData]);
 
     // collapse header / pull-to-refresh
     const scrollerRef = useRef(null);
     const collapsed = useCollapseOnScroll(scrollerRef);
 
-    const loadCourses = async () => {
-        setError("");
-        setLoading(true);
-        try {
-            // 1) Fetch filtered + deduped courses for THIS semester that HAVE grades.
-            //    Shape: [{ id, name, percent(number|null), grade(string|null), created_at }, ...]
-            const raw = await getMySemesterCoursesWithGrades();
+    // const loadCourses = async () => {
+    //     setError("");
+    //     setLoading(true);
+    //     try {
+    //         // 1) Fetch filtered + deduped courses for THIS semester that HAVE grades.
+    //         //    Shape: [{ id, name, percent(number|null), grade(string|null), created_at }, ...]
+    //         const raw = await getMySemesterCoursesWithGrades();
 
-            // 2) Compute GPA from RAW values (use precise percent if present)
-            const nextGpa = computeGPAEqualCredits(
-                raw.map((c) => ({ grade: c.grade, percent: c.percent }))
-            );
-            setGpa(nextGpa);
+    //         // 2) Compute GPA from RAW values (use precise percent if present)
+    //         const nextGpa = computeGPAEqualCredits(
+    //             raw.map((c) => ({ grade: c.grade, percent: c.percent }))
+    //         );
+    //         setGpa(nextGpa);
 
-            // 3) Normalize for display:
-            //    - Round percent only for the bar label (keep undefined if missing)
-            //    - Always show a letter: Canvas letter OR derived from percent; if neither → "—"
-            const normalizedForUI = raw.map((c) => {
-                const rawPercent =
-                    typeof c.percent === "number" ? c.percent : null;
-                const roundedPercent =
-                    rawPercent !== null ? Math.round(rawPercent) : undefined;
-                const letter = c.grade || percentToLetter(rawPercent) || "—";
-                return {
-                    id: c.id,
-                    name: c.name ?? `Course ${c.id}`,
-                    percent: roundedPercent, // integer for the bar
-                    grade: letter,
-                };
-            });
+    //         // 3) Normalize for display:
+    //         //    - Round percent only for the bar label (keep undefined if missing)
+    //         //    - Always show a letter: Canvas letter OR derived from percent; if neither → "—"
+    //         const normalizedForUI = raw.map((c) => {
+    //             const rawPercent =
+    //                 typeof c.percent === "number" ? c.percent : null;
+    //             const roundedPercent =
+    //                 rawPercent !== null ? Math.round(rawPercent) : undefined;
+    //             const letter = c.grade || percentToLetter(rawPercent) || "—";
+    //             return {
+    //                 id: c.id,
+    //                 name: c.name ?? `Course ${c.id}`,
+    //                 percent: roundedPercent, // integer for the bar
+    //                 grade: letter,
+    //             };
+    //         });
 
-            setCourses(normalizedForUI);
-            setStudentData(prevStudent => ({
-                ...prevStudent,
-                gpa: nextGpa,
-                courses: normalizedForUI,
-                filled: true
-            }));
-            console.log("Student Data Post-Course Load: ", studentData);
-        } catch (e) {
-            console.error("Failed to load Canvas data:", e);
-            setError(
-                `Could not load courses from Canvas.\n${e?.message ?? ""}`
-            );
-            setCourses([]);
-            setGpa(null);
-        } finally {
-            setLoading(false);
-        }
-    };
+    //         setCourses(normalizedForUI);
+    //         setStudentData(prevStudent => ({
+    //             ...prevStudent,
+    //             gpa: nextGpa,
+    //             courses: normalizedForUI,
+    //             filled: true
+    //         }));
+    //         console.log("Student Data Post-Course Load: ", studentData);
+    //     } catch (e) {
+    //         console.error("Failed to load Canvas data:", e);
+    //         setError(
+    //             `Could not load courses from Canvas.\n${e?.message ?? ""}`
+    //         );
+    //         setCourses([]);
+    //         setGpa(null);
+    //     } finally {
+    //         setLoading(false);
+    //     }
+    // };
 
-    const loadAlerts = async () => {
-        try {
-            setAlertsLoading(true);
-            const upcoming = await getUpcomingAssignmentAlerts({
-                daysAhead: 14,
-            });
-            setAlerts(upcoming);
-            setStudentData(prevStudent => ({
-                ...prevStudent,
-                alerts: upcoming,
-                filled: true
-            }));
-            console.log("Student Data Post-Alerts Load: ", studentData);
-        } catch (e) {
-            console.error("Failed to load upcoming assignments:", e);
-            setAlerts([]);
-        } finally {
-            setAlertsLoading(false);
-        }
-    };
+    // const loadAlerts = async () => {
+    //     try {
+    //         setAlertsLoading(true);
+    //         const upcoming = await getUpcomingAssignmentAlerts({
+    //             daysAhead: 14,
+    //         });
+    //         setAlerts(upcoming);
+    //         setStudentData(prevStudent => ({
+    //             ...prevStudent,
+    //             alerts: upcoming,
+    //             filled: true
+    //         }));
+    //         console.log("Student Data Post-Alerts Load: ", studentData);
+    //     } catch (e) {
+    //         console.error("Failed to load upcoming assignments:", e);
+    //         setAlerts([]);
+    //     } finally {
+    //         setAlertsLoading(false);
+    //     }
+    // };
 
     // initial load
     useEffect(() => {
         (async () => {
-            let studentDataToken = JSON.parse(sessionStorage.getItem('studentData'));
-            console.log(studentDataToken);
-            if (studentDataToken?.filled ?? false) {
-                setStudentData(studentDataToken);
+            if (isStudentDataFilled()) {
                 setLoading(false);
-                setAlertsLoading(false);
             } else {
-                await setTokens();
-                await loadCourses();
-                await loadAlerts();
-                await checkRecentSubmissions({ lookbackMinutes: 60 * 24 * 7 });
+                setLoading(true);
+                loadStudentData().then(
+                    (err) => {
+                        if (err) {
+                            setError(err.cause);
+                        }
+                        setLoading(false);
+                    }
+                );
             }
         })();
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -136,46 +140,55 @@ function HomeScreen() {
 
     // pull-to-refresh
     const refresh = async () => {
-        await setTokens();
-        await loadCourses();
-        await loadAlerts();
-        await checkRecentSubmissions({ lookbackMinutes: 60 * 24 * 7 });
+        // await setTokens();
+        // await loadCourses();
+        // await loadAlerts();
+        // await checkRecentSubmissions({ lookbackMinutes: 60 * 24 * 7 });
+        setLoading(true);
+        loadStudentData().then(
+            (err) => {
+                if (err) {
+                    setError(err.cause);
+                }
+                setLoading(false);
+            }
+        );
         await new Promise((r) => setTimeout(r, 300));
     };
 
-    const setTokens = async () => {
-        try {
-            //Get user token
-            const tokenString = localStorage.getItem("token");
-            const userToken = JSON.parse(tokenString);
-            const tokenValue = userToken.token;
-            const res = await fetch("/api/profile", {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                    "jwt-token": tokenValue,
-                },
-            });
-            if (res.status == 500) throw new Error("[PROFILE] Error", {cause: "Could not Connect."});
-            const data = await res.json();
-            if (!res.ok) throw new Error("[PROFILE] Error", {cause: data.error});
-            console.log(data);
-            setStudentData(prevStudent => ({
-                ...prevStudent,
-                firstName: data.firstName,
-                lastName: data.lastName,
-                username: data.username,
-                university: data.university,
-                major: data.major,
-                xp: data.xp,
-                canvasToken: data.canvasToken,
-                filled: true
-            }));
-        } catch (err) {
-            console.log(err);
-            setError(err.cause);
-        }
-    };
+    // const setTokens = async () => {
+    //     try {
+    //         //Get user token
+    //         const tokenString = localStorage.getItem("token");
+    //         const userToken = JSON.parse(tokenString);
+    //         const tokenValue = userToken.token;
+    //         const res = await fetch("/api/profile", {
+    //             method: "GET",
+    //             headers: {
+    //                 "Content-Type": "application/json",
+    //                 "jwt-token": tokenValue,
+    //             },
+    //         });
+    //         if (res.status == 500) throw new Error("[PROFILE] Error", {cause: "Could not Connect."});
+    //         const data = await res.json();
+    //         if (!res.ok) throw new Error("[PROFILE] Error", {cause: data.error});
+    //         console.log(data);
+    //         setStudentData(prevStudent => ({
+    //             ...prevStudent,
+    //             firstName: data.firstName,
+    //             lastName: data.lastName,
+    //             username: data.username,
+    //             university: data.university,
+    //             major: data.major,
+    //             xp: data.xp,
+    //             canvasToken: data.canvasToken,
+    //             filled: true
+    //         }));
+    //     } catch (err) {
+    //         console.log(err);
+    //         setError(err.cause);
+    //     }
+    // };
 
     return (
         <>
@@ -225,7 +238,7 @@ function HomeScreen() {
                                         <Button
                                             size="sm"
                                             variant="outline-secondary"
-                                            onClick={loadCourses}
+                                            onClick={refresh}
                                         >
                                             Try again
                                         </Button>
@@ -233,7 +246,7 @@ function HomeScreen() {
                                 </div>
                             )}
 
-                            {!loading && !error && courses.length === 0 && (
+                            {!loading && !error && studentData?.courses?.length === 0 && (
                                 <div className="text-muted">
                                     No active courses found.
                                 </div>
@@ -264,19 +277,19 @@ function HomeScreen() {
 
                         {/* Alert Section */}
                         <InfoBox title="Alerts">
-                            {alertsLoading && (
+                            {loading && (
                                 <AlertCard
                                     alertTitle="Loading alerts…"
                                     alertInfo="Fetching upcoming items"
                                 />
                             )}
-                            {!alertsLoading && alerts.length === 0 && (
+                            {!loading && studentData?.alerts?.length === 0 && (
                                 <div className="text-muted">
                                     No upcoming graded items in the next 14
                                     days.
                                 </div>
                             )}
-                            {!alertsLoading &&
+                            {!loading &&
                                 studentData?.alerts?.map((a) => (
                                     <AlertCard
                                         key={a.id}

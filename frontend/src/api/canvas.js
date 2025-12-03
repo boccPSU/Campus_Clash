@@ -1,3 +1,6 @@
+import { computeGPAEqualCredits, percentToLetter } from "../utils/gpa";
+
+
 // Hardcoded semester start (edit this date as needed)
 const SEMESTER_START = new Date("2025-01-10T00:00:00Z"); // Fall 2025
 
@@ -27,6 +30,150 @@ function toQuery(params) {
     return qs ? `?${qs}` : "";
 }
 
+export async function loadCourses(token) {
+          try {
+              global.token = token;
+
+              // 1) Fetch filtered + deduped courses for THIS semester that HAVE grades.
+              //    Shape: [{ id, name, percent(number|null), grade(string|null), created_at }, ...]
+              const raw = await getMySemesterCoursesWithGrades();
+  
+              // 2) Compute GPA from RAW values (use precise percent if present)
+              const nextGpa = computeGPAEqualCredits(
+                  raw.map((c) => ({ grade: c.grade, percent: c.percent }))
+              );
+  
+              // 3) Normalize for display:
+              //    - Round percent only for the bar label (keep undefined if missing)
+              //    - Always show a letter: Canvas letter OR derived from percent; if neither → "—"
+              const normalizedForUI = raw.map((c) => {
+                  const rawPercent =
+                      typeof c.percent === "number" ? c.percent : null;
+                  const roundedPercent =
+                      rawPercent !== null ? Math.round(rawPercent) : undefined;
+                  const letter = c.grade || percentToLetter(rawPercent) || "—";
+                  return {
+                      id: c.id,
+                      name: c.name ?? `Course ${c.id}`,
+                      percent: roundedPercent, // integer for the bar
+                      grade: letter,
+                  };
+              });
+
+              const courseData = {
+                gpa: nextGpa,
+                courses: normalizedForUI
+              }
+
+              console.log("[CANVAS] Course Data Post-Course Load: ", courseData);
+
+              return courseData;
+          } catch (e) {
+              console.error("[CANVAS] Failed to load Canvas data:", e);
+              return {courseError: e};
+          }
+}
+
+export async function loadAlerts(token) {
+    try {
+        global.token = token;
+        const upcoming = await getUpcomingAssignmentAlerts({
+            daysAhead: 14,
+        });
+        const alertData = {
+          alerts: upcoming
+        }
+
+        console.log("[CANVAS] Alert Data Post-Alerts Load: ", alertData);
+
+        return alertData;
+    } catch (e) {
+        console.error("Failed to load upcoming assignments:", e);
+        return {alertsError: e};
+    }
+};
+
+// checks for recent submissions within the past seven days
+export async function checkRecentSubmissions(token) {
+  global.token = token;
+  
+  const lookbackMinutes = 60 * 24 * 7;
+  const now = new Date();
+
+  const since = new Date(now.getTime() - lookbackMinutes * 60_000);
+
+  // reuse course filter
+  const selectedCourses = await getMySemesterCoursesWithGrades();
+
+  const results = [];
+
+  for (const c of selectedCourses) {
+    const courseId = c.id;
+
+    const params = {
+      per_page: 100,
+      "student_ids[]": "self",
+      "include[]": "assignment",
+      submitted_since: since.toISOString(),
+    };
+
+    let subs;
+    try {
+      subs = await canvasGet(`/v1/courses/${courseId}/students/submissions`, params);
+    } catch (e) {
+      console.warn(`[recent] skip course_id=${courseId} name="${c.name}" reason=fetch_error: ${String(e)}`);
+      continue;
+    }
+
+    if (!Array.isArray(subs) || subs.length === 0) continue;
+
+    for (const s of subs) {
+      const submittedAt = s?.submitted_at ?? null;
+      const a = s?.assignment || {};
+      const assignmentId = a?.id ?? s?.assignment_id ?? null;
+      const assignmentName = (a?.name ?? "(untitled)").trim();
+      const dueAtISO = a?.due_at ?? null;
+
+      // determine on-time vs late
+      let onTime = null;
+      if (typeof s?.late === "boolean") {
+        onTime = !s.late;
+      } else if (dueAtISO && submittedAt) {
+        const dueT = Date.parse(dueAtISO);
+        const subT = Date.parse(submittedAt);
+        if (Number.isFinite(dueT) && Number.isFinite(subT)) {
+          onTime = subT <= dueT;
+        }
+      }
+
+      console.log(
+        `[recent] submitted: course_id=${courseId} course="${c.name}" assignment_id=${assignmentId} assignment="${assignmentName}" submitted_at=${submittedAt}`
+      );
+
+      if (onTime === true) {
+        console.log(`[recent] status: on-time (due=${dueAtISO ?? "none"})`);
+      } else if (onTime === false) {
+        console.log(`[recent] status: LATE (due=${dueAtISO ?? "none"})`);
+      } else {
+        console.log(`[recent] status: no-due-date-or-unknown (due=${dueAtISO ?? "none"})`);
+      }
+
+      results.push({
+        courseId,
+        courseName: c.name,
+        assignmentId,
+        assignmentName,
+        submittedAtISO: submittedAt,
+        dueAtISO,
+        onTime,
+      });
+    }
+  }
+
+  console.log(`[recent] summary: lookbackMinutes=${lookbackMinutes} matches=${results.length}`);
+  return results;
+}
+
 // Basic GET function through backend
 export async function canvasGet(path, params) {
     //Make sure path starts with /
@@ -40,7 +187,7 @@ export async function canvasGet(path, params) {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          "jwt-token": JSON.parse(localStorage.getItem("token"))?.token
+          "jwt-token": global.token
         },
         credentials: "omit", // don't send browser cookies
     });
@@ -332,89 +479,8 @@ export async function logUpcomingAssignmentsForSelectedCourses({ daysAhead = 14,
   console.log(`[assignments] summary: courses=${courseIds.length} assignments_logged=${total}`);
 }
 
-
-// ------------------------------------------------------------
-// Recent submissions checker (server-side filtering version)
-// ------------------------------------------------------------
-
-// checks for recent submissions within the past seven days
-export async function checkRecentSubmissions({ lookbackMinutes = 60 * 24 * 7, now = new Date() } = {}) {
-  const since = new Date(now.getTime() - lookbackMinutes * 60_000);
-
-  // reuse course filter
-  const selectedCourses = await getMySemesterCoursesWithGrades();
-
-  const results = [];
-
-  for (const c of selectedCourses) {
-    const courseId = c.id;
-
-    const params = {
-      per_page: 100,
-      "student_ids[]": "self",
-      "include[]": "assignment",
-      submitted_since: since.toISOString(),
-    };
-
-    let subs;
-    try {
-      subs = await canvasGet(`/v1/courses/${courseId}/students/submissions`, params);
-    } catch (e) {
-      console.warn(`[recent] skip course_id=${courseId} name="${c.name}" reason=fetch_error: ${String(e)}`);
-      continue;
-    }
-
-    if (!Array.isArray(subs) || subs.length === 0) continue;
-
-    for (const s of subs) {
-      const submittedAt = s?.submitted_at ?? null;
-      const a = s?.assignment || {};
-      const assignmentId = a?.id ?? s?.assignment_id ?? null;
-      const assignmentName = (a?.name ?? "(untitled)").trim();
-      const dueAtISO = a?.due_at ?? null;
-
-      // determine on-time vs late
-      let onTime = null;
-      if (typeof s?.late === "boolean") {
-        onTime = !s.late;
-      } else if (dueAtISO && submittedAt) {
-        const dueT = Date.parse(dueAtISO);
-        const subT = Date.parse(submittedAt);
-        if (Number.isFinite(dueT) && Number.isFinite(subT)) {
-          onTime = subT <= dueT;
-        }
-      }
-
-      console.log(
-        `[recent] submitted: course_id=${courseId} course="${c.name}" assignment_id=${assignmentId} assignment="${assignmentName}" submitted_at=${submittedAt}`
-      );
-
-      if (onTime === true) {
-        console.log(`[recent] status: on-time (due=${dueAtISO ?? "none"})`);
-      } else if (onTime === false) {
-        console.log(`[recent] status: LATE (due=${dueAtISO ?? "none"})`);
-      } else {
-        console.log(`[recent] status: no-due-date-or-unknown (due=${dueAtISO ?? "none"})`);
-      }
-
-      results.push({
-        courseId,
-        courseName: c.name,
-        assignmentId,
-        assignmentName,
-        submittedAtISO: submittedAt,
-        dueAtISO,
-        onTime,
-      });
-    }
-  }
-
-  console.log(`[recent] summary: lookbackMinutes=${lookbackMinutes} matches=${results.length}`);
-  return results;
-}
-
-export async function logRecentSubmissions(opts) {
-  await checkRecentSubmissions(opts);
+export async function logRecentSubmissions(opts, token) {
+  await checkRecentSubmissions(opts, token);
 }
 
 // ------------------------------------------------------------
