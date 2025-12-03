@@ -15,6 +15,7 @@ import { getMySemesterCoursesWithGrades } from "../../api/canvas.js";
 import { Bell, ChevronDown, ChevronUp } from "react-bootstrap-icons";
 import { checkRecentSubmissions } from "../../api/canvas.js";
 import XpHeaderBar from "../../newComponents/XpHeaderBar/XpHeaderBar.js";
+import MainPopup from "../../newComponents/MainPopup/MainPopup.js";
 
 const COURSES_PREVIEW_COUNT = 3;
 const ALERTS_PREVIEW_COUNT = 3;
@@ -201,6 +202,43 @@ function NewHomeScreen() {
             <ScreenScroll ref={scrollerRef}>
                 <PullToRefresh scrollerRef={scrollerRef} onRefresh={refresh}>
                     <Container className="mainContainer">
+                        {/* Level Up Popup (should be on each screen) */}
+                        <MainPopup
+                            open={false}
+                            title="Congrats, you leveled up!"
+                            message="Next level unlocked at 1500 XP."
+                            buttonLabel1="Leave"
+                            buttonLabel2="Stay"
+                            onButton1={"handleLeave"}
+                            onButton2={"handleStay"}
+                            
+                        >
+                            {/* optional extra content here */}
+                        </MainPopup>
+
+                        {/* Quest Popup */}
+                        <MainPopup
+                            open={true}
+                            title="Quests"
+                            message="Claim a quest to earn gems"
+                            buttonLabel1="Leave"
+                            buttonLabel2="Stay"
+                            onButton1={"handleLeave"}
+                            onButton2={"handleStay"}
+                            
+                        >
+                            <button> Refresh Quest 50 gems</button>
+                            <InfoTile>
+                                Quest 1: Complete 3 assignments this week - 100 gems
+                            </InfoTile>
+                            <InfoTile>
+                                Quest 2: Study for 5 hours this week - 75 gems
+                            </InfoTile>
+                            <InfoTile>
+                                Quest 3: Participate in 2 battles this week - 150 gems
+                            </InfoTile>
+                        </MainPopup>
+
                         <XpHeaderBar
                             level={4}
                             currentXp={1200}
@@ -300,9 +338,7 @@ function NewHomeScreen() {
                                         type="button"
                                         className="expandToggleIcon"
                                         onClick={() =>
-                                            setShowAllCourses(
-                                                (prev) => !prev
-                                            )
+                                            setShowAllCourses((prev) => !prev)
                                         }
                                         aria-label={
                                             showAllCourses
@@ -390,7 +426,7 @@ function NewHomeScreen() {
                             )}
                     </Container>
                 </PullToRefresh>
-
+                
                 <div style={{ height: "var(--bottom-nav-height, 72px)" }} />
             </ScreenScroll>
 

@@ -1,14 +1,15 @@
 // Displays tournament game
 
 import React, { useState, useEffect, useRef } from "react";
-import BottomNav from "../../components/BottomNav/BottomNav.js";
-import HeaderBar from "../../components/HeaderBar/HeaderBar.js";
 import useCollapseOnScroll from "../../components/hooks/useCollapseOnScroll.js";
 import PullToRefresh from "../../components/interaction/PullToRefresh.js";
 import ScreenScroll from "../../components/ScreenScroll/ScreenScroll.js";
 import InfoTile from "../../newComponents/InfoTile/InfoTile.js";
 import { Button, Container } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
+import MainPopup from "../../newComponents/MainPopup/MainPopup.js";
+import XpHeaderBar from "../../newComponents/XpHeaderBar/XpHeaderBar.js";
+import BottomNavBar from "../../newComponents/BottomNavBar/BottomNavBar.js";
 
 // Timers for each question
 const questionTime = 20; // 15s answer phase + 5s reveal
@@ -17,7 +18,6 @@ const REVEAL_PHASE_SECONDS = 5; // last 5 seconds
 const REVEAL_AT_SECONDS = REVEAL_PHASE_SECONDS; // when timeLeft === 5
 
 export default function NewQuestionScreen() {
-    // Data passed from tournament card using navigate()
     const location = useLocation();
     const navState = location.state || {};
     const navTitle = navState.title || "Tournament";
@@ -26,47 +26,43 @@ export default function NewQuestionScreen() {
 
     const navigate = useNavigate();
 
-    // Important states
+    const [questions, setQuestions] = useState([]);
+    const [currentIndex, setCurrentIndex] = useState(0);
 
-    const [questions, setQuestions] = useState([]); // List of questions
-    const [currentIndex, setCurrentIndex] = useState(0); // Current question index (question 1, question 2, ...)
-
-    const [selectedIndex, setSelectedIndex] = useState(null); // which answer user clicked or auto-revealed
-    const [isCorrect, setIsCorrect] = useState(null); // true / false
+    const [selectedIndex, setSelectedIndex] = useState(null);
+    const [isCorrect, setIsCorrect] = useState(null);
     const [score, setScore] = useState(0);
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
-    // Game states (loading, question, gameOver)
+    // "loading" | "question" | "gameover"
     const [stage, setStage] = useState("loading");
 
-    // Timer for the current question (counts down from 20)
     const [timeLeft, setTimeLeft] = useState(questionTime);
 
-    // Refs for timers / guards
+    // Popup + pending navigation path
+    const [showLeavePopup, setShowLeavePopup] = useState(false);
+    const [pendingPath, setPendingPath] = useState(null);
+
     const timerRef = useRef(null);
     const answerTimeoutRef = useRef(null);
-    const hasAnsweredRef = useRef(false); // true only if the student clicked an answer
+    const hasAnsweredRef = useRef(false);
 
-    // Header UI
     const scrollerRef = useRef(null);
     const collapsed = useCollapseOnScroll(scrollerRef);
 
-    // Load questions for this tournament
     const loadQuestions = async () => {
         try {
             setLoading(true);
             setError("");
 
-            // Get question set from tournament table
             const res = await fetch(
                 `http://localhost:5000/api/tournament/questions/${encodeURIComponent(
                     navId
                 )}`
             );
 
-            // If there are no questions go to game over screen
             if (res.status === 204) {
                 console.log("No questions available for this tournament yet.");
                 setQuestions([]);
@@ -78,7 +74,6 @@ export default function NewQuestionScreen() {
                 throw new Error(`Failed to load questions (${res.status})`);
             }
 
-            // Get questions
             const data = await res.json();
             const loadedQuestions = data.questions || [];
 
@@ -92,7 +87,6 @@ export default function NewQuestionScreen() {
                 return;
             }
 
-            // initialize start of tournament questions
             setQuestions(loadedQuestions);
             setCurrentIndex(0);
             setSelectedIndex(null);
@@ -109,28 +103,22 @@ export default function NewQuestionScreen() {
         }
     };
 
-    // Used by PullToRefresh to reload questions
     const refresh = async () => {
         await loadQuestions();
     };
 
-    // Initial load on mount
     useEffect(() => {
         loadQuestions();
     }, []);
 
-    // Per question timer set up
     useEffect(() => {
-        // Make sure we are in question stage
         if (stage !== "question" || !questions[currentIndex]) return;
 
-        // Reset question state
         hasAnsweredRef.current = false;
         setSelectedIndex(null);
         setIsCorrect(null);
         setTimeLeft(questionTime);
 
-        // Clear old timers
         if (timerRef.current) {
             clearInterval(timerRef.current);
             timerRef.current = null;
@@ -140,11 +128,9 @@ export default function NewQuestionScreen() {
             answerTimeoutRef.current = null;
         }
 
-        // Helper function to reveal correct anser if user has not selected one in time
         const revealCorrectAnswer = () => {
             const q = questions[currentIndex];
             if (!q) return;
-            // Show correct answer visually (green), but do not give any points
             setSelectedIndex(q.correctIndex);
         };
 
@@ -152,12 +138,10 @@ export default function NewQuestionScreen() {
             setTimeLeft((prev) => {
                 const next = prev - 1;
 
-                // At 5 seconds left, if user hasn't answered, reveal correct answer
                 if (next === REVEAL_AT_SECONDS && !hasAnsweredRef.current) {
                     revealCorrectAnswer();
                 }
 
-                // Time is up, auto-advance
                 if (next <= 0) {
                     if (timerRef.current) {
                         clearInterval(timerRef.current);
@@ -179,11 +163,9 @@ export default function NewQuestionScreen() {
         };
     }, [stage, currentIndex, questions.length]);
 
-    // Handle game over stage
     useEffect(() => {
         if (stage !== "gameover") return;
 
-        // Stop timers
         if (timerRef.current) {
             clearInterval(timerRef.current);
             timerRef.current = null;
@@ -193,10 +175,8 @@ export default function NewQuestionScreen() {
             answerTimeoutRef.current = null;
         }
 
-        // Send final score to backend
         const sendFinalScore = async () => {
             try {
-                // Get user token
                 const tokenString = localStorage.getItem("token");
                 if (!tokenString) {
                     console.warn("No token found, skipping score update");
@@ -224,8 +204,8 @@ export default function NewQuestionScreen() {
                             "jwt-token": tokenValue,
                         },
                         body: JSON.stringify({
-                            score, // Player’s final score
-                            tid: navId, // Tournaments title
+                            score,
+                            tid: navId,
                         }),
                     }
                 );
@@ -242,14 +222,11 @@ export default function NewQuestionScreen() {
             }
         };
 
-        // Update users xp amount based on tournament type
-        // Can adjust scores later
         const giveXpToUser = async (navType) => {
             let xpAmount;
             let username;
 
             try {
-                // Get token from localStorage
                 const tokenString = localStorage.getItem("token");
                 if (!tokenString) {
                     console.warn(
@@ -277,7 +254,6 @@ export default function NewQuestionScreen() {
                     return;
                 }
 
-                // Get current user from backend
                 const res = await fetch(
                     "http://localhost:5000/api/current-user",
                     {
@@ -309,7 +285,6 @@ export default function NewQuestionScreen() {
                     return;
                 }
 
-                // Decide XP based on navType
                 if (navType === "daily") {
                     xpAmount = 200;
                 } else if (navType === "weekly") {
@@ -324,10 +299,9 @@ export default function NewQuestionScreen() {
                 console.log("Giving", xpAmount, "XP to user", username);
             } catch (e) {
                 console.log("Error getting username or xp amount", e);
-                return; // don't continue if we failed here
+                return;
             }
 
-            // If we get here, username & xpAmount should be valid
             try {
                 console.log("About to call /api/receive-xp with", {
                     username,
@@ -367,12 +341,9 @@ export default function NewQuestionScreen() {
         sendFinalScore();
     }, [stage, score, navId]);
 
-    // Answer handling
     const handleAnswer = (index) => {
         if (stage !== "question") return;
         if (!questions[currentIndex]) return;
-
-        // Don't allow multiple answers / changing answer
         if (hasAnsweredRef.current) return;
         hasAnsweredRef.current = true;
 
@@ -386,13 +357,12 @@ export default function NewQuestionScreen() {
             setScore((prev) => prev + 100);
         }
 
-        // Stop main timer and start the 5-second reveal/transition window
         if (timerRef.current) {
             clearInterval(timerRef.current);
             timerRef.current = null;
         }
 
-        setTimeLeft(REVEAL_PHASE_SECONDS); // visually in reveal window (but bar is already at 0)
+        setTimeLeft(REVEAL_PHASE_SECONDS);
 
         if (answerTimeoutRef.current) {
             clearTimeout(answerTimeoutRef.current);
@@ -403,7 +373,6 @@ export default function NewQuestionScreen() {
     };
 
     const handleNextQuestion = () => {
-        // Clear any "after answer" timeout
         if (answerTimeoutRef.current) {
             clearTimeout(answerTimeoutRef.current);
             answerTimeoutRef.current = null;
@@ -418,11 +387,35 @@ export default function NewQuestionScreen() {
         }
     };
 
+    // For game over "Return to Tournaments" button
     const handleReturnToTournament = () => {
-        navigate(-1);
+        navigate("/tournament");
     };
 
-    // Render helper functions
+    // Handle clicks from BottomNavBar
+    const handleBottomNavClick = (path) => {
+        if (stage === "question") {
+            setPendingPath(path);
+            setShowLeavePopup(true);
+        } else {
+            navigate(path);
+        }
+    };
+
+    const handleLeave = () => {
+        setShowLeavePopup(false);
+        if (pendingPath) {
+            navigate(pendingPath);
+        } else {
+            navigate("/tournament");
+        }
+    };
+
+    const handleStay = () => {
+        setShowLeavePopup(false);
+        setPendingPath(null);
+    };
+
     const renderLoadingOrError = () => (
         <div className="questionTile">
             <InfoTile title={navTitle}>
@@ -454,8 +447,6 @@ export default function NewQuestionScreen() {
             );
         }
 
-        // Progress bar for the answer phase only (first 15 seconds)
-        // timeLeft goes from 20 to 5 during answer phase.
         const effectiveTime = Math.max(
             Math.min(timeLeft - REVEAL_PHASE_SECONDS, answerTime),
             0
@@ -504,7 +495,7 @@ export default function NewQuestionScreen() {
                                         key={idx}
                                         variant={variant}
                                         onClick={() => handleAnswer(idx)}
-                                        disabled={selectedIndex !== null} // locked after answer or reveal
+                                        disabled={selectedIndex !== null}
                                     >
                                         {opt}
                                     </Button>
@@ -527,7 +518,6 @@ export default function NewQuestionScreen() {
                             )}
                         </div>
 
-                        {/* Timer bar along the bottom (15s only) */}
                         <div className="questionTimerBar">
                             <div className="questionTimerTrack">
                                 <div
@@ -566,18 +556,14 @@ export default function NewQuestionScreen() {
         </div>
     );
 
-    // Main render
     return (
         <>
-            {/* Top navigation header */}
-            <HeaderBar title="Tournaments" collapsed={collapsed} />
+            <XpHeaderBar />
 
-            {/* Spacer to push content below the header when fixed */}
             <div
                 className={`headerSpacer ${collapsed ? "is-collapsed" : ""}`}
             />
 
-            {/* Scrollable content area with pull-to-refresh */}
             <ScreenScroll ref={scrollerRef}>
                 <PullToRefresh scrollerRef={scrollerRef} onRefresh={refresh}>
                     <Container className="mainContainer questionMain">
@@ -590,8 +576,20 @@ export default function NewQuestionScreen() {
                 </PullToRefresh>
             </ScreenScroll>
 
-            {/* Persistent bottom navigation bar */}
-            <BottomNav />
+            <BottomNavBar onNavClick={handleBottomNavClick} />
+
+            <MainPopup
+                open={showLeavePopup}
+                title="Leave tournament?"
+                message="If you leave now, you will not be able to rejoin."
+                buttonLabel1="Leave"
+                buttonLabel2="Stay"
+                onButton1={handleLeave}
+                onButton2={handleStay}
+                onClose={handleStay}
+            >
+                {/* optional extra content here */}
+            </MainPopup>
         </>
     );
 }

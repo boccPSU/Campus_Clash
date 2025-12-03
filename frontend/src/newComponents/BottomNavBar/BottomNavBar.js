@@ -1,7 +1,6 @@
 import { Nav } from "react-bootstrap";
 import { useLocation } from "react-router-dom";
 
-
 import {
     House,
     Calendar,
@@ -10,61 +9,81 @@ import {
     Diagram3,
 } from "react-bootstrap-icons";
 
-function BottomNavBar() {
-    // Used to highlight active nav item
+function BottomNavBar({ onNavClick }) {
     const location = useLocation();
 
+    const handleNavClick = (path, event) => {
+        if (onNavClick) {
+            event.preventDefault();
+            onNavClick(path);
+        }
+        // If no onNavClick is provided, let the normal href navigation happen
+    };
+
     return (
-        // Create progress bar to store xp and levels avove nav bar
         <>
-            
             <Nav className="bottomNavBar" activeKey={location.pathname}>
-            
-            <div>
-                <Nav.Link
-                    href="/leaderboard"
-                    eventKey="/leaderboard"
-                    className="navItem"
-                >
-                    <BarChart size={24} />
-                    <div className="nav-label">Leaderboard</div>
-                </Nav.Link>
-            </div>
+                <div>
+                    <Nav.Link
+                        href="/leaderboard"
+                        eventKey="/leaderboard"
+                        className="navItem"
+                        onClick={(e) => handleNavClick("/leaderboard", e)}
+                    >
+                        <BarChart size={24} />
+                        <div className="nav-label">Leaderboard</div>
+                    </Nav.Link>
+                </div>
 
-            <div>
-                <Nav.Link href="/events" eventKey="/events" className="navItem">
-                    <Calendar size={24} />
-                    <div className="nav-label">Events</div>
-                </Nav.Link>
-            </div>
+                <div>
+                    <Nav.Link
+                        href="/events"
+                        eventKey="/events"
+                        className="navItem"
+                        onClick={(e) => handleNavClick("/events", e)}
+                    >
+                        <Calendar size={24} />
+                        <div className="nav-label">Events</div>
+                    </Nav.Link>
+                </div>
 
-            <div>
-                <Nav.Link href="/home" eventKey="/home" className="navItem">
-                    <House size={24} />
-                    <div className="nav-label">Home</div>
-                </Nav.Link>
-            </div>
+                <div>
+                    <Nav.Link
+                        href="/home"
+                        eventKey="/home"
+                        className="navItem"
+                        onClick={(e) => handleNavClick("/home", e)}
+                    >
+                        <House size={24} />
+                        <div className="nav-label">Home</div>
+                    </Nav.Link>
+                </div>
 
-            <div>
-                <Nav.Link href="/battle" eventKey="/battle" className="navItem">
-                    <Trophy size={24} />
-                    <div className="nav-label">Battle</div>
-                </Nav.Link>
-            </div>
+                <div>
+                    <Nav.Link
+                        href="/battle"
+                        eventKey="/battle"
+                        className="navItem"
+                        onClick={(e) => handleNavClick("/battle", e)}
+                    >
+                        <Trophy size={24} />
+                        <div className="nav-label">Battle</div>
+                    </Nav.Link>
+                </div>
 
-            <div>
-                <Nav.Link
-                    href="/tournament"
-                    eventKey="/tournament"
-                    className="navItem"
-                >
-                    <Diagram3 size={24} />
-                    <div className="nav-label">Tournament</div>
-                </Nav.Link>
-            </div>
-        </Nav>
+                <div>
+                    <Nav.Link
+                        href="/tournament"
+                        eventKey="/tournament"
+                        className="navItem"
+                        onClick={(e) => handleNavClick("/tournament", e)}
+                    >
+                        <Diagram3 size={24} />
+                        <div className="nav-label">Tournament</div>
+                    </Nav.Link>
+                </div>
+            </Nav>
         </>
-        
     );
 }
 
