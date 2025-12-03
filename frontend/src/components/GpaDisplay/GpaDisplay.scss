@@ -3,7 +3,8 @@
 .gpaDiplayCard {
     @extend .p-3;
     @extend .mb-3;
-    @extend .shadow-sm;
+    
+    background-color: red;
 
     h1 {
         @extend .mb-1;

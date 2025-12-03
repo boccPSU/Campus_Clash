@@ -27,13 +27,17 @@
 }
 
 .normalMajor {
-    @extend .bg-dark;
-    @extend .border;
-    @extend .border-secondary;
+    
+    
+
+    background-color: $light-secondary;
+    border: 2px solid $secondary;
+    
 }
 
 .rankMajor {
     @extend .fw-bold;
+    
 }
 
 .xp {

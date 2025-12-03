@@ -1,0 +1,65 @@
+// Tournament Screen
+
+.tournamentHeader {
+    display: flex;
+    flex-direction: column;
+    //gap: 0.25rem;
+    //padding: 0.5rem 0.25rem;
+    margin-top: 10px;
+}
+
+.tournamentHeaderCollapsed {
+    margin-bottom: 0.25rem;
+    opacity: 0.95;
+}
+
+.tournamentTimer{
+    margin-left: 6px;
+    
+}
+
+.tournamentTitle {
+    font-size: x-large;  
+    font-weight: 600;
+    margin: 0;
+}
+
+.tournamentSubtitle {
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.tournamentSection {
+    margin-top: 0;
+    //padding: 0.75rem 0.25rem;
+}
+
+.tournamentSectionDescription {
+    font-size: 0.9rem;
+    //margin: 4px 6px 10px;
+    color: $light-text-primary;
+    opacity: 0.8;
+}
+
+.tournamentCardWrapper {
+    //margin: 4px 0 0;
+}
+
+// Spacer used so the last card doesn't sit under the bottom nav
+.bottomNavSpacer {
+    //height: var(--bottom-nav-height, 72px);
+}
+
+
+// Dark Mode for tournament screen
+
+body.dark-mode .tournamentSubtitle {
+    color: $dark-text-primary;
+    opacity: 0.8;
+}
+
+body.dark-mode .tournamentSectionDescription {
+    color: $dark-text-primary;
+    opacity: 0.8;
+}
+

@@ -71,5 +71,4 @@ const decryptToken = (token) => {
     return null;
   }
 };
-
 module.exports = {encryptPassword, verifyPassword, generateToken, verifyToken, decryptToken}

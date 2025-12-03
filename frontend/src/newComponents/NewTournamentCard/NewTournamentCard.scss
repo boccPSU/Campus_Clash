@@ -1,0 +1,92 @@
+@use "../../css/tokens.scss" as *;
+
+
+.tournamentInfo {
+    @extend .small;
+    @extend .mb-1;
+    display: flex;
+    justify-self: center;
+}
+
+.tournamentXp {
+    @extend .small;
+    @extend .mb-3;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.tLabel {
+    @extend .fw-semibold;
+}
+
+.btnGroup {
+    width: 100%;          
+    text-align: center;   
+}
+
+.joinBtn {
+    @extend .px-4;
+    @extend .rounded-pill;
+    @extend .fw-semibold;
+
+    display: block;      
+    margin: 10px auto;   
+}
+
+.difficultyBtn {
+    color: $primary;
+    margin: 10px;
+}
+
+.leaderboard {
+    @extend .d-flex;
+    @extend .flex-column;
+    @extend .align-items-center; // centers whole block in parent
+    @extend .text-center;
+
+    .leaderboardTitle {
+        margin-bottom: 0.5rem;
+    }
+}
+
+.leaderboardBody {
+    display: inline-block; // shrink to content, lets it be centered nicely
+}
+
+.leaderboardRow {
+    display: grid;
+    grid-template-columns: 3rem 8rem 3rem 2rem; // place | name | score
+    column-gap: 1.5rem;
+    margin: 0.15rem 0;
+}
+
+.leaderboardPlace {
+    text-align: right;
+}
+
+.leaderboardName {
+    text-align: left;
+}
+
+.leaderboardScore {
+    text-align: right;
+}
+
+.rankedCheck{
+    font-size: x-large;
+    color: green;
+}
+
+.rankedX{
+    font-size: x-large;
+    color: red;
+}
+
+.leaderboardToggle {
+    margin-top: 0.5rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+

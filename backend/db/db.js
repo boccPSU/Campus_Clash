@@ -26,7 +26,8 @@ async function initDb() {
     DROP TABLE IF EXISTS tournaments;
   `);
 
-  await pool.query(`
+  // Tables are being dropped here, REMOVE IF NOT TESTING
+  /*await pool.query(`
     DROP TABLE IF EXISTS events;
   `);
 
@@ -36,23 +37,23 @@ async function initDb() {
 
   await pool.query(`
     DROP TABLE IF EXISTS users;
-  `);
+  `);*/
 
 
   // Create users table
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS users (
-      pid       INT NOT NULL AUTO_INCREMENT,
-      firstName VARCHAR(32) NOT NULL,
-      lastName  VARCHAR(32) NOT NULL,
-      username  VARCHAR(32) NOT NULL UNIQUE,
-      password  CHAR(60)    NOT NULL,
-      PRIMARY KEY (pid)
-    ) ENGINE=InnoDB
-      DEFAULT CHARSET=utf8mb4
-      COLLATE=utf8mb4_0900_ai_ci;
-  `);
-
+  // ADDED NEW FIELDS FOR XP AND LEVEL
+ await pool.query(`
+  CREATE TABLE IF NOT EXISTS users (
+    pid       INT NOT NULL AUTO_INCREMENT,
+    firstName VARCHAR(32) NOT NULL,
+    lastName  VARCHAR(32) NOT NULL,
+    username  VARCHAR(32) NOT NULL UNIQUE,
+    password  CHAR(60)    NOT NULL,
+    PRIMARY KEY (pid)
+  ) ENGINE=InnoDB
+    DEFAULT CHARSET=utf8mb4
+    COLLATE=utf8mb4_0900_ai_ci;
+`);
   // Create students table
   await pool.query(`
   CREATE TABLE IF NOT EXISTS students (
@@ -84,15 +85,17 @@ async function initDb() {
   `);
 
   // Create tournaments table
+  // Each tournament type (daily, weekly, ranked) should have the same title
   await pool.query(`
     CREATE TABLE IF NOT EXISTS tournaments (
       tid         INT NOT NULL AUTO_INCREMENT,
-      title       VARCHAR(128) NOT NULL,
+      title       VARCHAR(128) NOT NULL,    
       topics      VARCHAR(255) NOT NULL,
-      difficulty  VARCHAR(32)  NOT NULL,
       reward      INT          NOT NULL,
       questionSet JSON  NULL,
       startTime   DATETIME     NOT NULL,
+      endDate     DATETIME     NOT NULL,
+      xpAwarded   BOOLEAN      NOT NULL DEFAULT FALSE,
       PRIMARY KEY (tid)
     ) ENGINE=InnoDB
       DEFAULT CHARSET=utf8mb4
@@ -121,9 +124,24 @@ async function initDb() {
           COLLATE=utf8mb4_0900_ai_ci;
     `);
 
+    // Create a tournaments topic table for each major, storing the major, possible topics, and already used topics
+    await pool.query(
+  `
+  CREATE TABLE IF NOT EXISTS tournament_topics (
+    mid           INT NOT NULL AUTO_INCREMENT,
+    major         VARCHAR(64) NOT NULL,
+    topics        JSON NOT NULL,
+    used_topics   JSON NULL,
+    PRIMARY KEY (mid),
+    UNIQUE KEY uk_major (major)
+  )
+  `
+);
+
 // Drop + recreate tournament procedures
 await pool.query(`DROP PROCEDURE IF EXISTS create_tournament`);
 await pool.query(`DROP PROCEDURE IF EXISTS join_tournament`);
+await pool.query(`DROP PROCEDURE IF EXISTS finalize_tournament`);
 
 //-------------------------
 // List of Tournament procedures
@@ -131,16 +149,16 @@ await pool.query(`DROP PROCEDURE IF EXISTS join_tournament`);
 
 await pool.query(`
     CREATE PROCEDURE create_tournament(
-      IN p_questionSet VARCHAR(64),
+      IN p_questionSet JSON,
       IN p_startTime   DATETIME,
+      IN p_endDate     DATETIME,
       IN p_title       VARCHAR(128),
       IN p_topics      VARCHAR(255),
-      IN p_difficulty  VARCHAR(32),
       IN p_reward      INT
     )
     BEGIN
-      INSERT INTO tournaments (questionSet, startTime, title, topics, difficulty, reward)
-      VALUES (p_questionSet, p_startTime, p_title, p_topics, p_difficulty, p_reward);
+      INSERT INTO tournaments (questionSet, startTime, endDate, title, topics, reward)
+      VALUES (p_questionSet, p_startTime, p_endDate, p_title, p_topics, p_reward);
       SELECT LAST_INSERT_ID() AS tid;
     END
   `);
@@ -156,6 +174,64 @@ await pool.query(`
   END
 `);   
 
+
+
+
+// Procedure to award XP to top 3 participants and mark tournament as processed
+await pool.query(`
+  CREATE PROCEDURE finalize_tournament(IN p_tid INT)
+  BEGIN
+    DECLARE done INT DEFAULT 0;
+    DECLARE v_pid INT;
+    DECLARE v_rank INT DEFAULT 0;
+
+    -- Cursor selecting top 3 participants by score for that tournament
+    DECLARE cur CURSOR FOR
+      SELECT tp.pid
+      FROM tournament_participants tp
+      WHERE tp.tid = p_tid
+      ORDER BY tp.score DESC
+      LIMIT 3;
+
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
+
+    OPEN cur;
+
+    read_loop: LOOP
+      FETCH cur INTO v_pid;
+      IF done THEN
+        LEAVE read_loop;
+      END IF;
+
+      SET v_rank = v_rank + 1;
+
+      -- Award XP based on placement
+      IF v_rank = 1 THEN
+        -- 1st place: +1000 XP
+        UPDATE students
+        SET XP = XP + 1000
+        WHERE pid = v_pid;
+      ELSEIF v_rank = 2 THEN
+        -- 2nd place: +800 XP
+        UPDATE students
+        SET XP = XP + 800
+        WHERE pid = v_pid;
+      ELSEIF v_rank = 3 THEN
+        -- 3rd place: +600 XP
+        UPDATE students
+        SET XP = XP + 600
+        WHERE pid = v_pid;
+      END IF;
+    END LOOP;
+
+    CLOSE cur;
+
+    -- Mark this tournament as processed so we don't double-award XP
+    UPDATE tournaments
+    SET xpAwarded = TRUE
+    WHERE tid = p_tid;
+  END
+`);
 //
 
 
@@ -369,9 +445,7 @@ async function addMockUsers(numUsers) {
   }
 }
 
-// Tournement
 
-// Need table to store active tornament
-//Should have a list of users participating, and questions with answer index
+
 
 module.exports = { pool, initDb, addMockUsers };

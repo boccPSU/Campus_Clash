@@ -5,6 +5,8 @@ import {Routes, Route, Navigate} from "react-router-dom";
 
 // needed to use bootstrap components
 //import "bootstrap/dist/css/bootstrap.min.css";
+// New components
+import NewHomeScreen from "./screens/NewHomeScreen/newHomeScreen";
 
 // import all currently finished screens
 import HomeScreen from "./screens/HomeScreen";
@@ -22,6 +24,10 @@ import SettingsScreen from "./screens/SettingsScreen";
 
 import {AuthProvider} from "./api/AuthContext";
 import PrivateRoute from "./api/PrivateRoute";
+import useToken from "./api/userTokens";
+import NewTournamentScreen from "./screens/NewTournamentScreen/NewTournamentScreen";
+import NewQuestionScreen from "./screens/NewQuestionScreen/NewQuestionScreen";
+import NewLeaderboardScreen from "./screens/NewLeaderboardScreen/NewLeaderboardScreen";
 
 function App() {
 
@@ -32,11 +38,7 @@ function App() {
                 <Route path="/" element={<Navigate to={"/home"} replace />}/>
                 
                 {/* /home path -> Home */}
-                <Route path="/home" element={
-                    <PrivateRoute>
-                        <HomeScreen />
-                    </PrivateRoute>
-                    } />
+                <Route path="/home" element={<NewHomeScreen />} />
 
                 {/* /events path -> Events screen */}
                 <Route path="/events" element={
@@ -46,18 +48,10 @@ function App() {
                     } />
 
                 {/* /tournaments path -> Tournament screen */}
-                <Route path="/tournament" element={
-                    <PrivateRoute>
-                        <TournamentScreen />
-                    </PrivateRoute>
-                    } />
+                <Route path="/tournament" element={<NewTournamentScreen />} />
 
                 {/* /leaderboard path -> Leaderboard screen */}
-                <Route path="/leaderboard" element={
-                    <PrivateRoute>
-                        <LeaderboardScreen />
-                    </PrivateRoute>
-                    } />
+                <Route path="/leaderboard" element={<NewLeaderboardScreen />} />
 
                 {/* /studyPlan -> Study Plan screen */}
                 <Route path="/studyPlan" element={
@@ -92,18 +86,7 @@ function App() {
                     </PrivateRoute>
                     }/>
                 {/* /questions -> Tournament Questions*/}
-                <Route path="/questions" element = {
-                    <PrivateRoute>
-                        <QuestionScreen/>
-                    </PrivateRoute>
-                    }/>
-
-                {/* /settings -> Settings Screen*/}
-                <Route path="/settings" element = {
-                    <PrivateRoute>
-                        <SettingsScreen/>
-                    </PrivateRoute>
-                    }/>
+                <Route path="/questions" element = {<NewQuestionScreen />}></Route>
             </Routes>
         </AuthProvider>
     );

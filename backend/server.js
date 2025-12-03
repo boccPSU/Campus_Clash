@@ -6,7 +6,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const { pool, initDb, addMockUsers } = require("./db/db.js");
-const { getSortedMajors } = require("./db/sortData.js");
+const { getSortedMajors, getSortedStudents } = require("./db/sortData.js");
 const auth = require("./db/authentication.js");
 const { decryptToken } = require("./db/authentication.js");
 
@@ -27,8 +27,8 @@ app.use(cors({ origin: "http://localhost:3000" })); //Bybass CORS
 (async () => {
   try {
     await initDb(); // Initializies DB
-    await addMockUsers(1000); // Drops users table, comment out if you want to keep users
-
+    //await addMockUsers(500); // Drops users table, comment out if you want to keep users
+    startTournamentFinalizer(); // Starts tournament finalizer interval
     app.listen(PORT, () => {
       console.log(`API listening on http://localhost:${PORT}`);
       console.log(`Canvas proxy upstream: ${BASE}`);
@@ -38,6 +38,47 @@ app.use(cors({ origin: "http://localhost:3000" })); //Bybass CORS
     process.exit(1);
   }
 })();
+
+// Checks for tournaments that have ended and finalizes them every minute
+function startTournamentFinalizer() {
+  const INTERVAL_MS = 5 * 1000; // check once per minute can teak if needed
+
+  setInterval(async () => {
+    try {
+      // Find tournaments that have ended and haven't had XP awarded yet
+      const [rows] = await pool.query(
+        `SELECT tid
+         FROM tournaments
+         WHERE endDate <= NOW()
+           AND xpAwarded = FALSE`
+      );
+
+      if (!rows || rows.length === 0) {
+        return; // nothing to do this cycle
+      }
+
+      //console.log("[Finalizer] Found", rows.length, "expired tournaments.");
+
+      for (const row of rows) {
+        const tid = row.tid;
+        //console.log("[Finalizer] Finalizing tournament tid =", tid);
+
+        try {
+          await pool.query("CALL finalize_tournament(?)", [tid]);
+          //console.log("[Finalizer] finalize_tournament OK for tid =", tid);
+        } catch (e) {
+          //console.error(
+          //"[Finalizer] Error finalizing tournament tid =",
+          //tid,
+          //e
+          //);
+        }
+      }
+    } catch (e) {
+      console.error("[Finalizer] Error scanning for expired tournaments:", e);
+    }
+  }, INTERVAL_MS);
+}
 
 // Healthcheck
 app.get("/health", (_req, res) => {
@@ -270,24 +311,18 @@ app.post("/api/change-user-info", async (req, res) => {
 })
 
 app.post("/api/receive-xp", async (req, res) => {
-  const {
-    username,
-    reward
-  } = req.body;
+  const { username, reward } = req.body;
 
-  const [rows] = await pool.query(
-    `CALL get_user_by_username(?)`,
-      [username]
-  );
+  const [rows] = await pool.query(`CALL get_user_by_username(?)`, [username]);
   console.log(rows[0][0].pid);
   let student = rows[0];
   const [result] = await pool.query(
-      `UPDATE students
+    `UPDATE students
            SET xp = xp + ?
            WHERE pid = ?`,
-      [reward, student[0]?.pid]
-    );
-})
+    [reward, student[0]?.pid]
+  );
+});
 
 // POST /api/auth
 app.post("/api/auth", (req, res) => {
@@ -357,11 +392,28 @@ app.get("/api/major-xp", async (_req, res) => {
   }
 });
 
-// Generates tournement questions using opneai wrapper
+app.get("/api/leaderboard/students", async (req, res) => {
+  try {
+    const rows = await getSortedStudents();
 
+    // …or wrap in an object if you prefer consistency:
+    return res.json({
+      successful: true,
+      rows,
+    });
+  } catch (e) {
+    console.error("[API] /api/leaderboard/students error:", e);
+    return res.status(500).json({
+      successful: false,
+      error: "Failed to load student leaderboard",
+    });
+  }
+});
+
+// Generates tournement questions using opneai wrapper
 const client = new OpenAI({ apiKey: process.env.OPENAI_KEY });
 
-// Create endopoint to send prompt to LLM
+// Generates qustions based on category, difficulty, and count
 app.post("/api/generate-questions", async (req, res) => {
   //Expect a category, difficulty, and number of questions from req
   const {
@@ -475,82 +527,235 @@ app.post("/api/generate-questions", async (req, res) => {
   }
 });
 
-// Creates a new tournament in the database if tournament title does not exist
+// Creates a new tournament in the database if needed, or reuses an existing one
+
+// First checks if an existing tournament with endDate in the future
+// If tournament exists, then checks if the student's major matches the tournament's topics
+// If no existing tournament or major doesn't match, creates a new tournament with generated questions
+// If existing tournament found and major matches, returns existing tournament info
 app.post("/api/create-tournament", async (req, res) => {
+  // What we expect from frontend
   const {
     title,
     topics,
-    difficulty,
-    reward,
+    reward, // XP given for tournament
+    tournamentType, // "daily", "weekly", "ranked"
+    endTime = null, // ms timestamp from frontend or null
+    startTime,
+    studentMajor,
   } = req.body || {};
 
+  
   // Basic validation
-  if (!title || !topics || !difficulty || reward == null) {
-    return res.status(400).json({ error: "Missing tournament fields" });
+  if (!title || !topics || reward == null || !tournamentType) {
+    return res
+      .status(400)
+      .json({ successful: false, error: "Missing tournament fields" });
   }
 
   try {
-    // Check to see if title already exists in tournaments table
-    const [existing] = await pool.query(
-      "SELECT tid FROM tournaments WHERE title = ?",
-      [title]
+    const now = new Date();
+
+    //Try to find an existing tournament for this title that has an end date in the future
+    const [existingRows] = await pool.query(
+      `
+        SELECT tid, startTime, endDate, topics
+        FROM tournaments
+        WHERE title = ?
+        AND endDate > ?
+      `,
+      [title, now]
     );
-    if (existing.length > 0) {
-      return res.status(401).json({ error: "Tournament already exists" });
+
+    // If found existing tournament, check to make sure it matches the students major
+    if (existingRows.length > 0) {
+		console.log("Found existing tournament(s):", existingRows.length, " for title ", title);
+		// Check each existing tournament for major match
+		for (const tournament of existingRows) {
+      		console.log("Found existing tournament:", tournament.tid, " of type", tournamentType, "checking major match " + studentMajor);
+      		const majorMatch = await checkTournamentMajorMatch(
+        	tournament.topics,
+        	studentMajor
+      );
+      if (majorMatch == true) {
+        const existing = tournament;
+        console.log("Major matches, reusing tournament:", existing.tid, " of type ", tournamentType, "and topics " + topics);
+        return res.json({
+          successful: true,
+          tid: existing.tid,
+          startTime: existing.startTime,
+          endDate: existing.endDate,
+          tournamentType,
+		  topics: existing.topics,
+        });
+      }}
     }
 
-    // Call create_tournament stored procedure
-    // (p_questionSet, p_startTime, p_title, p_topics, p_difficulty, p_reward)
+	console.log("No existing tournament found for major", studentMajor, ", creating new tournament of type ", tournamentType, " with topics " + topics);
+
+    // Create end date and start time
+    let endDate;
+    let startDate = new Date(startTime);
+    // If frontend passed an endTime (ms), use it; otherwise compute based on type
+    if (endTime !== null && endTime !== undefined) {
+      const endMs = Number(endTime);
+      if (!Number.isFinite(endMs)) {
+        // Fallback: try to parse it as a string date if it's not numeric
+        endDate = new Date(endTime);
+      } else {
+        endDate = new Date(endMs);
+      }
+    } else {
+      // Should always have an endTime from frontend
+      console.log("No endTime provided, calculating based on type");
+
+      // No endTime passed in base it on now
+      if (tournamentType === "daily") {
+        endDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      } else if (tournamentType === "weekly") {
+        endDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      } else if (tournamentType === "ranked") {
+        endDate = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+      } else {
+        return res.status(400).json({
+          successful: false,
+          error: "Invalid tournamentType",
+        });
+      }
+    }
+
+    // Generate questions for the tournament
+
+    // Can tweak these as needed
+    // Daily will have 3 easy , 2 medium questions
+    // Weekly will have 4 easy, 3 medium, 2 hard questions
+    // Ranked will have 5 easy, 4 medium, 3 hard questions
+
+    let questionConfig = [];
+
+    if (tournamentType === "daily") {
+      questionConfig = [
+        { difficulty: "easy", count: 3 },
+        { difficulty: "medium", count: 2 },
+      ];
+    } else if (tournamentType === "weekly") {
+      questionConfig = [
+        { difficulty: "easy", count: 4 },
+        { difficulty: "medium", count: 3 },
+        { difficulty: "hard", count: 2 },
+      ];
+    } else if (tournamentType === "ranked") {
+      questionConfig = [
+        { difficulty: "easy", count: 2 },
+        //{ difficulty: "medium", count: 4 },
+        //{ difficulty: "hard", count: 3 },
+      ];
+    } else {
+      return res.status(400).json({
+        successful: false,
+        error: "Invalid tournamentType",
+      });
+    }
+
+    const allQuestions = [];
+
+    for (const cfg of questionConfig) {
+      const { difficulty, count } = cfg;
+
+      const { questions, error } = await generateQuestions({
+        category: topics,
+        difficulty,
+        count,
+      });
+
+      if (error) {
+        console.error(
+          "[BACKEND] create-tournament generateQuestions error:",
+          error
+        );
+        return res.status(500).json({
+          successful: false,
+          error: "Failed to generate questions for tournament",
+        });
+      }
+
+      if (!Array.isArray(questions) || questions.length === 0) {
+        console.error(
+          "[BACKEND] create-tournament: no questions returned for",
+          difficulty
+        );
+        return res.status(500).json({
+          successful: false,
+          error: "No questions returned from generator",
+        });
+      }
+
+      allQuestions.push(...questions);
+    }
+
+    // Optional: shuffle the questions so all the easies aren't bunched up
+    //allQuestions.sort(() => Math.random() - 0.5);
+
+    // Wrap in an object so /tournament/questions/:tid endpoint can return { questions: [...] } consistently
+    const questionSetJson = JSON.stringify({ questions: allQuestions });
+
+    // Call procedure to create tournament
     const [resultSets] = await pool.query(
-      "CALL create_tournament(?, NOW(), ?, ?, ?, ?)",
+      "CALL create_tournament(?, ?, ?, ?, ?, ?)",
       [
-        null, // can be null
+        questionSetJson, // p_questionSet
+        startDate, // p_startTime (Date  MySQL DATETIME)
+        endDate, // p_endDate   (Date  MySQL DATETIME)
         title,
         topics,
-        difficulty,
         reward,
       ]
     );
-    console.log(`[DB] Tournament created: ${title}`);
 
-    let questionSet = await generateQuestions({
-      category: topics,
-      difficulty: difficulty,
-      count: 5
-    });
+    const createdTournamentRow = resultSets[0]?.[0];
+    const tid = createdTournamentRow?.tid;
 
-    // Add questions to tournament table separately due to data size constraints
-    const [result] = await pool.query(
-      `UPDATE tournaments
-           SET questionSet = ?
-           WHERE title = ?`,
-      [JSON.stringify(questionSet.questions), title]
-    );
-
-    // No tournament found
-    if (result.affectedRows === 0) {
-      return res
-        .status(404)
-        .json({ successful: false, error: "Tournament not found" });
+    if (!tid) {
+      console.error("[BACKEND] create-tournament: missing tid from procedure");
+      return res.status(500).json({
+        successful: false,
+        error: "Failed to get created tournament id",
+      });
     }
 
-    return res.status(201).json({ successful: true });
+    console.log("Created new tournament:", tid);
+    return res.status(201).json({
+      successful: true,
+      tid,
+      startDate,
+      endDate,
+      tournamentType,
+	  topics,
+    });
   } catch (err) {
     console.error("[BACKEND] create-tournament error:", err);
-    return res.status(520).json({ error: "Failed to create tournament" });
+    return res
+      .status(520)
+      .json({ successful: false, error: "Failed to create tournament" });
   }
 });
 
 // New endpoint to return the userName of the currently loggeed in user
 app.get("/api/current-user", async (req, res) => {
-  const token = req.headers["jwt-token"]; // matches your frontend convention
-  const username = decryptToken(token)?.username;
+  const token = req.headers["jwt-token"];
+  //console.log("Current User Token: " + token);
+  if (!token) {
+    return res.status(401).json({ error: "Unauthorized no token" });
+  }
+  const username = decryptToken(token);
+  //console.log("Decrypted username in current user:", username);
   if (!username) {
-    return res.status(401).json({ error: "Unauthorized" });
+    return res.status(401).json({ error: "Unauthorized no username" });
   }
   return res.json({ username });
 });
 
+// POSSIBLY REMOVE NOW //
 // Endpoint to return the information on the current tournament based on logged in user
 app.get("/api/current-tournament", async (req, res) => {
   const token = req.headers["jwt-token"];
@@ -567,9 +772,7 @@ app.get("/api/current-tournament", async (req, res) => {
   }
 
   try {
-    // Find the (single) tournament this user is participating in.
-    // If you truly only ever have one active tournament total,
-    // this will just pick that one for whoever is in it.
+    // Find the  tournament this user is participating in.
     const [rows] = await pool.query(
       `
             SELECT t.*
@@ -593,19 +796,25 @@ app.get("/api/current-tournament", async (req, res) => {
   }
 });
 
-// Allows currently logged in user to join the current tournament
+// Allows currently logged in user to join a tournament
 app.post("/api/join-tournament", async (req, res) => {
   try {
     const token = req.headers["jwt-token"];
-    console.log("[join-tournament] Token: " + token);
+    const { tid } = req.body || {};
+
+    //console.log("[join-tournament] Token:", token);
+    //console.log("[join-tournament] TID:", tid);
 
     if (!token) {
       return res.status(401).json({ error: "Missing token" });
     }
 
-    // This should return the username string based on your implementation
-    const username = decryptToken(token)?.username;
-    console.log("[join-tournament] Decrypted username in join tournament:", username);
+    if (!tid) {
+      return res.status(400).json({ error: "Missing tournament tid" });
+    }
+
+    const username = decryptToken(token);
+    //console.log("[join-tournament] Decrypted username:", username);
     if (!username) {
       return res.status(401).json({ error: "Invalid token" });
     }
@@ -616,80 +825,61 @@ app.post("/api/join-tournament", async (req, res) => {
       [username]
     );
     const user = userRows[0];
-    console.log("[join-tournament] User found for join tournament:", user);
     if (!user) {
       return res.status(460).json({ error: "User not found" });
     }
-
-    // Get "current" tournament
-    // If you truly only allow one at a time, this is fine.
-    const [tRows] = await pool.query(
-      "SELECT tid FROM tournaments ORDER BY startTime DESC LIMIT 1"
-    );
-    const tournament = tRows[0];
-    if (!tournament) {
-      return res.status(469).json({ error: "No active tournament" });
-    }
-
-    const tid = tournament.tid;
     const pid = user.pid;
 
     // Check if already joined
-    let [existingRows] = await pool.query(
+    const [existingRows] = await pool.query(
       "SELECT 1 FROM tournament_participants WHERE tid = ? AND pid = ? LIMIT 1",
       [tid, pid]
     );
-    console.log(existingRows);
+
     if (existingRows.length > 0) {
-      return res.json({
-        successful: true,
-        joined: false,
-        tid,
-        message: "Already joined tournament",
-      });
+      // already in this tournament
+      return res.json(false);
     }
 
-    // Add user to tournament via stored procedure
+    // Not joined yet
     await pool.query("CALL join_tournament(?, ?)", [tid, pid]);
 
-    return res.status(201).json({
-      successful: true,
-      joined: true,
-      tid,
-    });
+    // joined successfully
+    return res.json(true);
   } catch (err) {
     console.error("[BACKEND] join-tournament error:", err);
     return res.status(500).json({ error: "Failed to join tournament" });
   }
 });
 
-// Check if tournament title exists in tournaments table
-app.get("/api/tournament/title-exists/:title", async (req, res) => {
-  // Get title
-  const title = req.params.title;
-  let existingTitle, rows;
-  // Check if title exists
-  try {
-    [existingTitle, rows] = await pool.query(
-      " SELECT title FROM TOURNAMENTS WHERE title = ? ",
-      title
-    );
-  } catch (e) {
-    console.log("Failed to check if tournamnet title exists ERROR: " + e);
-  }
+// POSSIBLY REMOVE NOW //
+// Check if tournament exists in tournaments table by tid
+app.get("/api/tournament/tid-exists/:tid", async (req, res) => {
+  const { tid } = req.params;
 
-  console.log("[title-exists] ", existingTitle);
-  if (existingTitle.length > 0) {
-    res.json(true);
-  } else {
-    res.json(false);
+  try {
+    // Try to find if at leadt one row exists
+    const [rows] = await pool.query(
+      "SELECT tid FROM TOURNAMENTS WHERE tid = ? LIMIT 1",
+      [tid]
+    );
+
+    const exists = rows.length > 0;
+
+    console.log("Tournament exists (tid):", tid, "=>", exists);
+
+    res.json(exists);
+  } catch (e) {
+    console.error("Failed to check if tournament exists ERROR:", e);
+    res.status(500).json({ error: "Failed to check tournament" });
   }
 });
 
+// POSSIBLY REMOVE NOW //
 // Endpoint to add questions to tournament table in DB
 app.post("/api/tournament/add-questions/:title", async (req, res) => {
   const title = req.params.title;
-  const questions = req.body.questions; // JSON object/array from frontend
+  const questions = req.body.questions;
 
   if (!title || !questions) {
     return res
@@ -698,7 +888,6 @@ app.post("/api/tournament/add-questions/:title", async (req, res) => {
   }
 
   try {
-    // If questionSet column is JSON or TEXT, we can just store the stringified JSON
     const questionsJson = JSON.stringify(questions);
 
     // Add questions to tournament table
@@ -723,67 +912,95 @@ app.post("/api/tournament/add-questions/:title", async (req, res) => {
 });
 
 // Gets questions from tournaments table
-// Gets questions from tournaments table
-app.get("/api/tournament/questions/:title", async (req, res) => {
-  const title = req.params.title;
+app.get("/api/tournament/questions/:tid", async (req, res) => {
+  const tid = req.params.tid;
 
   try {
-      const [rows] = await pool.query(
-          "SELECT questionSet FROM tournaments WHERE title = ? LIMIT 1",
-          [title]
-      );
+    const [rows] = await pool.query(
+      "SELECT questionSet FROM tournaments WHERE tid = ? LIMIT 1",
+      [tid]
+    );
 
-      // No tournament found with that title
-      if (!rows || rows.length === 0) {
-          console.log(`No tournament found with title: ${title}`);
-          return res.status(404).json({ error: "Tournament not found" });
-      }
+    // No tournament found with that tid
+    if (!rows || rows.length === 0) {
+      console.log(`No tournament found with tid: ${tid}`);
+      return res.status(404).json({ error: "Tournament not found" });
+    }
 
-      const rawQuestionSet = rows[0].questionSet;
+    const rawQuestionSet = rows[0].questionSet;
 
-      // Tournament found but no questionSet
-      if (!rawQuestionSet) {
-          console.log(`Tournament ${title} has no questionSet`);
-          return res.status(204).json({ error: "Tournament has no question set" });
-      }
+    // Tournament found but no questionSet
+    if (!rawQuestionSet) {
+      console.log(`Tournament ${tid} has no questionSet`);
+      return res.status(204).json({ error: "Tournament has no question set" });
+    }
 
-      // If stored as JSON text, parse it; if already an object/array, just use it
-      let questions;
+    // Parse questionSet
+    let parsed;
+    try {
       if (typeof rawQuestionSet === "string") {
-          try {
-              questions = JSON.parse(rawQuestionSet);
-          } catch (parseErr) {
-              console.log("Failed to parse questionSet JSON:", parseErr);
-              return res.status(500).json({ error: "Invalid question set JSON" });
-          }
+        parsed = JSON.parse(rawQuestionSet);
       } else {
-          questions = rawQuestionSet;
+        parsed = rawQuestionSet;
       }
+    } catch (parseErr) {
+      console.log("Failed to parse questionSet JSON:", parseErr);
+      return res.status(500).json({ error: "Invalid question set JSON" });
+    }
 
-      return res.status(201).json({ questions });
+    // Unwrap the actual questions array
+    let questions;
+    if (Array.isArray(parsed)) {
+      // DB stored a plain array
+      questions = parsed;
+    } else if (parsed && Array.isArray(parsed.questions)) {
+      // DB stored { questions: [...] }
+      questions = parsed.questions;
+    } else {
+      console.log(
+        "Question set is not in expected format. Parsed value:",
+        parsed
+      );
+      return res
+        .status(500)
+        .json({ error: "Question set is not in expected format" });
+    }
+
+    // Return questions
+    return res.status(200).json({ questions });
   } catch (e) {
-      console.log("Failed to get questions from tournaments table Error:", e);
-      return res.status(500).json({ error: "Server error fetching questions" });
+    console.log("Failed to get questions from tournaments table. Error:", e);
+    return res.status(500).json({ error: "Server error fetching questions" });
   }
 });
 
 // Updates score in tournament_participants for a user in a given tournament
-app.post("/api/tournament/update-score/:username", async (req, res) => {
-  const username = req.params.username;
-  const { tid, score } = req.body || {};
-
-  if (!tid || typeof score !== "number") {
-    return res
-      .status(400)
-      .json({ successful: false, error: "Missing or invalid tid/score" });
-  }
-
+app.post("/api/tournament/update-score", async (req, res) => {
   try {
-    // 1) Look up the user to get pid
-    const [userSets] = await pool.query("CALL get_user_by_username(?)", [
-      username,
-    ]);
-    const userRows = userSets?.[0] || [];
+    // Get token from headers
+    const token = req.headers["jwt-token"];
+    const { tid, score } = req.body || {};
+
+    if (!token) {
+      return res
+        .status(401)
+        .json({ successful: false, error: "Missing token" });
+    }
+
+    // Validate tid and score
+    if (!tid || typeof score !== "number") {
+      return res
+        .status(400)
+        .json({ successful: false, error: "Missing or invalid tid/score" });
+    }
+
+    // Get username from token, then pid from users table
+    const username = decryptToken(token);
+
+    const [userRows] = await pool.query(
+      "SELECT pid FROM users WHERE username = ?",
+      [username]
+    );
 
     if (userRows.length === 0) {
       return res
@@ -793,7 +1010,7 @@ app.post("/api/tournament/update-score/:username", async (req, res) => {
 
     const pid = userRows[0].pid;
 
-    // 2) Update the participant's score in this tournament
+    // Update the participant's score in this tournament
     const [result] = await pool.query(
       `
         UPDATE tournament_participants
@@ -827,15 +1044,16 @@ app.post("/api/tournament/update-score/:username", async (req, res) => {
 
 // Gets all participating usernames in a tournament with their scores
 app.post("/api/tournament/participating-users-info", async (req, res) => {
-  const { tid } = req.body || {};
-
-  if (!tid) {
-    return res
-      .status(400)
-      .json({ successful: false, error: "Missing tid in request body" });
-  }
-
   try {
+    const { tid } = req.body || {};
+
+    if (!tid) {
+      return res.status(400).json({
+        successful: false,
+        error: "Missing tournament tid",
+      });
+    }
+
     const [rows] = await pool.query(
       `
         SELECT u.username, tp.score
@@ -854,9 +1072,10 @@ app.post("/api/tournament/participating-users-info", async (req, res) => {
     });
   } catch (err) {
     console.error("[API] participating-users-info error:", err);
-    return res
-      .status(500)
-      .json({ successful: false, error: "Database error fetching participants" });
+    return res.status(500).json({
+      successful: false,
+      error: "Database error fetching participants",
+    });
   }
 });
 
@@ -865,13 +1084,10 @@ app.listen(PORT, () => {
   console.log(`Server listening on Port ${PORT}`);
 });
 
+// Function to generate questions using OpenAI
 const generateQuestions = async (req) => {
-  //Expect a category, difficulty, and number of questions from req
-  const {
-    category = "Undefined",
-    difficulty = "Undefined",
-    count = 0,
-  } = req;
+  // Expect a category, difficulty, and number of questions from req
+  const { category = "Undefined", difficulty = "Undefined", count = 0 } = req;
 
   try {
     const completion = await client.chat.completions.create({
@@ -968,7 +1184,7 @@ const generateQuestions = async (req) => {
     // (If it's already an object for some reason, just use it.)
     const data = typeof raw === "string" ? JSON.parse(raw) : raw;
 
-    console.log("[Generate-Questions] Questions: ", data);
+    //console.log("[Generate-Questions] Questions: ", data);
     return data;
   } catch (err) {
     // Log any errors
@@ -976,3 +1192,862 @@ const generateQuestions = async (req) => {
     return { error: "Failed to generate questions" };
   }
 };
+
+const generateTopics = async (req) => {
+  // Expect a major and min/max topic counts
+  const { major = "Undefined Major", minCount = 10, maxCount = 20 } = req;
+
+  try {
+    const completion = await client.chat.completions.create({
+      model: "gpt-4.1-mini",
+
+      // We want a JSON object with a "topics" array
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "tournament_topics",
+          schema: {
+            type: "object",
+            properties: {
+              topics: {
+                type: "array",
+                minItems: minCount,
+                maxItems: maxCount,
+                items: {
+                  type: "string",
+                },
+              },
+            },
+            required: ["topics"],
+            additionalProperties: false,
+          },
+        },
+      },
+
+      messages: [
+        {
+          role: "system",
+          content:
+            "You generate concise, distinct academic quiz topics for tournaments. " +
+            "Each topic should be broad enough to support many easy, medium, and hard questions.",
+        },
+        {
+          role: "user",
+          content:
+            `Generate between ${minCount} and ${maxCount} unique quiz topics for the college major ` +
+            `"${major}". ` +
+            "Each topic should:\n" +
+            "- Be specific enough to suggest a focused area (e.g., 'Linked Lists' instead of just 'Data Structures').\n" +
+            "- Be broad enough that many easy, medium, and hard questions could be written about it.\n" +
+            "- Be unique (no duplicates, no trivial variations of the same phrase).\n" +
+            "- Be returned as plain topic names only, without numbering or bullet characters.",
+        },
+      ],
+
+      temperature: 0.7,
+    });
+
+    // Get JSON content from response
+    const raw = completion.choices[0]?.message?.content;
+
+    // Parse if it's a string
+    const data = typeof raw === "string" ? JSON.parse(raw) : raw;
+
+    console.log("[Generate-Topics] Topics: ", data);
+    return data;
+  } catch (err) {
+    console.error(err);
+    return { error: "Failed to generate topics" };
+  }
+};
+
+// Checks to see if user has joined a tournament
+app.post("/api/tournament/has-joined", async (req, res) => {
+  try {
+    // Get user token
+    const token = req.headers["jwt-token"];
+    // Get tournament id
+    const { tid } = req.body || {};
+
+    // Check that we have a token and tid
+    if (!token) {
+      return res.status(401).json({ error: "Missing token" });
+    }
+
+    if (!tid) {
+      return res.status(400).json({ error: "Missing tournament tid" });
+    }
+
+    // Get username, and pid
+    const username = decryptToken(token);
+
+    const [userRows] = await pool.query(
+      "SELECT pid FROM users WHERE username = ?",
+      [username]
+    );
+
+    if (userRows.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const user = userRows[0];
+    const pid = user.pid;
+
+    // Check to see if both exist in table
+    const [existingRows] = await pool.query(
+      "SELECT 1 FROM tournament_participants WHERE tid = ? AND pid = ? LIMIT 1",
+      [tid, pid]
+    );
+
+    if (existingRows.length > 0) {
+      return res.json(true);
+    } else {
+      return res.json(false);
+    }
+  } catch (e) {
+    console.log("Error checking if user has joined Error: " + e);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Updates a user's score in the tournament_participants table
+app.post("/api/tournament/update-score", async (req, res) => {
+  try {
+    //Get user token and body fields
+    const token = req.headers["jwt-token"];
+    const { score, tid } = req.body || {}; // title optional if you want later
+
+    // Basic validation
+    if (!token) {
+      return res
+        .status(401)
+        .json({ successful: false, error: "Missing token" });
+    }
+
+    if (score === undefined || score === null) {
+      return res
+        .status(400)
+        .json({ successful: false, error: "Missing score in request body" });
+    }
+
+    // Get username & pid
+    const username = decryptToken(token);
+
+    const [userRows] = await pool.query(
+      "SELECT pid FROM users WHERE username = ?",
+      [username]
+    );
+
+    const user = userRows[0];
+    if (!user) {
+      return res
+        .status(404)
+        .json({ successful: false, error: "User not found" });
+    }
+
+    const pid = user.pid;
+
+    // Update this participant's score for this tournament
+    const [result] = await pool.query(
+      `
+        UPDATE tournament_participants
+        SET score = ?
+        WHERE tid = ? AND pid = ?
+      `,
+      [score, tid, pid]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        successful: false,
+        error: "Participant record not found for this tournament",
+      });
+    }
+
+    return res.json({
+      successful: true,
+      tid,
+      username,
+      score,
+    });
+  } catch (err) {
+    console.error("[API] update-score error:", err);
+    return res.status(500).json({
+      successful: false,
+      error: "Failed to update tournament score",
+    });
+  }
+});
+
+// Used to create a list of possible tournament topics depending on major
+app.post("/api/tournament/generate-topics", async (req, res) => {
+  try {
+    // Expect to get a major
+    const { major } = req.body;
+
+    // Check if we have major and if it already exists in database
+    if (!major) {
+      return res.status(400).json({
+        successful: false,
+        error: "No major passed into create topics endpoint",
+      });
+    }
+
+    // Check if this major already has topics
+    const [rows] = await pool.query(
+      "SELECT 1 FROM tournament_topics WHERE major = ? LIMIT 1",
+      [major]
+    );
+
+    if (rows.length > 0) {
+      //console.log("Major already has topics, exiting endpoint");
+      return res.json({
+        successful: true,
+		topicsGenerated: false,
+        skipped: true,
+        message: "Topics already exist for this major",
+      });
+    }
+
+    // Call chatgpt to generate topics
+    const { topics, error } = await generateTopics({
+      major,
+      minCount: 10,
+      maxCount: 20,
+    });
+
+    if (error) {
+      return res.status(500).json({
+        successful: false,
+        error: "Failed to generate topics",
+      });
+    }
+
+    if (!Array.isArray(topics) || topics.length === 0) {
+      return res.status(500).json({
+        successful: false,
+        error: "No topics returned from generator",
+      });
+    }
+
+    // Add topics to tournament_topics table
+    await pool.query(
+      "INSERT INTO tournament_topics (major, topics, used_topics) VALUES (?, ?, ?)",
+      [major, JSON.stringify(topics), JSON.stringify([])]
+    );
+
+    return res.json({
+      successful: true,
+	  topicsGenerated: true,
+      major,
+      topics,
+    });
+  } catch (e) {
+    console.log("Failed to add topics to major. Error:", e);
+    return res.status(500).json({
+      successful: false,
+      error: "Internal server error while creating topics",
+    });
+  }
+});
+
+// Returns topics from tournament_topics that have not been used yet.
+// If all topics have been used, clears used_topics and returns all topics.
+app.post("/api/tournament/get-topics", async (req, res) => {
+  try {
+    const { major } = req.body;
+
+    if (!major) {
+      return res.status(400).json({
+        successful: false,
+        error: "No major passed into get unused topics endpoint",
+      });
+    }
+
+    // Get topics + used_topics for this major
+    const [rows] = await pool.query(
+      "SELECT topics, used_topics FROM tournament_topics WHERE major = ? LIMIT 1",
+      [major]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        successful: false,
+        error: "No topics found for this major",
+      });
+    }
+
+    const row = rows[0];
+
+    // Parse helper function
+    function parseTopicsField(raw) {
+      if (raw == null) return [];
+
+      // If mysql2 already parsed JSON into a JS value
+      if (Array.isArray(raw)) {
+        return raw;
+      }
+
+      if (typeof raw === "object") {
+        // JSON column can sometimes come back as object
+        return Array.isArray(raw) ? raw : Object.values(raw);
+      }
+
+      if (typeof raw === "string") {
+        // Try JSON string first
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            return parsed;
+          }
+          // JSON but not array wrap
+          return [parsed];
+        } catch {
+          // Fallback: comma-separated list like "Graph Algo, OS"
+          return raw
+            .split(",")
+            .map((t) => t.trim())
+            .filter((t) => t.length > 0);
+        }
+      }
+
+      return [];
+    }
+
+    function parseUsedTopicsField(raw) {
+      if (raw == null) return [];
+
+      if (Array.isArray(raw)) {
+        return raw;
+      }
+
+      if (typeof raw === "object") {
+        return Array.isArray(raw) ? raw : Object.values(raw);
+      }
+
+      if (typeof raw === "string") {
+        try {
+          const parsed = JSON.parse(raw);
+          return Array.isArray(parsed) ? parsed : [parsed];
+        } catch {
+          return raw
+            .split(",")
+            .map((t) => t.trim())
+            .filter((t) => t.length > 0);
+        }
+      }
+
+      return [];
+    }
+
+    // Parse JSON columns safely
+    const allTopics = parseTopicsField(row.topics);
+    const usedTopics = parseUsedTopicsField(row.used_topics);
+
+    if (!Array.isArray(allTopics)) {
+      return res.status(500).json({
+        successful: false,
+        error: "Topics data is not in array format",
+      });
+    }
+
+    // Filter out used topics
+    const usedSet = new Set(usedTopics);
+    let unusedTopics = allTopics.filter((t) => !usedSet.has(t));
+
+    // If everything has been used, reset used_topics and return all topics
+    if (unusedTopics.length === 0) {
+      await pool.query(
+        "UPDATE tournament_topics SET used_topics = ? WHERE major = ?",
+        [JSON.stringify([]), major]
+      );
+
+      unusedTopics = allTopics.slice();
+    }
+
+    return res.json({
+      successful: true,
+      major,
+      topics: unusedTopics,
+    });
+  } catch (e) {
+    console.error("Failed to get unused topics for major. Error:", e);
+    return res.status(500).json({
+      successful: false,
+      error: "Internal server error while fetching unused topics",
+    });
+  }
+});
+
+// Adds a topic to used topics
+app.post("/api/tournament/add-used-topic", async (req, res) => {
+  try {
+    const { major, topic } = req.body;
+
+    if (!major || !topic) {
+      return res.status(400).json({ successful: false });
+    }
+
+    // Get current used_topics
+    const [rows] = await pool.query(
+      "SELECT used_topics FROM tournament_topics WHERE major = ? LIMIT 1",
+      [major]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ successful: false });
+    }
+
+    const row = rows[0];
+    const rawUsed = row.used_topics;
+
+    // Safely parse used topics
+    let used = [];
+    if (rawUsed == null) {
+      used = [];
+    } else if (Array.isArray(rawUsed)) {
+      // mysql2 may already give us an array for JSON columns
+      used = rawUsed;
+    } else if (typeof rawUsed === "object") {
+      // If it's some object, try to turn it into an array of values
+      used = Array.isArray(rawUsed) ? rawUsed : Object.values(rawUsed);
+    } else if (typeof rawUsed === "string") {
+      // String: could be JSON or legacy comma-separated
+      try {
+        const parsed = JSON.parse(rawUsed);
+        used = Array.isArray(parsed) ? parsed : [parsed];
+      } catch {
+        // Fallback: treat as comma-separated text
+        used = rawUsed
+          .split(",")
+          .map((t) => t.trim())
+          .filter((t) => t.length > 0);
+      }
+    }
+
+    // Add the new topic to used if not already present
+    if (!used.includes(topic)) {
+      used.push(topic);
+    }
+
+    await pool.query(
+      "UPDATE tournament_topics SET used_topics = ? WHERE major = ?",
+      [JSON.stringify(used), major]
+    );
+
+    return res.json({ successful: true });
+  } catch (e) {
+    console.error("Error adding used topic:", e);
+    return res.status(500).json({ successful: false });
+  }
+});
+
+// Updates the end date for a tournament by tid
+app.post("/api/tournament/update-end-date", async (req, res) => {
+  const { tid, endDate } = req.body || {};
+
+  if (!tid || !endDate) {
+    return res
+      .status(400)
+      .json({ successful: false, error: "Missing tid or endDate" });
+  }
+
+  try {
+    // Update the endDate in the tournaments table
+    await pool.query("UPDATE tournaments SET endDate = ? WHERE tid = ?", [
+      new Date(endDate),
+      tid,
+    ]);
+
+    return res.json({ successful: true });
+  } catch (err) {
+    console.error("[API] update-end-date error:", err);
+    return res
+      .status(500)
+      .json({ successful: false, error: "Database error updating endDate" });
+  }
+});
+
+// Get a tournament's end date by tid
+app.post("/api/tournament/end-date", async (req, res) => {
+  const { tid } = req.body || {};
+
+  if (!tid) {
+    return res.status(400).json({ successful: false, error: "Missing tid" });
+  }
+
+  try {
+    const [rows] = await pool.query(
+      "SELECT endDate FROM tournaments WHERE tid = ?",
+      [tid]
+    );
+
+    if (rows.length === 0) {
+      return res
+        .status(404)
+        .json({ successful: false, error: "Tournament not found" });
+    }
+
+    return res.json({
+      successful: true,
+      endDate: rows[0].endDate,
+    });
+  } catch (err) {
+    console.error("[API] get end-date error:", err);
+    return res.status(500).json({ successful: false, error: "Database error" });
+  }
+});
+
+// Returns the most recent daily, weekly, and ranked tournaments
+app.post("/api/tournament/current-tournaments", async (req, res) => {
+  try {
+    const [dailyRows] = await pool.query(
+      `
+        SELECT tid, title, topics, reward, endDate
+        FROM tournaments
+        WHERE title = 'Daily Tournament'
+        ORDER BY endDate DESC
+        LIMIT 1
+      `
+    );
+
+    const [weeklyRows] = await pool.query(
+      `
+        SELECT tid, title, topics, reward, endDate
+        FROM tournaments
+        WHERE title = 'Weekly Tournament'
+        ORDER BY endDate DESC
+        LIMIT 1
+      `
+    );
+
+    const [rankedRows] = await pool.query(
+      `
+        SELECT tid, title, topics, reward, endDate
+        FROM tournaments
+        WHERE title = 'Ranked Tournament'
+        ORDER BY endDate DESC
+        LIMIT 1
+      `
+    );
+
+    return res.json({
+      successful: true,
+      daily: dailyRows[0] || null,
+      weekly: weeklyRows[0] || null,
+      ranked: rankedRows[0] || null,
+    });
+  } catch (err) {
+    console.error("[BACKEND] current-tournaments error:", err);
+    return res.status(500).json({
+      successful: false,
+      error: "Failed to load current tournaments",
+    });
+  }
+});
+
+// Updates ranked tournament by carrying top portion of leaderboard to next tournament
+app.post("/api/tournament/update-ranked-leaderboard", async (req, res) => {
+  try {
+    const { oldTid, newTid } = req.body || {};
+
+    console.log(
+      "[Ranked Leaderboard] Updating from oldTid:",
+      oldTid,
+      "to newTid:",
+      newTid
+    );
+
+    if (!oldTid || !newTid) {
+      return res.status(400).json({
+        successful: false,
+        error: "Missing oldTid or newTid",
+      });
+    }
+
+    // Get all participants and their scores from the OLD tournament
+    const [rows] = await pool.query(
+      `
+        SELECT u.username, tp.pid, tp.score
+        FROM tournament_participants tp
+        INNER JOIN users u ON u.pid = tp.pid
+        WHERE tp.tid = ?
+        ORDER BY tp.score DESC, u.username ASC
+      `,
+      [oldTid]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        successful: false,
+        error: "No participants found for this tournament",
+      });
+    }
+
+    const total = rows.length;
+
+    // Check if we've already processed this tournament (round or final)
+    const [tournamentRows] = await pool.query(
+      "SELECT xpAwarded FROM tournaments WHERE tid = ?",
+      [oldTid]
+    );
+
+    if (!tournamentRows || tournamentRows.length === 0) {
+      return res.status(404).json({
+        successful: false,
+        error: "Tournament not found for oldTid",
+      });
+    }
+
+    const alreadyProcessed = !!tournamentRows[0].xpAwarded;
+
+    if (alreadyProcessed) {
+      console.log(
+        "[Ranked Leaderboard] Tournament",
+        oldTid,
+        "already processed (xpAwarded=1). Skipping."
+      );
+      return res.json({
+        successful: true,
+        continues: total > 3, // informational
+        oldTid,
+        newTid,
+        totalParticipants: total,
+        winners: total <= 3 ? rows : [],
+      });
+    }
+
+    // ===== FINAL TOURNAMENT CASE (<= 3 players) → PAY XP & MARK PROCESSED =====
+    if (total <= 3) {
+      console.log(
+        "[Ranked Leaderboard] 3 or fewer players remain, ending tournament & awarding XP."
+      );
+
+      // XP payouts: 1st, 2nd, 3rd
+      const xpByPlace = [1000, 800, 600];
+
+      for (let i = 0; i < rows.length && i < 3; i++) {
+        const award = xpByPlace[i];
+        const pid = rows[i].pid;
+
+        // Increment XP for this student
+        await pool.query("UPDATE students SET XP = XP + ? WHERE pid = ?", [
+          award,
+          pid,
+        ]);
+
+        // Attach award info so frontend can see who got what (optional)
+        rows[i].xpAward = award;
+      }
+
+      // Mark this tournament as processed so no background job (or repeat call) double-awards XP
+      await pool.query("UPDATE tournaments SET xpAwarded = 1 WHERE tid = ?", [
+        oldTid,
+      ]);
+
+      return res.json({
+        successful: true,
+        continues: false, // tournament ended
+        oldTid,
+        newTid,
+        totalParticipants: total,
+        winners: rows, // includes xpAward if just awarded
+      });
+    }
+
+    // ===== ROUND CASE (> 3 players) → ELIMINATE, CARRY FORWARD, NO XP =====
+    let keepCount;
+
+    if (total === 4) {
+      console.log(
+        "[Ranked Leaderboard] 4 players remain, carrying top 3 forward."
+      );
+      keepCount = 3;
+    } else if (total % 2 === 0) {
+      console.log(
+        `[Ranked Leaderboard] ${total} players remain, carrying top ${
+          total / 2
+        } forward.`
+      );
+      keepCount = total / 2;
+    } else {
+      console.log(
+        `[Ranked Leaderboard] ${total} players remain, carrying top ${Math.ceil(
+          total / 2
+        )} forward.`
+      );
+      keepCount = Math.ceil(total / 2);
+    }
+
+    const topParticipants = rows.slice(0, keepCount);
+    const eliminatedParticipants = rows.slice(keepCount);
+    const topPids = topParticipants.map((p) => p.pid);
+
+    if (topPids.length > 0) {
+      // Reset score for new round (0)
+      const values = topPids.map((pid) => [newTid, pid, 0]);
+
+      await pool.query(
+        `
+          INSERT IGNORE INTO tournament_participants (tid, pid, score)
+          VALUES ?
+        `,
+        [values]
+      );
+    }
+
+    // IMPORTANT:
+    // Even though we did NOT give XP, we still mark this round as "processed"
+    // so your background XP job will ignore it.
+    await pool.query("UPDATE tournaments SET xpAwarded = 1 WHERE tid = ?", [
+      oldTid,
+    ]);
+
+    return res.json({
+      successful: true,
+      continues: true, // tournament continues to next round
+      oldTid,
+      newTid,
+      totalParticipants: total,
+      keepCount,
+      carriedParticipants: topParticipants,
+      eliminatedParticipants,
+    });
+  } catch (err) {
+    console.error("[API] update-ranked-leaderboard error:", err);
+    return res.status(500).json({
+      successful: false,
+      error: "Failed to update ranked leaderboard",
+    });
+  }
+});
+
+// Get total XP for a given username
+app.post("/api/users/xp", async (req, res) => {
+  const { username } = req.body || {};
+
+  if (!username) {
+    return res
+      .status(400)
+      .json({ successful: false, error: "Missing username" });
+  }
+
+  try {
+    const [rows] = await pool.query(
+      `
+      SELECT s.XP AS xp
+      FROM students s
+      INNER JOIN users u ON s.pid = u.pid
+      WHERE u.username = ?
+      LIMIT 1
+      `,
+      [username]
+    );
+
+    if (!rows || rows.length === 0) {
+      return res
+        .status(404)
+        .json({ successful: false, error: "User not found" });
+    }
+
+    const xp = rows[0].xp ?? 0;
+
+    return res.json({
+      successful: true,
+      username,
+      xp,
+    });
+  } catch (e) {
+    console.error("[BACKEND] /api/users/xp error:", e);
+    return res
+      .status(500)
+      .json({ successful: false, error: "Failed to fetch XP" });
+  }
+});
+
+// Get the logged-in student's major
+app.get("/api/student-major", async (req, res) => {
+  try {
+    // Get JWT from headers
+    const token = req.headers["jwt-token"];
+    if (!token) {
+      return res.status(401).json({
+        successful: false,
+        error: "Missing token",
+      });
+    }
+
+    // Decode token into username
+    //   Adjust this line depending on how you named it in authentication.js
+    const username = decryptToken(token);
+
+    if (!username) {
+      return res.status(401).json({
+        successful: false,
+        error: "Invalid token",
+      });
+    }
+
+    //Look up student's major
+    const [rows] = await pool.query(
+      `
+      SELECT
+        COALESCE(NULLIF(TRIM(s.major), ''), 'Unknown') AS major
+      FROM students s
+      INNER JOIN users u ON u.pid = s.pid
+      WHERE u.username = ?
+      LIMIT 1;
+      `,
+      [username]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        successful: false,
+        error: "Student not found",
+      });
+    }
+
+    return res.json({
+      successful: true,
+      username,
+      major: rows[0].major,
+    });
+  } catch (e) {
+    console.error("[API] /api/student-major error:", e);
+    return res.status(500).json({
+      successful: false,
+      error: "Failed to fetch student major",
+    });
+  }
+});
+
+// Helper function to get major associated with a tournaments topcics, and check if that major matches the logged in student's major
+async function checkTournamentMajorMatch(topics, studentMajor) {
+  console.log(
+    "Entering checkTournamentMajorMatch with topics:",
+    topics,
+    "and studentMajor:",
+    studentMajor
+  );
+
+  const [rows] = await pool.query(
+    `SELECT major FROM tournament_topics WHERE JSON_CONTAINS(topics, JSON_QUOTE(?))`,
+    [topics]
+  );
+
+  if (rows.length === 0) {
+    console.log("No major found for the given topics.");
+    return false;
+  }
+
+  const tournamentMajor = rows[0].major;
+
+  if (tournamentMajor === studentMajor) {
+    console.log("Majors match.");
+    return true;
+  } else {
+    console.log("Majors do not match.");
+    return false;
+  }
+}

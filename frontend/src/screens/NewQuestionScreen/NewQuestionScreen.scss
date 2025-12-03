@@ -1,0 +1,62 @@
+@use "../../css/tokens.scss" as *;
+
+.questionMain {
+  padding-top: 8px;
+  padding-bottom: 16px;
+}
+
+.questionTile {
+  margin-bottom: 16px;
+}
+
+.questionContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.questionCategory h6 {
+  margin: 0;
+  font-size: 0.875rem;
+  opacity: 0.8;
+}
+
+.questionText {
+  margin: 12px 0 4px 0;
+}
+
+.questionAnswers {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.questionMetaRow {
+  margin-top: 8px;
+}
+
+.questionTimerBar {
+  margin-top: 16px;
+}
+
+.questionTimerTrack {
+  height: 8px;
+  width: 100%;
+  border-radius: 999px;
+  background-color: rgba(255, 255, 255, 0.12); /* works in dark theme */
+  overflow: hidden;
+}
+
+/* Uses bootstrap primary color if available */
+.questionTimerFill {
+  height: 100%;
+  border-radius: 999px;
+  background-color: var(--bs-primary, #0d6efd);
+  transition: width 1s linear;
+}
+
+.gameOverActions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-start;
+}
