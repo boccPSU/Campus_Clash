@@ -255,7 +255,7 @@ function NewHomeScreen() {
 
                         {/* Quest Popup */}
                         <MainPopup
-                            open={true}
+                            open={false}
                             title="Quests"
                             message="Claim a quest to earn gems"
                             buttonLabel1="Leave"
@@ -429,7 +429,7 @@ function NewHomeScreen() {
                                 </InfoTile>
                             )}
 
-                        {!alertsLoading &&
+                        {!loading &&
                             visibleAlerts.map((a) => (
                                 <InfoTile key={a.id}>
                                     <AlertCard
