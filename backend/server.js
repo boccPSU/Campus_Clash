@@ -1279,7 +1279,7 @@ app.post("/api/tournament/has-joined", async (req, res) => {
     }
 
     // Get username, and pid
-    const username = decryptToken(token);
+    const {username, pid} = decryptToken(token);
 
     const [userRows] = await pool.query(
       "SELECT pid FROM users WHERE username = ?",
@@ -1291,7 +1291,7 @@ app.post("/api/tournament/has-joined", async (req, res) => {
     }
 
     const user = userRows[0];
-    const pid = user.pid;
+    //const pid = user.pid;
 
     // Check to see if both exist in table
     const [existingRows] = await pool.query(

@@ -11,7 +11,7 @@ import XpHeaderBar from "../../newComponents/XpHeaderBar/XpHeaderBar.js";
 import {useAuth} from "../../api/AuthContext";
 
 function NewTournamentScreen() {
-    const {token} = useAuth();
+    const {token, studentData} = useAuth();
     // Time variables for tournament refresh
 
     // Short times for testing
@@ -31,7 +31,7 @@ function NewTournamentScreen() {
     const [rankedInBetween, setRankedInBetween] = useState(false);
 
     // Logged-in student's major (default to CS so existing behavior still works until we fetch real major)
-    const [major, setMajor] = useState(null);
+    const [major, setMajor] = useState(studentData?.major);
 
     // Remaining time for display purposes (always "relevant" countdown)
     const [dailyRemainingTime, setDailyRemainingTime] = useState(); // in ms

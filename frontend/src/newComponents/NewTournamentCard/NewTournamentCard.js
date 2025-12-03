@@ -5,6 +5,8 @@ import { useNavigate } from "react-router-dom";
 import InfoTile from "../InfoTile/InfoTile";
 import { ChevronDown, ChevronUp, Check, X } from "react-bootstrap-icons";
 
+import {useAuth} from "../../api/AuthContext";
+
 // Const values
 const LEADERBOARD_PREVIEW_COUNT = 3; // How many users on leaderboard are shown before expanding
 
@@ -28,6 +30,8 @@ function NewTournamentCard({
     tournamentOver = false,
     newTournament = false, // ranked only: true if this finished tournament is the FINAL one (no more rounds)
 }) {
+    const {token} = useAuth();
+
     const navigate = useNavigate();
 
     // Display state derived from tournamentType
@@ -77,7 +81,7 @@ function NewTournamentCard({
             }
 
             // Check if user is already in tournament
-            const tokenString = localStorage.getItem("token");
+            const tokenString = sessionStorage.getItem("token");
             if (!tokenString) {
                 //console.log("[NewTournamentCard] No token, disabling join button");
                 setCanJoin(false);
