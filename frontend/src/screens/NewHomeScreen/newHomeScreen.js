@@ -17,28 +17,32 @@ import { checkRecentSubmissions } from "../../api/canvas.js";
 import XpHeaderBar from "../../newComponents/XpHeaderBar/XpHeaderBar.js";
 import MainPopup from "../../newComponents/MainPopup/MainPopup.js";
 
+import {useAuth} from "../../api/AuthContext.js";
+
 const COURSES_PREVIEW_COUNT = 3;
 const ALERTS_PREVIEW_COUNT = 3;
 
 function NewHomeScreen() {
     const navigate = useNavigate();
 
+    const {studentData, loadStudentData, isStudentDataFilled} = useAuth();
+
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [alertsLoading, setAlertsLoading] = useState(true);
     const [alerts, setAlerts] = useState([]);
 
-    const [studentData, setStudentData] = useState(
-        JSON.parse(sessionStorage.getItem("studentData"))
-    );
+    // const [studentData, setStudentData] = useState(
+    //     JSON.parse(sessionStorage.getItem("studentData"))
+    // );
 
     const [isDarkMode, setIsDarkMode] = useState(false);
     const [showAllCourses, setShowAllCourses] = useState(false);
     const [showAllAlerts, setShowAllAlerts] = useState(false);
 
-    useEffect(() => {
-        sessionStorage.setItem("studentData", JSON.stringify(studentData));
-    }, [studentData]);
+    // useEffect(() => {
+    //     sessionStorage.setItem("studentData", JSON.stringify(studentData));
+    // }, [studentData]);
 
     // Toggle dark mode on "d" / "D"
     useEffect(() => {
@@ -58,133 +62,166 @@ function NewHomeScreen() {
 
     const scrollerRef = useRef(null);
 
-    const loadCourses = async () => {
-        setError("");
-        setLoading(true);
-        try {
-            const raw = await getMySemesterCoursesWithGrades();
+    // const loadCourses = async () => {
+    //     setError("");
+    //     setLoading(true);
+    //     try {
+    //         const raw = await getMySemesterCoursesWithGrades();
 
-            const nextGpa = computeGPAEqualCredits(
-                raw.map((c) => ({ grade: c.grade, percent: c.percent }))
-            );
+    //         const nextGpa = computeGPAEqualCredits(
+    //             raw.map((c) => ({ grade: c.grade, percent: c.percent }))
+    //         );
 
-            const normalizedForUI = raw.map((c) => {
-                const rawPercent =
-                    typeof c.percent === "number" ? c.percent : null;
-                const roundedPercent =
-                    rawPercent !== null ? Math.round(rawPercent) : undefined;
-                const letter = c.grade || percentToLetter(rawPercent) || "—";
-                return {
-                    id: c.id,
-                    name: c.name ?? `Course ${c.id}`,
-                    percent: roundedPercent,
-                    grade: letter,
-                };
-            });
+    //         const normalizedForUI = raw.map((c) => {
+    //             const rawPercent =
+    //                 typeof c.percent === "number" ? c.percent : null;
+    //             const roundedPercent =
+    //                 rawPercent !== null ? Math.round(rawPercent) : undefined;
+    //             const letter = c.grade || percentToLetter(rawPercent) || "—";
+    //             return {
+    //                 id: c.id,
+    //                 name: c.name ?? `Course ${c.id}`,
+    //                 percent: roundedPercent,
+    //                 grade: letter,
+    //             };
+    //         });
 
-            setStudentData((prevStudent) => ({
-                ...prevStudent,
-                gpa: nextGpa,
-                courses: normalizedForUI,
-                filled: true,
-            }));
-            console.log("Student Data Post-Course Load: ", studentData);
-        } catch (e) {
-            console.error("Failed to load Canvas data:", e);
-            setError(
-                `Could not load courses from Canvas.\n${e?.message ?? ""}`
-            );
-            setStudentData((prevStudent) => ({
-                ...prevStudent,
-                courses: [],
-            }));
-        } finally {
-            setLoading(false);
-        }
-    };
+    //         setStudentData((prevStudent) => ({
+    //             ...prevStudent,
+    //             gpa: nextGpa,
+    //             courses: normalizedForUI,
+    //             filled: true,
+    //         }));
+    //         console.log("Student Data Post-Course Load: ", studentData);
+    //     } catch (e) {
+    //         console.error("Failed to load Canvas data:", e);
+    //         setError(
+    //             `Could not load courses from Canvas.\n${e?.message ?? ""}`
+    //         );
+    //         setStudentData((prevStudent) => ({
+    //             ...prevStudent,
+    //             courses: [],
+    //         }));
+    //     } finally {
+    //         setLoading(false);
+    //     }
+    // };
 
-    const loadAlerts = async () => {
-        try {
-            setAlertsLoading(true);
-            const upcoming = await getUpcomingAssignmentAlerts({
-                daysAhead: 14,
-            });
-            setAlerts(upcoming);
-            setStudentData((prevStudent) => ({
-                ...prevStudent,
-                alerts: upcoming,
-                filled: true,
-            }));
-            console.log("Student Data Post-Alerts Load: ", studentData);
-        } catch (e) {
-            console.error("Failed to load upcoming assignments:", e);
-            setAlerts([]);
-        } finally {
-            setAlertsLoading(false);
-        }
-    };
+    // const loadAlerts = async () => {
+    //     try {
+    //         setAlertsLoading(true);
+    //         const upcoming = await getUpcomingAssignmentAlerts({
+    //             daysAhead: 14,
+    //         });
+    //         setAlerts(upcoming);
+    //         setStudentData((prevStudent) => ({
+    //             ...prevStudent,
+    //             alerts: upcoming,
+    //             filled: true,
+    //         }));
+    //         console.log("Student Data Post-Alerts Load: ", studentData);
+    //     } catch (e) {
+    //         console.error("Failed to load upcoming assignments:", e);
+    //         setAlerts([]);
+    //     } finally {
+    //         setAlertsLoading(false);
+    //     }
+    // };
+
+    // useEffect(() => {
+    //     (async () => {
+    //         let studentDataToken = JSON.parse(
+    //             sessionStorage.getItem("studentData")
+    //         );
+    //         console.log(studentDataToken);
+    //         if (studentDataToken?.filled ?? false) {
+    //             setStudentData(studentDataToken);
+    //             setLoading(false);
+    //             setAlertsLoading(false);
+    //         } else {
+    //             await setTokens();
+    //             await loadCourses();
+    //             await loadAlerts();
+    //             await checkRecentSubmissions({ lookbackMinutes: 60 * 24 * 7 });
+    //         }
+    //     })();
+    //     // eslint-disable-next-line react-hooks/exhaustive-deps
+    // }, []);
 
     useEffect(() => {
-        (async () => {
-            let studentDataToken = JSON.parse(
-                sessionStorage.getItem("studentData")
-            );
-            console.log(studentDataToken);
-            if (studentDataToken?.filled ?? false) {
-                setStudentData(studentDataToken);
-                setLoading(false);
-                setAlertsLoading(false);
-            } else {
-                await setTokens();
-                await loadCourses();
-                await loadAlerts();
-                await checkRecentSubmissions({ lookbackMinutes: 60 * 24 * 7 });
-            }
-        })();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+            (async () => {
+                if (isStudentDataFilled()) {
+                    setLoading(false);
+                } else {
+                    setLoading(true);
+                    loadStudentData().then(
+                        (err) => {
+                            if (err) {
+                                setError(err.cause);
+                            }
+                            setLoading(false);
+                        }
+                    );
+                }
+            })();
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, []);
 
+    // const refresh = async () => {
+    //     await setTokens();
+    //     await loadCourses();
+    //     await loadAlerts();
+    //     await checkRecentSubmissions({ lookbackMinutes: 60 * 24 * 7 });
+    //     await new Promise((r) => setTimeout(r, 300));
+    // };
+
+        // pull-to-refresh
     const refresh = async () => {
-        await setTokens();
-        await loadCourses();
-        await loadAlerts();
-        await checkRecentSubmissions({ lookbackMinutes: 60 * 24 * 7 });
+        setLoading(true);
+        loadStudentData().then(
+            (err) => {
+                if (err) {
+                    setError(err.cause);
+                }
+                setLoading(false);
+            }
+        );
         await new Promise((r) => setTimeout(r, 300));
     };
 
-    const setTokens = async () => {
-        try {
-            const tokenString = localStorage.getItem("token");
-            const userToken = JSON.parse(tokenString);
-            const tokenValue = userToken.token;
-            const res = await fetch("/api/profile", {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                    "jwt-token": tokenValue,
-                },
-            });
-            if (res.status == 500)
-                throw new Error("[PROFILE] Error", {
-                    cause: "Could not Connect.",
-                });
-            const data = await res.json();
-            if (!res.ok)
-                throw new Error("[PROFILE] Error", { cause: data.error });
-            console.log(data);
-            setStudentData((prevStudent) => ({
-                ...prevStudent,
-                username: data.username,
-                university: data.university,
-                major: data.major,
-                xp: data.xp,
-                filled: true,
-            }));
-        } catch (err) {
-            console.log(err);
-            setError(err.cause);
-        }
-    };
+    // const setTokens = async () => {
+    //     try {
+    //         const tokenString = localStorage.getItem("token");
+    //         const userToken = JSON.parse(tokenString);
+    //         const tokenValue = userToken.token;
+    //         const res = await fetch("/api/profile", {
+    //             method: "GET",
+    //             headers: {
+    //                 "Content-Type": "application/json",
+    //                 "jwt-token": tokenValue,
+    //             },
+    //         });
+    //         if (res.status == 500)
+    //             throw new Error("[PROFILE] Error", {
+    //                 cause: "Could not Connect.",
+    //             });
+    //         const data = await res.json();
+    //         if (!res.ok)
+    //             throw new Error("[PROFILE] Error", { cause: data.error });
+    //         console.log(data);
+    //         setStudentData((prevStudent) => ({
+    //             ...prevStudent,
+    //             username: data.username,
+    //             university: data.university,
+    //             major: data.major,
+    //             xp: data.xp,
+    //             filled: true,
+    //         }));
+    //     } catch (err) {
+    //         console.log(err);
+    //         setError(err.cause);
+    //     }
+    // };
 
     const courses = studentData?.courses ?? [];
     const alertsData = studentData?.alerts ?? [];
@@ -303,7 +340,8 @@ function NewHomeScreen() {
                                         <Button
                                             size="sm"
                                             variant="outline-secondary"
-                                            onClick={loadCourses}
+                                            //onClick={loadCourses}
+                                            onClick={refresh}
                                         >
                                             Try again
                                         </Button>

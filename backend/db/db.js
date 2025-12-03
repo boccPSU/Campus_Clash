@@ -27,7 +27,7 @@ async function initDb() {
   `);
 
   // Tables are being dropped here, REMOVE IF NOT TESTING
-  /*await pool.query(`
+  await pool.query(`
     DROP TABLE IF EXISTS events;
   `);
 
@@ -37,7 +37,7 @@ async function initDb() {
 
   await pool.query(`
     DROP TABLE IF EXISTS users;
-  `);*/
+  `);
 
 
   // Create users table

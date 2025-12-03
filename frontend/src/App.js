@@ -24,7 +24,6 @@ import SettingsScreen from "./screens/SettingsScreen";
 
 import {AuthProvider} from "./api/AuthContext";
 import PrivateRoute from "./api/PrivateRoute";
-import useToken from "./api/userTokens";
 import NewTournamentScreen from "./screens/NewTournamentScreen/NewTournamentScreen";
 import NewQuestionScreen from "./screens/NewQuestionScreen/NewQuestionScreen";
 import NewLeaderboardScreen from "./screens/NewLeaderboardScreen/NewLeaderboardScreen";
@@ -38,7 +37,11 @@ function App() {
                 <Route path="/" element={<Navigate to={"/home"} replace />}/>
                 
                 {/* /home path -> Home */}
-                <Route path="/home" element={<NewHomeScreen />} />
+                <Route path="/home" element={
+                    <PrivateRoute>
+                        <NewHomeScreen />
+                    </PrivateRoute>
+                    } />
 
                 {/* /events path -> Events screen */}
                 <Route path="/events" element={
@@ -48,10 +51,17 @@ function App() {
                     } />
 
                 {/* /tournaments path -> Tournament screen */}
-                <Route path="/tournament" element={<NewTournamentScreen />} />
+                <Route path="/tournament" element={
+                    <PrivateRoute>
+                        <NewTournamentScreen />
+                    </PrivateRoute>
+                    } />
 
                 {/* /leaderboard path -> Leaderboard screen */}
-                <Route path="/leaderboard" element={<NewLeaderboardScreen />} />
+                <Route path="/leaderboard" element={
+                    <PrivateRoute>
+                        <NewLeaderboardScreen />
+                    </PrivateRoute>} />
 
                 {/* /studyPlan -> Study Plan screen */}
                 <Route path="/studyPlan" element={
