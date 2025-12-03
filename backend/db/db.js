@@ -186,7 +186,7 @@ await pool.query(`
   await pool.query(`
     CREATE PROCEDURE get_student_by_username(IN p_username VARCHAR(32))
     BEGIN
-      SELECT users.firstName, users.lastName, users.username, students.university, students.major, students.xp
+      SELECT users.firstName, users.lastName, users.username, students.university, students.major, students.xp, students.canvasToken
         FROM users
         INNER JOIN students
         ON users.pid = students.pid
@@ -218,6 +218,8 @@ await pool.query(`
 
     INSERT INTO students (pid, university, major, XP, canvasToken)
     VALUES (LAST_INSERT_ID(), p_university, p_major, 0, p_canvasTok);
+
+    SELECT LAST_INSERT_ID();
   END
 `);
 
@@ -320,6 +322,8 @@ async function addMockUsers(numUsers) {
     let university = `Penn State`;
     let major = `Computer Science`;
     let canvasTok = process.env.CANVAS_TOKEN;
+
+    let id = 0;
 
     for (let i = 0; i < 3; i++) {
       const [res] = await conn.query(

@@ -1,0 +1,64 @@
+@use "../../css/tokens.scss" as *;
+
+.settingsMain {
+    .navButton {
+        width: 100vw;
+        max-width: 100vw;
+        border-radius: 0;
+        border-color: $primary;
+        background-color: $light;
+        color: $primary;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    width: 100vw;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+
+}
+
+.settingsProfile {
+    .editButton {
+        max-width: 100%;
+        width: 100%;
+        border-color: $primary;
+        border-radius: 0;
+        background-color: $light;
+        color: $primary;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    padding: 5%;
+}
+
+.backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.6);
+    z-index: 10;
+}
+
+.modalMain {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 20;
+}
+
+.settingsEdit {
+
+    width: 80%;
+    height: 70%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 5%;
+}

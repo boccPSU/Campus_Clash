@@ -5,14 +5,12 @@ import './LogoutButton.scss';
 function LogoutButton({handleLogout}) {
 
     return (
-        <div className="center">
-            <Button
-                aria-label="logout-button"
-                className="logoutButton"
-                onClick={handleLogout}>
-                Log Out
-            </Button>
-        </div>
+        <Button
+            aria-label="logout-button"
+            className="logoutButton"
+            onClick={handleLogout}>
+            Log Out
+        </Button>
     );
 }
 export default LogoutButton;

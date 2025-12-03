@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Button, Form} from "react-bootstrap";
 import {Link} from "react-router-dom"
 import * as formik from "formik";
-import * as yup from "yup";
+import validationSchema from "../api/validationSchema";
 
 function RegisterStudentPage({formData, setFormData, setStep, isLoading, setLoading}) {
     const [university, setUniversity] = useState(formData.university);
@@ -10,17 +10,6 @@ function RegisterStudentPage({formData, setFormData, setStep, isLoading, setLoad
     const [canvasToken, setCanvasToken] = useState(formData.canvasToken);
 
     const {Formik} = formik;
-    
-    const schema = yup.object().shape({
-        university: yup.string()
-            .max(32, "Your first name cannot exceed 32 characters.")
-            .matches(/^[A-Za-z'-]*$/, "Please enter the name of your University without special characters.")
-            .required("Please enter the name of your University."),
-        major: yup.string()
-            .required("Please select your Major."),
-        canvasToken: yup.string()
-            .required("Please enter your Canvas Token."),
-    });
 
     const handlePrevStep = () => {setStep(prevStep => prevStep - 1);}
 
@@ -42,7 +31,7 @@ function RegisterStudentPage({formData, setFormData, setStep, isLoading, setLoad
 
     return (
         <Formik
-            validationSchema={schema}
+            validationSchema={validationSchema()}
             onSubmit={!isLoading ? handleSubmit : null}
             initialValues={formData}
         >

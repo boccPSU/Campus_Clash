@@ -1,19 +1,20 @@
-import { Formik } from "formik";
 import { useEffect, useState } from "react";
 import { Form, Button } from "react-bootstrap";
 import { useNavigate, Link} from "react-router-dom";
 import * as formik from "formik";
 import * as yup from "yup";
 
-function LoginScreen({setToken}) {
+import {useAuth} from "../api/AuthContext";
+
+function LoginScreen() {
     const navigate = useNavigate();
+
+    const {setToken} = useAuth();
 
     const [formData, setFormData] = useState({
         username: "",
         password: ""
     });
-
-    const [validated, setValidated] = useState(false);
     const [isLoading, setLoading] = useState(false);
     const [error, setError] = useState("");
 

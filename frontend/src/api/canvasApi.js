@@ -102,7 +102,13 @@ export function createCanvasProxyClient({ basePath = "/api" } = {}) {
   }
 
   async function fetchCourseName(id) {
-    const res = await fetch(`${basePath}/v1/courses/${id}`);
+    const res = await fetch(`${basePath}/v1/courses/${id}`, {
+                              method: "GET",
+                              headers: {
+                                "Content-Type": "application/json",
+                                "jwt-token": JSON.parse(localStorage.getItem("token"))?.token
+                              }
+                            });
     if (!res.ok) return null;
     const c = await res.json();
     return pickDisplayName(c, id);

@@ -38,6 +38,10 @@ export async function canvasGet(path, params) {
     // Fetch result from backend
     const res = await fetch(url, {
         method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "jwt-token": JSON.parse(localStorage.getItem("token"))?.token
+        },
         credentials: "omit", // don't send browser cookies
     });
 

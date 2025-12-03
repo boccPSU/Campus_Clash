@@ -3,7 +3,10 @@ import RegisterUserPage from "../components/RegisterUserPage.js";
 import RegisterStudentPage from "../components/RegisterStudentPage";
 import { useNavigate, Link} from "react-router-dom";
 
-function RegisterScreen({setToken}) {
+import {useAuth} from "../api/AuthContext.js";
+
+function RegisterScreen() {
+
     const [step, setStep] = useState(1);
     const [formData, setFormData] = useState({
         firstName: "",
@@ -19,6 +22,8 @@ function RegisterScreen({setToken}) {
     const [error, setError] = useState("");
 
     const navigate = useNavigate();
+
+    const {setToken} = useAuth();
 
     useEffect(() => {
         if (isLoading) {
@@ -37,7 +42,7 @@ function RegisterScreen({setToken}) {
                 },
                 body: JSON.stringify(formData),
             });
-            if (res.status === 500) throw new Error("[LOGIN] Error", {cause: "Unable to Connect."});
+            if (res.status === 500) throw new Error("[REGISTER] Error", {cause: "Unable to Connect."});
             const data = await res.json();
             if (!res.ok) throw new Error("[Register] Error", {cause: data.error});
             if (data.successful) {

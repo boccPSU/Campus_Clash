@@ -47,6 +47,17 @@ app.get("/health", (_req, res) => {
 // Grabs all enpoints with /api/v1 and directs them to proxy to use Canvas API
 app.get(/^\/api\/v1\/.*/, async (req, res) => {
   try {
+    const token = req.headers["jwt-token"];
+    if (!token) {
+      return res.status(401).json({ error: "Unauthorized: missing token" });
+    }
+
+    const pid = decryptToken(token)?.pid;
+
+    const [result] = await pool.query(`SELECT canvasToken FROM students WHERE pid = ?`, [pid]);
+
+    const canvasToken = result[0]?.canvasToken;
+
     // Building Canvas request URL
     const upstreamUrl = `${BASE}${req.originalUrl}`;
     //console.log('[CanvasProxy] GET ->', upstreamUrl);
@@ -55,7 +66,7 @@ app.get(/^\/api\/v1\/.*/, async (req, res) => {
     const upstream = await fetch(upstreamUrl, {
       method: "GET",
       headers: {
-        Authorization: `Bearer ${TOKEN}`,
+        Authorization: `Bearer ${canvasToken}`,
         Accept: "application/json",
       },
     });
@@ -120,7 +131,7 @@ app.post("/api/register", async (req, res) => {
     }
 
     // Add user to users table and student row to students table via stored procedure
-    await pool.query("CALL register(?, ?, ?, ?, ?, ?, ?)", [
+    let [result] = await pool.query("CALL register(?, ?, ?, ?, ?, ?, ?)", [
       firstName,
       lastName,
       username,
@@ -130,8 +141,10 @@ app.post("/api/register", async (req, res) => {
       canvasToken ?? null,
     ]);
 
+    let pid = result[0][0]['LAST_INSERT_ID()'];
+
     // Generate token for user
-    const token = auth.generateToken(username);
+    const token = auth.generateToken(username, pid);
 
     // Set token in local storage on client side
     return res.status(201).json({ successful: true, token });
@@ -173,7 +186,7 @@ app.post("/api/login", async (req, res) => {
         .json({ successful: false, error: "Invalid username or password" });
     }
 
-    const token = auth.generateToken(username);
+    const token = auth.generateToken(username, user.pid);
     return res.status(201).json({ successful: true, token });
   } catch (e) {
     console.error("[BACKEND] login error:", e);
@@ -187,7 +200,7 @@ app.get("/api/profile", async (req, res) => {
     return res.status(401).json({ error: "Unauthorized: missing token" });
   }
   // decryptToken now returns just the username (or null/undefined)
-  const username = decryptToken(token);
+  const username = decryptToken(token)?.username;
   try {
     const [searchRows] = await pool.query("CALL get_student_by_username(?)", [
       username,
@@ -205,12 +218,56 @@ app.get("/api/profile", async (req, res) => {
       university: student.university,
       major: student.major,
       xp: student.xp,
+      canvasToken: student.canvasToken
     });
   } catch (e) {
     console.error("[BACKEND] Profile Error: ", e);
     return res.status(500).json({ error: "/profile error" });
   }
 });
+
+app.post("/api/change-user-info", async (req, res) => {
+  const token = req.headers["jwt-token"];
+  if (!token) {
+    return res.status(401).json({ error: "Unauthorized: missing token" });
+  }
+
+  const pid = decryptToken(token)?.pid;
+
+  try {
+    const {
+      firstName,
+      lastName,
+      username,
+      university,
+      major,
+      canvasToken
+    } = req.body;
+
+    const [results] = await pool.query(
+      `UPDATE users, students
+        SET users.firstName = ?,
+            users.lastName = ?,
+            users.username = ?,
+            students.university = ?,
+            students.major = ?,
+            students.canvasToken = ?
+        WHERE
+            users.pid = students.pid
+            AND users.pid = ?;`, 
+            [firstName, lastName, username, university, major, canvasToken, pid]
+    );
+
+    // Generate token for user
+    const token = auth.generateToken(username, pid);
+
+    // Set token in local storage on client side
+    return res.status(201).json({ successful: true, token });
+  } catch (err) {
+    console.error("[BACKEND] Change User Info Error: ", err);
+    return res.status(500).json({error: "/change-user-info error"});
+  }
+})
 
 app.post("/api/receive-xp", async (req, res) => {
   const {
@@ -487,7 +544,7 @@ app.post("/api/create-tournament", async (req, res) => {
 // New endpoint to return the userName of the currently loggeed in user
 app.get("/api/current-user", async (req, res) => {
   const token = req.headers["jwt-token"]; // matches your frontend convention
-  const username = decryptToken(token);
+  const username = decryptToken(token)?.username;
   if (!username) {
     return res.status(401).json({ error: "Unauthorized" });
   }
@@ -503,7 +560,7 @@ app.get("/api/current-tournament", async (req, res) => {
   }
 
   // decryptToken now returns just the username (or null/undefined)
-  const username = decryptToken(token);
+  const username = decryptToken(token)?.username;
   console.log("Decrypted username in current tournament:", username);
   if (!username) {
     return res.status(401).json({ error: "Unauthorized: invalid token" });
@@ -547,7 +604,7 @@ app.post("/api/join-tournament", async (req, res) => {
     }
 
     // This should return the username string based on your implementation
-    const username = decryptToken(token);
+    const username = decryptToken(token)?.username;
     console.log("[join-tournament] Decrypted username in join tournament:", username);
     if (!username) {
       return res.status(401).json({ error: "Invalid token" });

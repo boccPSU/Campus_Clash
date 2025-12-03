@@ -1,0 +1,19 @@
+@use "../../css/tokens.scss" as *;
+
+.center {
+    width:100vw;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    position: absolute;
+    bottom: 5%;
+
+    & > * {
+        margin-bottom: 1%;
+
+        &:last-child {
+            margin-bottom: 0%;
+        }
+    }
+}

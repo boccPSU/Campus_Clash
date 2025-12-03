@@ -24,11 +24,13 @@ const verifyPassword = (password, hash) => {
     }
 }
 
-const generateToken = (username) => {
+const generateToken = (username, pid) => {
     let data = {
         signInTime: Date.now(),
-        username
+        username,
+        pid
     }
+    console.log(data);
     const token = jwt.sign(data, key, {expiresIn: "1d"});
     console.log("Generated token for", username, ":", token);
     return token;
@@ -45,7 +47,7 @@ const verifyToken = (token) => {
 
 // Decrypts user token and returns username
 const decryptToken = (token) => {  
-  console.log('[decryptToken] Decrypting token:', token);
+  //console.log('[decryptToken] Decrypting token:', token);
   try {
     if (!token) {
       console.warn('[decryptToken] No token provided');
@@ -58,7 +60,12 @@ const decryptToken = (token) => {
       return null;
     }
 
-    return decoded.username;
+    if (!decoded || !decoded.pid) {
+        console.warn('[decryptToken] No pid in decoded token', decoded);
+        return null;
+    }
+
+    return {username: decoded.username, pid: decoded.pid};
   } catch (err) {
     console.error('[decryptToken] Failed to verify token:', err.message);
     return null;

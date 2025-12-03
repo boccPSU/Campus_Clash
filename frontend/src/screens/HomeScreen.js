@@ -162,10 +162,13 @@ function HomeScreen() {
             console.log(data);
             setStudentData(prevStudent => ({
                 ...prevStudent,
+                firstName: data.firstName,
+                lastName: data.lastName,
                 username: data.username,
                 university: data.university,
                 major: data.major,
                 xp: data.xp,
+                canvasToken: data.canvasToken,
                 filled: true
             }));
         } catch (err) {

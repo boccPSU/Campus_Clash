@@ -1,17 +1,22 @@
 import React, {useEffect, useRef, useState } from "react";
 import { Container, Navbar, Button} from "react-bootstrap";
 import { useNavigate, useLocation } from "react-router-dom";
-import { PersonCircle, ArrowLeft} from "react-bootstrap-icons";
+import { Gear, ArrowLeft} from "react-bootstrap-icons";
 
-import useCollapseOnScroll from "../components/hooks/useCollapseOnScroll.js";
-import PullToRefresh from "../components/interaction/PullToRefresh.js";
-import ScreenScroll from "../components/ScreenScroll/ScreenScroll.js";
-import ProfileInfo from "../components/ProfileInfo/ProfileInfo.js";
-import LogoutButton from "../components/LogoutButton/LogoutButton.js";
+import useCollapseOnScroll from "../../components/hooks/useCollapseOnScroll.js";
+import PullToRefresh from "../../components/interaction/PullToRefresh.js";
+import ScreenScroll from "../../components/ScreenScroll/ScreenScroll.js";
+import ProfileInfo from "../../components/ProfileInfo/ProfileInfo.js";
+import LogoutButton from "../../components/LogoutButton/LogoutButton.js";
+import SettingsButton from "../../components/SettingsComponents/SettingsButton/SettingsButton.js";
+import './ProfileScreen.scss';
+import { useAuth } from "../../api/AuthContext.js";
 
-function ProfileScreen({logout}) {
+function ProfileScreen() {
     const navigate = useNavigate();
     const location = useLocation();
+
+    const {logout} = useAuth();
 
     const [user, setUser] = useState({
         firstName: "",
@@ -23,8 +28,6 @@ function ProfileScreen({logout}) {
     })
 
     const returnPath = location.state?.returnPath;
-
-    console.log("Profile Path: ", returnPath);
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState();
@@ -80,7 +83,6 @@ function ProfileScreen({logout}) {
 
     const handleLogout = async () => {
         logout();
-        navigate('/login');
     };
 
     return (
@@ -100,8 +102,7 @@ function ProfileScreen({logout}) {
                     onClick={handleBack}
                     />
                     <div className="text-center text-white flex-grow-1">
-                    <div className="headerTitle">{"Profile"}</div>
-
+                        <div className="headerTitle">{"Profile"}</div>
                     </div>
                 </Container>
             </Navbar>
@@ -116,8 +117,10 @@ function ProfileScreen({logout}) {
                 <PullToRefresh scrollerRef={scrollerRef} onRefresh={refresh}>
                     <ProfileInfo user={user}></ProfileInfo>
                 </PullToRefresh>
-
-                <LogoutButton handleLogout={handleLogout}></LogoutButton>
+                <div className="center">
+                    <SettingsButton></SettingsButton>
+                    <LogoutButton handleLogout={handleLogout}></LogoutButton>
+                </div>
             </ScreenScroll>
         </>
     );
