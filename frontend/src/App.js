@@ -28,6 +28,8 @@ import NewTournamentScreen from "./screens/NewTournamentScreen/NewTournamentScre
 import NewQuestionScreen from "./screens/NewQuestionScreen/NewQuestionScreen";
 import NewLeaderboardScreen from "./screens/NewLeaderboardScreen/NewLeaderboardScreen";
 
+import NewProfileScreen from "./screens/NewProfileScreen/NewProfileScreen";
+
 function App() {
 
     return (
@@ -86,7 +88,7 @@ function App() {
                 {/* /profile -> Profile Screen*/}
                 <Route path="/profile" element={
                     <PrivateRoute>
-                        <ProfileScreen />
+                        <NewProfileScreen />
                     </PrivateRoute>
                     } />
 

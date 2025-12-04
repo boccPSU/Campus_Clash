@@ -4,11 +4,10 @@
 // Use bootstrap classes
 @import "bootstrap/scss/bootstrap";
 
-// use all other scss syle sheets
-
 //Base page styles
 @import "./base.scss";
 
+// use all other scss syle sheets
 @import "../components/AlertCard/AlertCard.scss";
 @import "../components/BottomNav/BottomNav.scss";
 @import "../components/CourseCard/CourseCard.scss";
@@ -27,6 +26,7 @@
 @import "../components/ScreenScroll/ScreenScroll.scss";
 @import "../components/interaction/PullToRefresh.scss";
 
+@import "../screens/BaseScreen/BaseScreen.scss";
 @import "../newComponents/BottomNavBar/BottomNavBar.scss";
 @import "../newComponents/InfoTile/InfoTile.scss";
 @import "../screens/NewHomeScreen/NewHomeScreen.scss";
@@ -36,5 +36,5 @@
 @import "../newComponents/XpHeaderBar/XpHeaderBar.scss";
 @import "../screens/NewLeaderboardScreen/NewLeaderboardScreen.scss";
 @import "../newComponents/MainPopup/MainPopup.scss";
-// Main container that wraps content sections
+@import "../screens/NewProfileScreen/NewProfileScreen.scss";
 

@@ -36,66 +36,10 @@ function XpHeaderBar() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    useEffect(() => {
-        async function fetchXp() {
+    const fetchXp = async () => {
             try {
                 setLoading(true);
                 setError("");
-
-                // // Get token from localStorage
-                // const tokenString = localStorage.getItem("token");
-                // if (!tokenString) {
-                //     setError("Not logged in");
-                //     setLoading(false);
-                //     return;
-                // }
-
-                // let parsed;
-                // try {
-                //     parsed = JSON.parse(tokenString);
-                // } catch (err) {
-                //     console.error("Failed to parse token from localStorage:", err);
-                //     setError("Invalid auth token");
-                //     setLoading(false);
-                //     return;
-                // }
-
-                // const token = parsed?.token;
-                // if (!token) {
-                //     setError("Missing auth token");
-                //     setLoading(false);
-                //     return;
-                // }
-
-                // // Get current user from backend
-                // const userRes = await fetch(
-                //     "http://localhost:5000/api/current-user",
-                //     {
-                //         method: "GET",
-                //         headers: {
-                //             "Content-Type": "application/json",
-                //             "jwt-token": token,
-                //         },
-                //     }
-                // );
-
-                // if (!userRes.ok) {
-                //     console.error(
-                //         "Failed to get current user:",
-                //         userRes.status,
-                //         userRes.statusText
-                //     );
-                //     setError("Unable to load user");
-                //     setLoading(false);
-                //     return;
-                // }
-
-
-                // const userData = await userRes.json();
-                // const username = userData.username;
-
-                console.log(studentData);
-
                 if (!studentData?.xp) {
                     const username = studentData?.username;
                     if (!username) {
@@ -154,8 +98,11 @@ function XpHeaderBar() {
             }
         }
 
-        fetchXp();
-    }, []);
+    useEffect(() => {
+            if (profileLoading || !studentData)
+                return;
+            fetchXp();
+        }, [profileLoading, studentData]);
 
     const progressPercent = Math.max(
         0,

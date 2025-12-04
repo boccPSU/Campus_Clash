@@ -7,6 +7,7 @@ import {
     Trophy,
     BarChart,
     Diagram3,
+    PersonCircle,
 } from "react-bootstrap-icons";
 
 function BottomNavBar({ onNavClick }) {
@@ -41,13 +42,13 @@ function BottomNavBar({ onNavClick }) {
                     <Nav.Link
                         //href="/events"
                         as={Link}
-                        to="/events"
-                        eventKey="/events"
+                        to="/profile"
+                        eventKey="/profile"
                         className="navItem"
                         //onClick={(e) => handleNavClick("/events", e)}
                     >
-                        <Calendar size={24} />
-                        <div className="nav-label">Events</div>
+                        <PersonCircle size={24} />
+                        <div className="nav-label">Profile</div>
                     </Nav.Link>
                 </div>
 

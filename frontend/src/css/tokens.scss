@@ -1,3 +1,5 @@
+@import "bootstrap";
+
 // Color Tokens
 $primary: #1b50c4;
 $secondary: #22c55e;
@@ -15,3 +17,29 @@ $light-text-primary: #1a1a1a;
 $dark-primary: #1a1a1a;
 $dark-secondary: #343434;
 $dark-text-primary: #f9f9f9;
+
+[data-bs-them="light"] {
+    // Override specific CSS variables for dark mode
+  --bs-primary: $light-primary-text;
+  --bs-body-color: $light-primary-text;
+  --bs-body-bg: $light-primary;
+}
+
+[data-bs-theme="dark"] {
+  // Override specific CSS variables for dark mode
+  --bs-primary: $dark-primary-text;
+  --bs-body-color: $dark-primary-text;
+  --bs-body-bg: $dark-primary;
+}
+
+// @include color-mode(light) {
+//     $primary: #dddddd;
+//     $secondary: #f9f9f9;
+//     $text-primary: #1a1a1a;
+// }
+
+// @include color-mode(dark) {
+//     $primary: #1a1a1a;
+//     $secondary: #343434;
+//     $text-primary: #f9f9f9;
+// }
