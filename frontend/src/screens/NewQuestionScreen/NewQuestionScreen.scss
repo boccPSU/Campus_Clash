@@ -33,6 +33,12 @@
 
 .questionMetaRow {
   margin-top: 8px;
+    display: flex;
+    justify-content: space-between;  /* pushes the two <p> to opposite sides */
+    align-items: center;
+    width: 100%;
+    padding: 0 12px;                /* equal left/right margin relative to screen */
+    box-sizing: border-box;
 }
 
 .questionTimerBar {

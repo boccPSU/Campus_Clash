@@ -12,7 +12,7 @@ import useCollapseOnScroll from "../components/hooks/useCollapseOnScroll.js";
 import PullToRefresh from "../components/interaction/PullToRefresh.js";
 import ScreenScroll from "../components/ScreenScroll/ScreenScroll.js";
 
-import { getWeeklyProgressData } from "../api/canvas";
+//import { getWeeklyProgressData } from "../api/canvas";
 
 export default function ProgressReport() {
   const [loading, setLoading] = useState(true);
@@ -26,7 +26,8 @@ export default function ProgressReport() {
     try {
       setError("");
       setLoading(true);
-      const data = await getWeeklyProgressData(new Date());
+      const data = null;
+      //const data = await getWeeklyProgressData(new Date());
       setWeekData(data);
     } catch (e) {
       console.error(e);

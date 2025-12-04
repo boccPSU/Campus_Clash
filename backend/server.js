@@ -259,6 +259,7 @@ app.get("/api/profile", async (req, res) => {
       university: student.university,
       major: student.major,
       xp: student.xp,
+      gems: student.gems,
       canvasToken: student.canvasToken
     });
   } catch (e) {
@@ -311,18 +312,51 @@ app.post("/api/change-user-info", async (req, res) => {
 })
 
 app.post("/api/receive-xp", async (req, res) => {
-  const { username, reward } = req.body;
+  try {
+    const { username, reward } = req.body;
 
-  const [rows] = await pool.query(`CALL get_user_by_username(?)`, [username]);
-  console.log(rows[0][0].pid);
-  let student = rows[0];
-  const [result] = await pool.query(
-    `UPDATE students
-           SET xp = xp + ?
-           WHERE pid = ?`,
-    [reward, student[0]?.pid]
-  );
+    if (!username || typeof reward !== "number") {
+      return res.status(400).json({
+        success: false,
+        error: "Missing or invalid username/reward",
+      });
+    }
+
+    const [rows] = await pool.query(`CALL get_user_by_username(?)`, [username]);
+    const studentRow = rows[0]?.[0];
+
+    if (!studentRow) {
+      return res
+        .status(404)
+        .json({ success: false, error: "User not found" });
+    }
+
+    await pool.query(
+      `UPDATE students
+         SET xp = xp + ?
+         WHERE pid = ?`,
+      [reward, studentRow.pid]
+    );
+
+    console.log(
+      "[BACKEND] Added",
+      reward,
+      "XP to user",
+      username,
+      "(pid:",
+      studentRow.pid,
+      ")"
+    );
+
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    console.error("[BACKEND] /api/receive-xp error:", err);
+    return res
+      .status(500)
+      .json({ success: false, error: "Internal server error" });
+  }
 });
+
 
 // POST /api/auth
 app.post("/api/auth", (req, res) => {
@@ -2051,3 +2085,132 @@ async function checkTournamentMajorMatch(topics, studentMajor) {
     return false;
   }
 }
+
+// Adds gems to a student's account
+app.post("/api/gems/add", async (req, res) => {
+  try {
+    const { username, amount } = req.body;
+
+    if (!username) {
+      return res
+        .status(400)
+        .json({ successful: false, error: "Missing username" });
+    }
+
+    const gemsToAdd = Number(amount);
+    if (!Number.isFinite(gemsToAdd) || gemsToAdd <= 0) {
+      return res
+        .status(400)
+        .json({ successful: false, error: "Amount must be a positive number" });
+    }
+
+    // Atomically add gems to this user
+    await pool.query(
+      `
+      UPDATE students s
+      JOIN users u ON s.pid = u.pid
+      SET s.gems = s.gems + ?
+      WHERE u.username = ?
+      `,
+      [gemsToAdd, username]
+    );
+
+    // Get updated gem count
+    const [rows] = await pool.query(
+      `
+      SELECT s.gems
+      FROM students s
+      JOIN users u ON s.pid = u.pid
+      WHERE u.username = ?
+      `,
+      [username]
+    );
+
+    if (!rows || rows.length === 0) {
+      return res
+        .status(404)
+        .json({ successful: false, error: "Student not found" });
+    }
+
+    const newGems = rows[0].gems ?? 0;
+
+    return res.status(200).json({
+      successful: true,
+      gems: newGems,
+    });
+  } catch (e) {
+    console.error("[BACKEND] /api/gems/add error:", e);
+    return res
+      .status(500)
+      .json({ successful: false, error: "Internal server error" });
+  }
+});
+// Remove gems endpoint
+app.post("/api/gems/remove", async (req, res) => {
+  try {
+    const { username, amount } = req.body;
+
+    if (!username) {
+      return res
+        .status(400)
+        .json({ successful: false, error: "Missing username" });
+    }
+
+    const gemsToRemove = Number(amount);
+    if (!Number.isFinite(gemsToRemove) || gemsToRemove <= 0) {
+      return res
+        .status(400)
+        .json({ successful: false, error: "Amount must be a positive number" });
+    }
+
+    // Atomic "only subtract if enough gems" update.
+    // This ensures we never go below 0.
+    const [updateResult] = await pool.query(
+      `
+      UPDATE students s
+      JOIN users u ON s.pid = u.pid
+      SET s.gems = s.gems - ?
+      WHERE u.username = ?
+        AND s.gems >= ?
+      `,
+      [gemsToRemove, username, gemsToRemove]
+    );
+
+    if (updateResult.affectedRows === 0) {
+      return res.status(200).json({
+        successful: false,
+        notEnoughGems: true,
+        message: "Not enough gems to complete this operation.",
+      });
+    }
+
+    // Fetch new balance
+    const [rows] = await pool.query(
+      `
+      SELECT s.gems
+      FROM students s
+      JOIN users u ON s.pid = u.pid
+      WHERE u.username = ?
+      `,
+      [username]
+    );
+
+    if (!rows || rows.length === 0) {
+      return res
+        .status(404)
+        .json({ successful: false, error: "Student not found" });
+    }
+
+    const newGems = rows[0].gems ?? 0;
+
+    return res.status(200).json({
+      successful: true,
+      gems: newGems,
+    });
+  } catch (e) {
+    console.error("[BACKEND] /api/gems/remove error:", e);
+    return res
+      .status(500)
+      .json({ successful: false, error: "Internal server error" });
+  }
+});

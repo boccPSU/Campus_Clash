@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import ProgressBar from "react-bootstrap/ProgressBar";
-
-import {useAuth} from "../../api/AuthContext";
+import { useAuth } from "../../api/AuthContext";
 
 // Leveling constraints
 const BASE_XP_PER_LEVEL = 200;
@@ -13,7 +12,6 @@ function computeLevelInfo(totalXp) {
     let xpRemaining = totalXp;
     let costForNextLevel = BASE_XP_PER_LEVEL;
 
-    // While we have enough XP to level up, spend it and move up a level
     while (xpRemaining >= costForNextLevel) {
         xpRemaining -= costForNextLevel;
         level += 1;
@@ -28,152 +26,67 @@ function computeLevelInfo(totalXp) {
 }
 
 function XpHeaderBar() {
-    const {studentData, profileLoading} = useAuth();
-    // Important states
+    const { studentData, studentDataLoading } = useAuth();
+
     const [level, setLevel] = useState(1);
     const [currentXp, setCurrentXp] = useState(0);
     const [xpForNextLevel, setXpForNextLevel] = useState(BASE_XP_PER_LEVEL);
-    const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
     useEffect(() => {
-        async function fetchXp() {
-            try {
-                console.log("[XpHeaderBar] profileLoading, set loading to true");
-                setLoading(true);
-                setError("");
+        console.log("[XpHeaderBar] studentDataLoading:", studentDataLoading);
+        console.log("[XpHeaderBar] studentData:", studentData);
 
-                // // Get token from localStorage
-                // const tokenString = localStorage.getItem("token");
-                // if (!tokenString) {
-                //     setError("Not logged in");
-                //     setLoading(false);
-                //     return;
-                // }
-
-                // let parsed;
-                // try {
-                //     parsed = JSON.parse(tokenString);
-                // } catch (err) {
-                //     console.error("Failed to parse token from localStorage:", err);
-                //     setError("Invalid auth token");
-                //     setLoading(false);
-                //     return;
-                // }
-
-                // const token = parsed?.token;
-                // if (!token) {
-                //     setError("Missing auth token");
-                //     setLoading(false);
-                //     return;
-                // }
-
-                // // Get current user from backend
-                // const userRes = await fetch(
-                //     "http://localhost:5000/api/current-user",
-                //     {
-                //         method: "GET",
-                //         headers: {
-                //             "Content-Type": "application/json",
-                //             "jwt-token": token,
-                //         },
-                //     }
-                // );
-
-                // if (!userRes.ok) {
-                //     console.error(
-                //         "Failed to get current user:",
-                //         userRes.status,
-                //         userRes.statusText
-                //     );
-                //     setError("Unable to load user");
-                //     setLoading(false);
-                //     return;
-                // }
-
-
-                // const userData = await userRes.json();
-                // const username = userData.username;
-
-                console.log("[XpHeaderBar] studentData:", studentData);
-
-                if (!studentData?.xp) {
-                    const username = studentData?.username;
-                    if (!username) {
-                        setError("No username returned from server");
-                        setLoading(false);
-                        return;
-                    }
-
-                    // Get XP for this username
-                    const xpRes = await fetch("http://localhost:5000/api/users/xp", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({ username }),
-                    });
-
-                    if (!xpRes.ok) {
-                        console.error(
-                            "Failed to fetch XP:",
-                            xpRes.status,
-                            xpRes.statusText
-                        );
-                        setError("Unable to load XP");
-                        setLoading(false);
-                        return;
-                    }
-
-                    const xpData = await xpRes.json();
-                    const totalXpRaw = xpData.xp ?? 0;
-                    const totalXp = Number.isFinite(totalXpRaw) ? totalXpRaw : 0;
-
-                    // Compute level info
-                    const info = computeLevelInfo(totalXp);
-
-                    setLevel(info.level);
-                    setCurrentXp(info.currentXp);
-                    setXpForNextLevel(info.xpForNextLevel);
-                } else {
-                    const totalXpRaw = studentData.xp;
-                    const totalXp = Number.isFinite(totalXpRaw) ? totalXpRaw : 0;
-
-                    // Compute level info
-                    const info = computeLevelInfo(totalXp);
-
-                    setLevel(info.level);
-                    setCurrentXp(info.currentXp);
-                    setXpForNextLevel(info.xpForNextLevel);
-                }
-
-                setLoading(false);
-            } catch (e) {
-                console.error("Error loading XP:", e);
-                setError("Error loading XP");
-                setLoading(false);
-            }
+        // While context is still loading the profile, we just show "Loading..."
+        if (studentDataLoading && !studentData) {
+            return;
         }
 
-        fetchXp();
-    }, []);
+        if (!studentData) {
+            setError("Not logged in");
+            return;
+        }
+
+        setError("");
+
+        const totalXpRaw = studentData.xp;
+        const totalXp =
+            typeof totalXpRaw === "number" && Number.isFinite(totalXpRaw)
+                ? totalXpRaw
+                : 0;
+
+        const info = computeLevelInfo(totalXp);
+        setLevel(info.level);
+        setCurrentXp(info.currentXp);
+        setXpForNextLevel(info.xpForNextLevel);
+    }, [studentData, studentDataLoading]);
+
+    const isLoading = studentDataLoading && !studentData;
 
     const progressPercent = Math.max(
         0,
         Math.min(100, (currentXp / xpForNextLevel) * 100)
     );
 
+    const gemsRaw = studentData?.gems;
+    const gems =
+        typeof gemsRaw === "number" && Number.isFinite(gemsRaw)
+            ? gemsRaw
+            : 0;
+
     return (
         <div className="xpHeaderBar">
             <div className="xpHeaderBarTop">
                 <span className="xpHeaderBarLevel">
-                    {loading ? "Level ..." : `Level ${level}`}
+                    {isLoading ? "Level ..." : `Level ${level}`}
                 </span>
-                <span className="xpHeaderBarGems">Gems: 123</span>
+                <span className="xpHeaderBarGems">
+                    {isLoading ? "Gems ..." : `Gems: ${gems}`}
+                </span>
             </div>
 
             <ProgressBar
-                now={loading ? 0 : progressPercent}
+                now={isLoading ? 0 : progressPercent}
                 className="xpHeaderBarProgressBar"
                 aria-label="Experience progress"
             />
@@ -183,7 +96,7 @@ function XpHeaderBar() {
                     <span className="xpHeaderBarXpError">{error}</span>
                 ) : (
                     <span className="xpHeaderBarXp">
-                        {loading
+                        {isLoading
                             ? "Loading XP..."
                             : `${currentXp} / ${xpForNextLevel} XP`}
                     </span>

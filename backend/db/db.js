@@ -61,7 +61,7 @@ async function initDb() {
     university VARCHAR(32) DEFAULT NULL,
     major VARCHAR(32)  DEFAULT NULL,
     XP INT DEFAULT 0,
-    gems INT DEFAULT 0,
+    gems INT DEFAULT 1000,
     canvasToken VARCHAR(70) DEFAULT NULL,
     KEY pid (pid),
     CONSTRAINT students_ibfk_1 FOREIGN KEY (pid) REFERENCES users (pid) ON DELETE CASCADE
@@ -263,7 +263,7 @@ await pool.query(`
   await pool.query(`
     CREATE PROCEDURE get_student_by_username(IN p_username VARCHAR(32))
     BEGIN
-      SELECT users.firstName, users.lastName, users.username, students.university, students.major, students.xp, students.canvasToken
+      SELECT users.firstName, users.lastName, users.username, students.university, students.major, students.xp, students.gems, students.canvasToken
         FROM users
         INNER JOIN students
         ON users.pid = students.pid

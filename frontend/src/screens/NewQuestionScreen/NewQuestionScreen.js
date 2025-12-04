@@ -10,6 +10,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import MainPopup from "../../newComponents/MainPopup/MainPopup.js";
 import XpHeaderBar from "../../newComponents/XpHeaderBar/XpHeaderBar.js";
 import BottomNavBar from "../../newComponents/BottomNavBar/BottomNavBar.js";
+import { useAuth } from "../../api/AuthContext.js";
 
 // Timers for each question
 const questionTime = 20; // 15s answer phase + 5s reveal
@@ -28,7 +29,7 @@ export default function NewQuestionScreen() {
     const navTitle = navState.title || "Tournament";
     const navId = navState.tournamentId;
     const navType = navState.tournamentType;
-
+    const { loadStudentData } = useAuth();
     const navigate = useNavigate();
 
     const [questions, setQuestions] = useState([]);
@@ -338,24 +339,34 @@ export default function NewQuestionScreen() {
                             "Content-Type": "application/json",
                         },
                         body: JSON.stringify({
-                            username: username,
+                            username,
                             reward: xpAmount,
                         }),
                     }
                 );
 
-                if (!res.ok) {
-                    console.error(
-                        "Failed to add XP:",
+                const body = await res.json().catch(() => null);
+
+                if (!res.ok || !body?.success) {
+                    console.log(
+                        "[Question Screen] Failed to add XP:",
                         res.status,
-                        res.statusText
+                        body
                     );
                     return;
                 }
 
-                console.log("Added", xpAmount, "XP to user", username);
+                console.log(
+                    "[Question Screen] Added",
+                    xpAmount,
+                    "XP to user",
+                    username
+                );
+
+                //  Refresh studentData so XpHeaderBar sees new XP
+                await loadStudentData();
             } catch (e) {
-                console.log("Error adding XP:", e);
+                console.log("[QuestionScreen] Error adding XP:", e);
             }
         };
 
@@ -625,7 +636,7 @@ export default function NewQuestionScreen() {
                                         onClick={handleEliminateAnswer}
                                         disabled={eliminateDisabled}
                                     >
-                                        Eliminate 1 Answer
+                                        Eliminate Answer
                                     </button>
                                 </div>
 

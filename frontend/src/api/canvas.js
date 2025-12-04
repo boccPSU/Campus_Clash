@@ -93,6 +93,7 @@ export async function loadAlerts(token) {
     }
 };
 
+/*
 // checks for recent submissions within the past seven days
 export async function checkRecentSubmissions(token) {
   global.token = token;
@@ -172,7 +173,7 @@ export async function checkRecentSubmissions(token) {
 
   console.log(`[recent] summary: lookbackMinutes=${lookbackMinutes} matches=${results.length}`);
   return results;
-};
+};*/
 
 export async function validateCanvasToken(token) {
   try {
@@ -491,9 +492,7 @@ export async function logUpcomingAssignmentsForSelectedCourses({ daysAhead = 14,
   console.log(`[assignments] summary: courses=${courseIds.length} assignments_logged=${total}`);
 }
 
-export async function logRecentSubmissions(opts, token) {
-  await checkRecentSubmissions(opts, token);
-}
+
 
 // ------------------------------------------------------------
 // Weekly Progress (Canvas-driven)
@@ -537,6 +536,7 @@ function _submissionPercent(sub) {
  * NOTE on XP: we expose a hook `xpFromSubmissions(subs)` so you can plug your own
  * gamification rules. By default we set totalXp = 0 to stay truthful.
  */
+/*
 export async function getWeeklyProgressData(now = new Date()) {
   const { start, end } = _weekWindow(now);
 
@@ -672,3 +672,4 @@ export async function getWeeklyProgressData(now = new Date()) {
     strengths: { negatives, positives },
   };
 }
++};*/
