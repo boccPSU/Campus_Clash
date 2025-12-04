@@ -76,7 +76,7 @@ export function AuthProvider({ children }) {
             setCoursesLoading(true);
             setAlertsLoading(true);
             setCanvasError(false);
-            const res = await fetch("/api/profile", {
+            const res = await fetch("http://localhost:5000/api/profile", {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
