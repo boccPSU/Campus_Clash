@@ -33,11 +33,12 @@ function XpHeaderBar() {
     const [level, setLevel] = useState(1);
     const [currentXp, setCurrentXp] = useState(0);
     const [xpForNextLevel, setXpForNextLevel] = useState(BASE_XP_PER_LEVEL);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
     const fetchXp = async () => {
             try {
+                console.log("[XpHeaderBar] profileLoading, set loading to true");
                 setLoading(true);
                 setError("");
                 if (!studentData?.xp) {
