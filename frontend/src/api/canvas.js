@@ -172,7 +172,19 @@ export async function checkRecentSubmissions(token) {
 
   console.log(`[recent] summary: lookbackMinutes=${lookbackMinutes} matches=${results.length}`);
   return results;
-}
+};
+
+export async function validateCanvasToken(token) {
+  try {
+    global.token = token;
+
+    const res = await canvasGet("/v1/users/self/profile");
+
+    return true;
+  } catch (err) {
+    return false;
+  }
+};
 
 // Basic GET function through backend
 export async function canvasGet(path, params) {

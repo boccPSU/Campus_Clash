@@ -241,7 +241,7 @@ function NewTournamentCard({
         }
 
         // Get user's token
-        const tokenString = localStorage.getItem("token");
+        const tokenString = sessionStorage.getItem("token");
         if (!tokenString) {
             //console.log("[NewTournamentCard] No token, cannot join tournament");
             setCanJoin(false);

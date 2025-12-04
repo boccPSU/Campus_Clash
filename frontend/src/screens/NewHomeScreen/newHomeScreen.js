@@ -8,12 +8,9 @@ import CourseCard from "../../components/CourseCard/CourseCard.js";
 import AlertCard from "../../components/AlertCard/AlertCard.js";
 import PullToRefresh from "../../components/interaction/PullToRefresh.js";
 import ScreenScroll from "../../components/ScreenScroll/ScreenScroll.js";
+import SettingsEditWindow from "../../components/SettingsComponents/SettingsEditWindow.js";
 
-import { computeGPAEqualCredits, percentToLetter } from "../../utils/gpa.js";
-import { getUpcomingAssignmentAlerts } from "../../api/canvas.js";
-import { getMySemesterCoursesWithGrades } from "../../api/canvas.js";
 import { Bell, ChevronDown, ChevronUp } from "react-bootstrap-icons";
-import { checkRecentSubmissions } from "../../api/canvas.js";
 import XpHeaderBar from "../../newComponents/XpHeaderBar/XpHeaderBar.js";
 import MainPopup from "../../newComponents/MainPopup/MainPopup.js";
 
@@ -25,11 +22,11 @@ const ALERTS_PREVIEW_COUNT = 3;
 function NewHomeScreen() {
     const navigate = useNavigate();
 
-    const {studentData, loadStudentData, isStudentDataFilled} = useAuth();
+    const {studentData, loadStudentData, isStudentDataFilled, studentDataLoading, coursesLoading, alertsLoading, canvasError} = useAuth();
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
-    const [alertsLoading, setAlertsLoading] = useState(true);
+    //const [alertsLoading, setAlertsLoading] = useState(true);
     const [alerts, setAlerts] = useState([]);
 
     // const [studentData, setStudentData] = useState(
@@ -148,24 +145,28 @@ function NewHomeScreen() {
     //     // eslint-disable-next-line react-hooks/exhaustive-deps
     // }, []);
 
-    useEffect(() => {
-            (async () => {
-                if (isStudentDataFilled()) {
-                    setLoading(false);
-                } else {
-                    setLoading(true);
-                    loadStudentData().then(
-                        (err) => {
-                            if (err) {
-                                setError(err.cause);
-                            }
-                            setLoading(false);
-                        }
-                    );
-                }
-            })();
-            // eslint-disable-next-line react-hooks/exhaustive-deps
-        }, []);
+    // useEffect(() => {
+    //         (async () => {
+    //             if (isStudentDataFilled()) {
+    //                 setLoading(false);
+    //             } else {
+    //                 setLoading(true);
+    //                 loadStudentData().then(
+    //                     (err) => {
+    //                         if (err) {
+    //                             setError(err.cause);
+    //                         }
+    //                         setLoading(false);
+    //                     }
+    //                 );
+    //             }
+    //         })();
+    //         // eslint-disable-next-line react-hooks/exhaustive-deps
+    //     }, []);
+
+    if (!isStudentDataFilled() && !studentDataLoading) {
+        //loadStudentData();
+    }
 
     // const refresh = async () => {
     //     await setTokens();
@@ -253,6 +254,16 @@ function NewHomeScreen() {
                             {/* optional extra content here */}
                         </MainPopup>
 
+                        {/* Invalid Token Popup*/} 
+                        <MainPopup
+                            open={canvasError}
+                            title="Invalid Canvas Token"
+                            message="Please Update your Access Token."
+                            buttonLabel1="Close"
+                        >
+                            <SettingsEditWindow state={5} onClose={() => {}}/>
+                        </MainPopup>
+
                         {/* Quest Popup */}
                         <MainPopup
                             open={false}
@@ -308,7 +319,7 @@ function NewHomeScreen() {
 
                         <h1 className="sectionTitle">Courses</h1>
 
-                        {loading && (
+                        {coursesLoading && (
                             <InfoTile>
                                 <div
                                     className="d-flex align-items-center gap-2 py-2"
@@ -324,7 +335,7 @@ function NewHomeScreen() {
                             </InfoTile>
                         )}
 
-                        {!loading && error && (
+                        {!coursesLoading && error && (
                             <InfoTile>
                                 <div
                                     className="d-flex flex-column gap-2"
@@ -350,7 +361,7 @@ function NewHomeScreen() {
                             </InfoTile>
                         )}
 
-                        {!loading &&
+                        {!coursesLoading &&
                             !error &&
                             (!courses || courses.length === 0) && (
                                 <InfoTile>
@@ -360,7 +371,7 @@ function NewHomeScreen() {
                                 </InfoTile>
                             )}
 
-                        {!loading &&
+                        {!coursesLoading &&
                             !error &&
                             visibleCourses.map((c, i) => (
                                 <InfoTile key={c.id ?? i}>
@@ -368,7 +379,7 @@ function NewHomeScreen() {
                                 </InfoTile>
                             ))}
 
-                        {!loading &&
+                        {!coursesLoading &&
                             !error &&
                             courses.length > COURSES_PREVIEW_COUNT && (
                                 <div className="expandToggleWrapper">
@@ -410,7 +421,7 @@ function NewHomeScreen() {
 
                         <h1 className="sectionTitle">Alerts</h1>
 
-                        {loading && (
+                        {alertsLoading && (
                             <InfoTile>
                                 <AlertCard
                                     alertTitle="Loading alerts…"
@@ -419,7 +430,7 @@ function NewHomeScreen() {
                             </InfoTile>
                         )}
 
-                        {!loading &&
+                        {!alertsLoading &&
                             (!alertsData || alertsData.length === 0) && (
                                 <InfoTile>
                                     <div className="text-muted">
@@ -429,7 +440,7 @@ function NewHomeScreen() {
                                 </InfoTile>
                             )}
 
-                        {!loading &&
+                        {!alertsLoading &&
                             visibleAlerts.map((a) => (
                                 <InfoTile key={a.id}>
                                     <AlertCard
@@ -439,7 +450,7 @@ function NewHomeScreen() {
                                 </InfoTile>
                             ))}
 
-                        {!loading &&
+                        {!alertsLoading &&
                             alertsData.length > ALERTS_PREVIEW_COUNT && (
                                 <div className="expandToggleWrapper">
                                     <button

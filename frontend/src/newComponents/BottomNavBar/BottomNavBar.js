@@ -1,5 +1,5 @@
 import { Nav } from "react-bootstrap";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 import {
     House,
@@ -25,10 +25,12 @@ function BottomNavBar({ onNavClick }) {
             <Nav className="bottomNavBar" activeKey={location.pathname}>
                 <div>
                     <Nav.Link
-                        href="/leaderboard"
+                        //href="/leaderboard"
+                        as={Link}
+                        to="/leaderboard"
                         eventKey="/leaderboard"
                         className="navItem"
-                        onClick={(e) => handleNavClick("/leaderboard", e)}
+                        //onClick={(e) => handleNavClick("/leaderboard", e)}
                     >
                         <BarChart size={24} />
                         <div className="nav-label">Leaderboard</div>
@@ -37,10 +39,12 @@ function BottomNavBar({ onNavClick }) {
 
                 <div>
                     <Nav.Link
-                        href="/events"
+                        //href="/events"
+                        as={Link}
+                        to="/events"
                         eventKey="/events"
                         className="navItem"
-                        onClick={(e) => handleNavClick("/events", e)}
+                        //onClick={(e) => handleNavClick("/events", e)}
                     >
                         <Calendar size={24} />
                         <div className="nav-label">Events</div>
@@ -49,10 +53,12 @@ function BottomNavBar({ onNavClick }) {
 
                 <div>
                     <Nav.Link
-                        href="/home"
+                        //href="/home"
+                        as={Link}
+                        to="/home"
                         eventKey="/home"
                         className="navItem"
-                        onClick={(e) => handleNavClick("/home", e)}
+                        //onClick={(e) => handleNavClick("/home", e)}
                     >
                         <House size={24} />
                         <div className="nav-label">Home</div>
@@ -61,10 +67,12 @@ function BottomNavBar({ onNavClick }) {
 
                 <div>
                     <Nav.Link
-                        href="/battle"
+                        //href="/battle"
+                        as={Link}
+                        to="/battle"
                         eventKey="/battle"
                         className="navItem"
-                        onClick={(e) => handleNavClick("/battle", e)}
+                        //onClick={(e) => handleNavClick("/battle", e)}
                     >
                         <Trophy size={24} />
                         <div className="nav-label">Battle</div>
@@ -73,10 +81,12 @@ function BottomNavBar({ onNavClick }) {
 
                 <div>
                     <Nav.Link
-                        href="/tournament"
+                        //href="/tournament"
+                        as={Link}
+                        to="/tournament"
                         eventKey="/tournament"
                         className="navItem"
-                        onClick={(e) => handleNavClick("/tournament", e)}
+                        //onClick={(e) => handleNavClick("/tournament", e)}
                     >
                         <Diagram3 size={24} />
                         <div className="nav-label">Tournament</div>

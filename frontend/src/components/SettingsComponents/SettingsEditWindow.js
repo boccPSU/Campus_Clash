@@ -9,7 +9,7 @@ function SettingsEditWindow({state, onClose}) {
 
     const {Formik} = formik;
 
-    const {token, setToken} = useAuth();
+    const {token, setToken, loadStudentData} = useAuth();
 
     const studentData = JSON.parse(sessionStorage.getItem("studentData"));
 
@@ -55,7 +55,8 @@ function SettingsEditWindow({state, onClose}) {
 
     useEffect(() => {
             if (isLoading) {
-                save().then(() => {
+                save().then(async () => {
+                    await loadStudentData();
                     setLoading(false);
                 });
             }
@@ -147,7 +148,8 @@ function SettingsEditWindow({state, onClose}) {
                                     }}
                                     onBlur={handleBlur}
                                     isInvalid={touched[schemaName] && !!errors[schemaName]}
-                                    maxLength={32}
+                                    //Longer Field Limit for Canvas Token Input
+                                    maxLength={(state === 5) ? 70 : 32}
                                 />)}
                             <Form.Control.Feedback type="invalid">{errors[schemaName]}</Form.Control.Feedback>
                             <Button

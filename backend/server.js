@@ -813,7 +813,7 @@ app.post("/api/join-tournament", async (req, res) => {
       return res.status(400).json({ error: "Missing tournament tid" });
     }
 
-    const username = decryptToken(token);
+    const {username} = decryptToken(token);
     //console.log("[join-tournament] Decrypted username:", username);
     if (!username) {
       return res.status(401).json({ error: "Invalid token" });
@@ -995,20 +995,20 @@ app.post("/api/tournament/update-score", async (req, res) => {
     }
 
     // Get username from token, then pid from users table
-    const username = decryptToken(token);
+    const {username, pid} = decryptToken(token);
 
-    const [userRows] = await pool.query(
-      "SELECT pid FROM users WHERE username = ?",
-      [username]
-    );
+    // const [userRows] = await pool.query(
+    //   "SELECT pid FROM users WHERE username = ?",
+    //   [username]
+    // );
 
-    if (userRows.length === 0) {
-      return res
-        .status(404)
-        .json({ successful: false, error: "User not found" });
-    }
+    // if (userRows.length === 0) {
+    //   return res
+    //     .status(404)
+    //     .json({ successful: false, error: "User not found" });
+    // }
 
-    const pid = userRows[0].pid;
+    //const pid = userRows[0].pid;
 
     // Update the participant's score in this tournament
     const [result] = await pool.query(
@@ -1331,21 +1331,21 @@ app.post("/api/tournament/update-score", async (req, res) => {
     }
 
     // Get username & pid
-    const username = decryptToken(token);
+    const {username, pid} = decryptToken(token);
 
-    const [userRows] = await pool.query(
-      "SELECT pid FROM users WHERE username = ?",
-      [username]
-    );
+    // const [userRows] = await pool.query(
+    //   "SELECT pid FROM users WHERE username = ?",
+    //   [username]
+    // );
 
-    const user = userRows[0];
-    if (!user) {
-      return res
-        .status(404)
-        .json({ successful: false, error: "User not found" });
-    }
+    // const user = userRows[0];
+    // if (!user) {
+    //   return res
+    //     .status(404)
+    //     .json({ successful: false, error: "User not found" });
+    // }
 
-    const pid = user.pid;
+    // const pid = user.pid;
 
     // Update this participant's score for this tournament
     const [result] = await pool.query(

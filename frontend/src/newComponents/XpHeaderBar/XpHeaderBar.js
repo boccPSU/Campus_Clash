@@ -28,7 +28,7 @@ function computeLevelInfo(totalXp) {
 }
 
 function XpHeaderBar() {
-    const {studentData, loadStudentData} = useAuth();
+    const {studentData, profileLoading} = useAuth();
     // Important states
     const [level, setLevel] = useState(1);
     const [currentXp, setCurrentXp] = useState(0);
@@ -95,44 +95,57 @@ function XpHeaderBar() {
                 // const username = userData.username;
 
                 console.log(studentData);
-                
-                const username = studentData?.username;
-                if (!username) {
-                    setError("No username returned from server");
-                    setLoading(false);
-                    return;
+
+                if (!studentData?.xp) {
+                    const username = studentData?.username;
+                    if (!username) {
+                        setError("No username returned from server");
+                        setLoading(false);
+                        return;
+                    }
+
+                    // Get XP for this username
+                    const xpRes = await fetch("http://localhost:5000/api/users/xp", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({ username }),
+                    });
+
+                    if (!xpRes.ok) {
+                        console.error(
+                            "Failed to fetch XP:",
+                            xpRes.status,
+                            xpRes.statusText
+                        );
+                        setError("Unable to load XP");
+                        setLoading(false);
+                        return;
+                    }
+
+                    const xpData = await xpRes.json();
+                    const totalXpRaw = xpData.xp ?? 0;
+                    const totalXp = Number.isFinite(totalXpRaw) ? totalXpRaw : 0;
+
+                    // Compute level info
+                    const info = computeLevelInfo(totalXp);
+
+                    setLevel(info.level);
+                    setCurrentXp(info.currentXp);
+                    setXpForNextLevel(info.xpForNextLevel);
+                } else {
+                    const totalXpRaw = studentData.xp;
+                    const totalXp = Number.isFinite(totalXpRaw) ? totalXpRaw : 0;
+
+                    // Compute level info
+                    const info = computeLevelInfo(totalXp);
+
+                    setLevel(info.level);
+                    setCurrentXp(info.currentXp);
+                    setXpForNextLevel(info.xpForNextLevel);
                 }
 
-                // Get XP for this username
-                const xpRes = await fetch("http://localhost:5000/api/users/xp", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({ username }),
-                });
-
-                if (!xpRes.ok) {
-                    console.error(
-                        "Failed to fetch XP:",
-                        xpRes.status,
-                        xpRes.statusText
-                    );
-                    setError("Unable to load XP");
-                    setLoading(false);
-                    return;
-                }
-
-                const xpData = await xpRes.json();
-                const totalXpRaw = xpData.xp ?? 0;
-                const totalXp = Number.isFinite(totalXpRaw) ? totalXpRaw : 0;
-
-                // Compute level info
-                const info = computeLevelInfo(totalXp);
-
-                setLevel(info.level);
-                setCurrentXp(info.currentXp);
-                setXpForNextLevel(info.xpForNextLevel);
                 setLoading(false);
             } catch (e) {
                 console.error("Error loading XP:", e);
