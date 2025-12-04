@@ -17,6 +17,11 @@ const answerTime = 15; // timer bar duration
 const REVEAL_PHASE_SECONDS = 5; // last 5 seconds
 const REVEAL_AT_SECONDS = REVEAL_PHASE_SECONDS; // when timeLeft === 5
 
+// Powerup costs (gems)
+const ELIMINATE_COST = 200;
+const SKIP_COST = 500;
+const ADDTIME_COST = 100;
+
 export default function NewQuestionScreen() {
     const location = useLocation();
     const navState = location.state || {};
@@ -40,6 +45,17 @@ export default function NewQuestionScreen() {
     const [stage, setStage] = useState("loading");
 
     const [timeLeft, setTimeLeft] = useState(questionTime);
+
+    // --- Powerup related state ---
+    // TODO: replace with real gem value from backend / context
+    const [gems, setGems] = useState(1000);
+
+    const [usedEliminate, setUsedEliminate] = useState(false);
+    const [usedSkip, setUsedSkip] = useState(false);
+    const [usedAddTime, setUsedAddTime] = useState(false);
+
+    // Which answer indices have been eliminated (hidden)
+    const [eliminatedIndexes, setEliminatedIndexes] = useState([]);
 
     // Popup + pending navigation path
     const [showLeavePopup, setShowLeavePopup] = useState(false);
@@ -118,6 +134,12 @@ export default function NewQuestionScreen() {
         setSelectedIndex(null);
         setIsCorrect(null);
         setTimeLeft(questionTime);
+
+        // reset powerups per-question
+        setUsedEliminate(false);
+        setUsedSkip(false);
+        setUsedAddTime(false);
+        setEliminatedIndexes([]);
 
         if (timerRef.current) {
             clearInterval(timerRef.current);
@@ -387,6 +409,66 @@ export default function NewQuestionScreen() {
         }
     };
 
+    // --- Powerup handlers ---
+
+    const handleEliminateAnswer = () => {
+        if (stage !== "question") return;
+        if (!questions[currentIndex]) return;
+        if (hasAnsweredRef.current) return;
+        if (usedEliminate) return;
+        if (gems < ELIMINATE_COST) return;
+
+        const q = questions[currentIndex];
+
+        const wrongIndices = q.options
+            .map((_, idx) => idx)
+            .filter(
+                (idx) =>
+                    idx !== q.correctIndex && !eliminatedIndexes.includes(idx)
+            );
+
+        if (wrongIndices.length === 0) return;
+
+        const randomIndex =
+            wrongIndices[Math.floor(Math.random() * wrongIndices.length)];
+
+        setEliminatedIndexes((prev) => [...prev, randomIndex]);
+        setUsedEliminate(true);
+        // TODO: sync gem deduction with backend
+        setGems((prev) => prev - ELIMINATE_COST);
+    };
+
+    // Skip should count as a correct answer
+    const handleSkipQuestionPowerup = () => {
+        if (stage !== "question") return;
+        if (!questions[currentIndex]) return;
+        if (hasAnsweredRef.current) return;
+        if (usedSkip) return;
+        if (gems < SKIP_COST) return;
+
+        const q = questions[currentIndex];
+
+        setUsedSkip(true);
+        // TODO: sync gem deduction with backend
+        setGems((prev) => prev - SKIP_COST);
+
+        // Treat as if user clicked the correct answer
+        handleAnswer(q.correctIndex);
+    };
+
+    const handleAddTimePowerup = () => {
+        if (stage !== "question") return;
+        if (!questions[currentIndex]) return;
+        if (hasAnsweredRef.current) return;
+        if (usedAddTime) return;
+        if (gems < ADDTIME_COST) return;
+
+        setUsedAddTime(true);
+        // TODO: sync gem deduction with backend
+        setGems((prev) => prev - ADDTIME_COST);
+        setTimeLeft((prev) => prev + 20);
+    };
+
     // For game over "Return to Tournaments" button
     const handleReturnToTournament = () => {
         navigate("/tournament");
@@ -453,6 +535,13 @@ export default function NewQuestionScreen() {
         );
         const progressPercent = (effectiveTime / answerTime) * 100;
 
+        const eliminateDisabled =
+            selectedIndex !== null || usedEliminate || gems < ELIMINATE_COST;
+        const skipDisabled =
+            selectedIndex !== null || usedSkip || gems < SKIP_COST;
+        const addTimeDisabled =
+            selectedIndex !== null || usedAddTime || gems < ADDTIME_COST;
+
         return (
             <div className="questionTile">
                 <InfoTile
@@ -477,6 +566,11 @@ export default function NewQuestionScreen() {
 
                         <div className="questionAnswers">
                             {q.options.map((opt, idx) => {
+                                if (eliminatedIndexes.includes(idx)) {
+                                    // Eliminated answer: hide it
+                                    return null;
+                                }
+
                                 const isSelected = idx === selectedIndex;
                                 const isCorrectOpt = idx === q.correctIndex;
 
@@ -516,6 +610,53 @@ export default function NewQuestionScreen() {
                                     .
                                 </p>
                             )}
+                        </div>
+
+                        {/* Powerups section */}
+                        <div className="questionPowerups">
+                            <div className="questionPowerupButtons">
+                                <div className="powerupItem">
+                                    <div className="powerupCostLabel">
+                                        200 Gems
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="powerupBtn"
+                                        onClick={handleEliminateAnswer}
+                                        disabled={eliminateDisabled}
+                                    >
+                                        Eliminate 1 Answer
+                                    </button>
+                                </div>
+
+                                <div className="powerupItem">
+                                    <div className="powerupCostLabel">
+                                        500 Gems
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="powerupBtn"
+                                        onClick={handleSkipQuestionPowerup}
+                                        disabled={skipDisabled}
+                                    >
+                                        Skip Question
+                                    </button>
+                                </div>
+
+                                <div className="powerupItem">
+                                    <div className="powerupCostLabel">
+                                        100 Gems
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="powerupBtn"
+                                        onClick={handleAddTimePowerup}
+                                        disabled={addTimeDisabled}
+                                    >
+                                        +20 Seconds
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
                         <div className="questionTimerBar">
@@ -591,7 +732,6 @@ export default function NewQuestionScreen() {
             >
                 {/* optional extra content here */}
             </MainPopup>
-
         </>
     );
 }

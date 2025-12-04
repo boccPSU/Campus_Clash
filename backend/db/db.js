@@ -61,6 +61,7 @@ async function initDb() {
     university VARCHAR(32) DEFAULT NULL,
     major VARCHAR(32)  DEFAULT NULL,
     XP INT DEFAULT 0,
+    gems INT DEFAULT 0,
     canvasToken VARCHAR(70) DEFAULT NULL,
     KEY pid (pid),
     CONSTRAINT students_ibfk_1 FOREIGN KEY (pid) REFERENCES users (pid) ON DELETE CASCADE

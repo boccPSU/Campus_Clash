@@ -179,6 +179,9 @@ function NewTournamentScreen() {
                     await createTournamentForType(major, "weekly");
                     await createTournamentForType(major, "ranked");
                 }
+
+                console.log("[NewTournamentScreen] Ensured topics for major:", major);
+
             } catch (e) {
                 console.log("Failed to generate topics for major. Error: " + e);
             }
@@ -232,6 +235,7 @@ function NewTournamentScreen() {
         isUpcoming = false
     ) {
         try {
+            console.log("[NewTournamentScreen] [1] setting loading to true" );
             setLoadingTournament(true);
             console.log(
                 "Entering create tournament for tournament type ",
