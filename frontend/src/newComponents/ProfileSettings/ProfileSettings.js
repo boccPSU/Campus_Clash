@@ -1,8 +1,8 @@
-import {useState} from "react";
-import {Button, Row, Col} from "react-bootstrap";
+import {useState, useEffect} from "react";
+import {Button, Row, Col, Form} from "react-bootstrap";
 import {ChevronLeft, ChevronRight, Pencil, X} from "react-bootstrap-icons";
 
-import SettingsEditWindow from "../../components/SettingsComponents/SettingsEditWindow";
+import SettingsEditWindow from "./SettingsEditWindow";
 
 import { useAuth } from "../../api/AuthContext";
 import InfoTile from "../InfoTile/InfoTile";
@@ -26,11 +26,34 @@ const Modal = ({children, onClose }) => {
 };
 
 function ProfileSettings() {
-    const {studentData} = useAuth();
+    const {studentData, token, userPrefs, setUserPrefs} = useAuth();
 
     const [page, setPage] = useState(0)
     const [isModalOpen, setModalOpen] = useState(false);
     const [fieldState, setFieldState] = useState(0);
+
+    const onSwitch = (checked) => {
+        const newUserPrefs = {
+            ...userPrefs,
+            darkMode: checked
+        };
+        setUserPrefs(newUserPrefs);
+        try {
+            fetch("http://localhost:5000/api/update-prefs", {
+                method: "post",
+                headers: {
+                    "Content-Type": "application/json",
+                    "jwt-token": token
+                },
+                body: JSON.stringify(newUserPrefs),
+            });
+        } catch (err) {
+            console.error("[SAVE-PREFS] Error: ", err);
+        }
+    }
+
+    console.log(userPrefs);
+    console.log(userPrefs?.darkMode);
 
     switch (page) {
         case 0: 
@@ -41,14 +64,15 @@ function ProfileSettings() {
                 Personal Information
                 <ChevronRight/>
             </Button>
-            {/* <Button 
-                className="navButton"
-                onClick={toNotificationSettings}
-            >
-                <Gear></Gear>
-                Notifications
-                <ArrowRight></ArrowRight>    
-            </Button> */}
+            <div className="switch-container">
+                Dark Mode
+                <Form.Switch
+                    checked={userPrefs?.darkMode}
+                    onChange={(event) => {
+                                onSwitch(event.target.checked);
+                            }}
+                />
+            </div>
         </div>);
 
         case 1:

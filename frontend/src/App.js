@@ -15,12 +15,10 @@ import LeaderboardScreen from "./screens/LeaderboardScreen";
 import TournamentScreen from "./screens/TournamentScreen";
 import StudyPlan from "./screens/StudyPlan";
 import ProgressReport from "./screens/ProgressReport";
-import RegisterScreen from "./screens/RegisterScreen";
-import LoginScreen from "./screens/LoginScreen";
-import ProfileScreen from "./screens/ProfileScreen/ProfileScreen";
+import RegisterScreen from "./screens/EntryScreens/RegisterScreen";
+import LoginScreen from "./screens/EntryScreens/LoginScreen";
 import QuestionScreen from "./screens/QuestionScreen";
 import QuestionTester from "./screens/QuestionTester";
-import SettingsScreen from "./screens/SettingsScreen";
 
 import {AuthProvider} from "./api/AuthContext";
 import PrivateRoute from "./api/PrivateRoute";

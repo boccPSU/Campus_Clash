@@ -36,6 +36,10 @@ async function initDb() {
   `);
 
   await pool.query(`
+    DROP TABLE IF EXISTS user_prefs;
+  `)
+
+  await pool.query(`
     DROP TABLE IF EXISTS users;
   `);
 
@@ -69,6 +73,29 @@ async function initDb() {
     DEFAULT CHARSET=utf8mb4
     COLLATE=utf8mb4_0900_ai_ci;
 `);
+
+  //Create User Preferences Table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_prefs (
+      pid INT NOT NULL,
+      darkMode BOOL NOT NULL DEFAULT FALSE,
+      KEY pid (pid),
+      CONSTRAINT fk_user_pid FOREIGN KEY (pid) REFERENCES users (pid) ON DELETE CASCADE
+    ) ENGINE=InnoDB
+      DEFAULT CHARSET=utf8mb4
+      COLLATE=utf8mb4_0900_ai_ci;
+  `);
+
+  //Create Triggers to ensure each User has an entry
+  await pool.query(`
+    CREATE TRIGGER IF NOT EXISTS after_user_insert
+      AFTER INSERT ON users
+      FOR EACH ROW
+      BEGIN
+        INSERT INTO user_prefs (pid)
+        VALUES (NEW.pid);
+      END
+  `);
 
   // Create events table
   await pool.query(`

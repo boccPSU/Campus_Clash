@@ -39,7 +39,7 @@ function RegisterStudentPage({formData, setFormData, setStep, isLoading, setLoad
                 <Form noValidate onSubmit={handleSubmit}>
                     <h3>Register</h3>
                     <Form.Label>University</Form.Label>
-                    <Form.Group className="mb-3">
+                    <Form.Group className="input-field">
                         <Form.Control
                             type="text" 
                             name="university"
@@ -59,7 +59,7 @@ function RegisterStudentPage({formData, setFormData, setStep, isLoading, setLoad
                     </Form.Group>
 
                     <Form.Label>Major</Form.Label>
-                    <Form.Group className="mb-3">
+                    <Form.Group className="input-field">
                         <Form.Select 
                             aria-label="Major Select"
                             name="major"
@@ -86,7 +86,7 @@ function RegisterStudentPage({formData, setFormData, setStep, isLoading, setLoad
                     </Form.Group>
 
                     <Form.Label>Canvas Token</Form.Label>
-                    <Form.Group className="mb-3">
+                    <Form.Group className="input-field">
                         <Form.Control
                             type="text" 
                             name="canvasToken"

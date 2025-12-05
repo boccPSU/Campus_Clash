@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import RegisterUserPage from "../components/RegisterUserPage.js";
-import RegisterStudentPage from "../components/RegisterStudentPage";
+import RegisterUserPage from "../../components/RegisterUserPage.js";
+import RegisterStudentPage from "../../components/RegisterStudentPage";
 import { useNavigate, Link} from "react-router-dom";
 
-import {useAuth} from "../api/AuthContext.js";
+import {useAuth} from "../../api/AuthContext.js";
 
 function RegisterScreen() {
 
@@ -35,14 +35,14 @@ function RegisterScreen() {
 
     // Navigate to home if registration is complete
     useEffect(() => {
-    // Only care after we have a token
-    if (!token) return;
+        // Only care after we have a token
+        if (!token) return;
 
-    // When we are NOT loading and studentData is fully filled in, then it's safe to go to the home screen.
-    if (!studentDataLoading && isStudentDataFilled()) {
-        navigate("/home");
-    }
-}, [token, studentDataLoading, isStudentDataFilled, navigate]);
+        // When we are NOT loading and studentData is fully filled in, then it's safe to go to the home screen.
+        if (!studentDataLoading && isStudentDataFilled()) {
+            navigate("/home");
+        }
+    }, [token, studentDataLoading, isStudentDataFilled, navigate]);
 
     const registerNewUser = async () => {
         try {
@@ -81,8 +81,8 @@ function RegisterScreen() {
 
     return (
         <>
-            <div className="register template d-flex justify-content-center align-items-center 100-w vh-100 bg-primary">
-                <div className='p-5 width:50 rounded bg-light'>
+            <div className="entry-bg">
+                <div className='entry-container'>
                     {error && (
                         <div className="text-danger">{error}</div>
                     )}

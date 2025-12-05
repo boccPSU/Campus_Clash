@@ -26,9 +26,9 @@ export function AuthProvider({ children }) {
 
         // NEW CHANGE HERE
         // Clear old student data when token changes
-        console.log("[AUTH] Clearing studentData on token change");
+        console.log("[AUTH] Clearing Session on token change");
         sessionStorage.removeItem("studentData");
-        localStorage.removeItem("studentData");
+        sessionStorage.removeItem("userPrefs");
         setStudentData(null);
 
         setToken(userToken.token);
@@ -44,23 +44,84 @@ export function AuthProvider({ children }) {
     };
 
     const getUserPrefs = () => {
-        const userPrefsString = localStorage.getItem(`userPrefs`);
+        const userPrefsString = sessionStorage.getItem(`userPrefs`);
         const userPrefs = JSON.parse(userPrefsString);
         console.log("[AUTH] Returning userPrefs:", userPrefs ?? null);
         return userPrefs ?? null;
     };
 
     const [userPrefs, setUserPrefs] = useState(getUserPrefs);
+    const [isLoadingUserPrefs, setLoadingUserPrefs] = useState(false);
+
+    const [isDarkMode, setDarkMode] = useState(userPrefs?.darkMode);
+
+    // Apply/remove class on <body>
+    useEffect(() => {
+        document.body.classList.toggle("dark-mode", isDarkMode);
+    }, [isDarkMode]);
 
     const saveUserPrefs = (userPrefs) => {
-        localStorage.setItem(`userPrefs`, JSON.stringify(userPrefs));
+        sessionStorage.setItem(`userPrefs`, JSON.stringify(userPrefs));
         console.log("[AUTH] Saving userPrefs:", userPrefs);
+        setDarkMode(userPrefs.darkMode);
         setUserPrefs(userPrefs);
     };
 
-    const loadUserPrefs = async () => {};
+    const loadUserPrefs = async () => {
+        if (isLoadingUserPrefs)
+            return;
+        try {
+            setLoadingUserPrefs(true);
+            const res = await fetch("http://localhost:5000/api/load-prefs", {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    "jwt-token": token,
+                },
+            });
 
-    const areUserPrefsLoaded = () => {};
+            if (res.status === 500)
+                throw new Error("[PREFS] Error",{
+                    cause: "Could Not Connect"
+                    });
+
+            const {
+                darkMode,
+                error,
+            } = await res.json();
+            if (!res.ok) 
+                throw new Error("[PREFS] Error", {
+                    cause: error
+                });
+
+            const newUserPrefs = {
+                darkMode: darkMode,
+            }
+
+            saveUserPrefs(newUserPrefs);
+            setLoadingUserPrefs(false);
+        } catch (err) {
+            console.error(err);
+            setLoadingUserPrefs(false);
+            return err;
+        }
+    };
+
+    const areUserPrefsLoaded = () => {
+        if (!userPrefs) 
+            return false;
+
+        const requiredKeys = [
+            "darkMode",
+        ]
+
+        for (const key of requiredKeys) {
+            if (!(key in userPrefs))
+                return false;
+        }
+
+        return true;
+    };
 
     const getStudentData = () => {
         const studentDataString = sessionStorage.getItem(`studentData`);
@@ -88,6 +149,7 @@ export function AuthProvider({ children }) {
         try {
             console.log("[AUTH] Loading basic student data...");
             setStudentDataLoading(true);
+            setProfileLoading(true);
             const res = await fetch("http://localhost:5000/api/profile", {
                 method: "GET",
                 headers: {
@@ -117,6 +179,7 @@ export function AuthProvider({ children }) {
             saveStudentData({
                 ...newStudentData,
             });
+            setProfileLoading(false);
             setStudentDataLoading(false);
             console.log("[AUTH] Basic student data loaded successfully.");
         } catch (err) {
@@ -214,16 +277,6 @@ export function AuthProvider({ children }) {
             });
 
             setAlertsLoading(false);
-
-            // Changing this to null const submissionData = await checkRecentSubmissions(token);
-            const submissionData = null;
-            saveStudentData({
-                ...newStudentData,
-                ...courseData,
-                ...alertsData,
-                submissions: submissionData,
-            });
-
             setStudentDataLoading(false);
             console.log("[AUTH] Student data loaded successfully.");
         } catch (err) {
@@ -245,6 +298,12 @@ export function AuthProvider({ children }) {
             );
             loadStudentData();
         }
+        if (token && !isLoadingUserPrefs) {
+            console.log(
+                "[AUTH] Missing User Prefs. Starting load."
+            );
+            loadUserPrefs();
+        }
     }, [token]);
 
     const isStudentDataFilled = () => {
@@ -260,13 +319,17 @@ export function AuthProvider({ children }) {
             "gpa",
             "courses",
             "alerts",
-            "submissions",
         ];
 
         if (!studentData) return false;
 
-        
-        // Better check for keys, not relying on length
+        const actualKeys = Object.keys(studentData);
+
+        //Faster check to immediately catch most unfilled data.
+        if (requiredKeys.length !== actualKeys.length)
+            return false;
+
+        //Better check to ensure studentData has non-null value
         for (const key of requiredKeys) {
             if (!(key in studentData)) {
                 console.log("[AUTH] isStudentDataFilled: missing key", key);
@@ -285,6 +348,9 @@ export function AuthProvider({ children }) {
                 setToken: saveToken,
                 logout,
                 userPrefs,
+                isLoadingUserPrefs,
+                isDarkMode,
+                setDarkMode,
                 setUserPrefs: saveUserPrefs,
                 areUserPrefsLoaded,
                 loadUserPrefs,

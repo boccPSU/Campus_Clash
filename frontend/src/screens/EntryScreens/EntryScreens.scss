@@ -1,0 +1,22 @@
+@use "../../css/tokens.scss" as *;
+
+.entry-bg {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100vw;
+    height: 100vh;
+    background-color: $primary;
+}
+
+.entry-container {
+    width: 80%;
+    padding: 2rem;
+    border-radius: 3%;
+    background-color: $light-primary;
+    color: $light-text-primary;
+}
+
+.input-field {
+    margin-bottom: 0.3rem;
+}

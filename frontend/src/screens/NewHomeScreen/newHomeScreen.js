@@ -8,7 +8,7 @@ import CourseCard from "../../components/CourseCard/CourseCard.js";
 import AlertCard from "../../components/AlertCard/AlertCard.js";
 import PullToRefresh from "../../components/interaction/PullToRefresh.js";
 import ScreenScroll from "../../components/ScreenScroll/ScreenScroll.js";
-import SettingsEditWindow from "../../components/SettingsComponents/SettingsEditWindow.js";
+import SettingsEditWindow from "../../newComponents/ProfileSettings/SettingsEditWindow.js";
 
 import { Bell, ChevronDown, ChevronUp } from "react-bootstrap-icons";
 import XpHeaderBar from "../../newComponents/XpHeaderBar/XpHeaderBar.js";
@@ -82,9 +82,9 @@ function NewHomeScreen() {
     }, []);
 
     // Apply/remove class on <body>
-    useEffect(() => {
-        document.body.classList.toggle("dark-mode", isDarkMode);
-    }, [isDarkMode]);
+    // useEffect(() => {
+    //     document.body.classList.toggle("dark-mode", isDarkMode);
+    // }, [isDarkMode]);
 
     const scrollerRef = useRef(null);
     useEffect(() => {

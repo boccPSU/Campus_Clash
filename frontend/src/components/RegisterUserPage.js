@@ -38,7 +38,7 @@ function RegisterUserPage({formData, setFormData, setStep, isLoading, setLoading
                 <Form noValidate onSubmit={handleSubmit}>
                     <h3>Register</h3>
                     <Form.Label>First Name</Form.Label>
-                    <Form.Group className="mb-1">
+                    <Form.Group className="input-field">
                             <Form.Control
                                 type="text"
                                 name="firstName"
@@ -58,7 +58,7 @@ function RegisterUserPage({formData, setFormData, setStep, isLoading, setLoading
                     </Form.Group>
 
                     <Form.Label>Last Name</Form.Label>
-                    <Form.Group className="mb-1">
+                    <Form.Group className="input-field">
                             <Form.Control
                                 type="text"
                                 name="lastName"
@@ -78,7 +78,7 @@ function RegisterUserPage({formData, setFormData, setStep, isLoading, setLoading
                     </Form.Group>
 
                     <Form.Label>Username</Form.Label>
-                    <Form.Group className="mb-1">
+                    <Form.Group className="input-field">
                         <Form.Control
                             type="text" 
                             name="username"
@@ -98,7 +98,7 @@ function RegisterUserPage({formData, setFormData, setStep, isLoading, setLoading
                     </Form.Group>
 
                     <Form.Label>Password</Form.Label>
-                    <Form.Group className="mb-1">
+                    <Form.Group className="input-field">
                         <Form.Control
                             type="password" 
                             name="password"

@@ -4,7 +4,7 @@ import { useNavigate, Link} from "react-router-dom";
 import * as formik from "formik";
 import * as yup from "yup";
 
-import {useAuth} from "../api/AuthContext";
+import {useAuth} from "../../api/AuthContext";
 
 function LoginScreen() {
     const navigate = useNavigate();
@@ -75,15 +75,15 @@ function LoginScreen() {
             }}
         >
             {({ handleSubmit, handleChange, handleBlur, values, touched, errors}) => (
-                <div className="register template d-flex justify-content-center align-items-center 100-w vh-100 bg-primary">
-                    <div className='40-w p-5 rounded bg-light'>
+                <div className="entry-bg">
+                    <div className='entry-container'>
                         <Form noValidate onSubmit={handleSubmit}>
                             <h3>Login</h3>
                             {error && (
                                 <div className="text-danger">{error}</div>
                             )}
                             <Form.Label>Username</Form.Label>
-                            <Form.Group className="mb-3">
+                            <Form.Group className="input-field">
                                 <Form.Control
                                     type="text"
                                     name="username"
@@ -107,7 +107,7 @@ function LoginScreen() {
                             </Form.Group>
 
                             <Form.Label>Password</Form.Label>
-                            <Form.Group className="mb-3">
+                            <Form.Group className="input-field">
                                 <Form.Control
                                     type="password"
                                     name="password"

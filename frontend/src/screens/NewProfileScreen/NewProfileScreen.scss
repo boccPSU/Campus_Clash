@@ -36,8 +36,12 @@
     color: inherit;
 }
 
+.profileTitleText {
+    font-size: x-large;
+}
+
 .profileSectionTitle {
-    font-size: xx-large;
+    padding: 0.35rem 0.75rem;
 }
 
 .profileHeader {
@@ -47,7 +51,7 @@
     flex-direction: row;
     gap: 1rem;
     height: 15vh;
-    padding: 1%;
+    padding: 0.35rem 0.75rem;
 }
 
 .profileIcon {

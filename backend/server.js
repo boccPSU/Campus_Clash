@@ -311,6 +311,56 @@ app.post("/api/change-user-info", async (req, res) => {
   }
 })
 
+app.get("/api/load-prefs", async (req, res) => {
+  const token = req.headers["jwt-token"];
+  if (!token) {
+    return res.status(401).json({ error: "Unauthorized: missing token" });
+  }
+
+  const {pid} = decryptToken(token);
+
+  try {
+    const [results] = await pool.query(
+      `SELECT * FROM user_prefs
+        WHERE pid = (?)`,
+        [pid]
+    );
+
+    const userPrefs = results[0];
+    res.status(201).json({darkMode: !!userPrefs.darkMode});
+  } catch (err) {
+    console.error("[BACKEND] Load Preferences Error: ", err);
+    return res.status(500).json({ error: "/load-prefs error" });
+  }
+})
+
+app.post("/api/update-prefs", async (req, res) => {
+  const token = req.headers["jwt-token"];
+  if (!token) {
+    return res.status(401).json({ error: "Unauthorized: missing token" });
+  }
+
+  const {pid} = decryptToken(token);
+
+  try {
+    const {
+      darkMode
+    } = req.body;
+
+    const [results] = await pool.query(
+      `UPDATE user_prefs
+        SET darkMode = ?
+        WHERE
+            pid = ?;`, 
+            [darkMode, pid]
+    )
+    return res.status(201).json({ successful: true });
+  } catch (err) {
+    console.error("[BACKEND] Update User Prefs Error: ", err);
+    return res.status(500).json({error: "/update-prefs error"});
+  }
+});
+
 app.post("/api/receive-xp", async (req, res) => {
   try {
     const { username, reward } = req.body;

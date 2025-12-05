@@ -28,6 +28,15 @@ body.dark-mode .btn-edit {
     border-color: $dark-primary;
 }
 
+.switch-container {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-direction: row;
+    padding: 0.35rem 0.75rem;
+}
+
 .backdrop {
     position: fixed;
     top: 0;

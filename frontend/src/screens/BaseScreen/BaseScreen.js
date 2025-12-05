@@ -5,7 +5,7 @@ import BottomNavBar from "../../newComponents/BottomNavBar/BottomNavBar.js";
 import InfoTile from "../../newComponents/InfoTile/InfoTile.js";
 import PullToRefresh from "../../components/interaction/PullToRefresh.js";
 import ScreenScroll from "../../components/ScreenScroll/ScreenScroll.js";
-import SettingsEditWindow from "../../components/SettingsComponents/SettingsEditWindow.js";
+import SettingsEditWindow from "../../newComponents/ProfileSettings/SettingsEditWindow.js";
 
 import XpHeaderBar from "../../newComponents/XpHeaderBar/XpHeaderBar.js";
 import MainPopup from "../../newComponents/MainPopup/MainPopup.js";
@@ -13,36 +13,10 @@ import MainPopup from "../../newComponents/MainPopup/MainPopup.js";
 import {useAuth} from "../../api/AuthContext.js";
 
 function BaseScreen({children}) {
-    console.log({
-        BottomNavBar,
-        InfoTile,
-        PullToRefresh,
-        ScreenScroll,
-        SettingsEditWindow,
-        XpHeaderBar,
-        MainPopup
-    });
+    
     const {loadStudentData, canvasError} = useAuth();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
-
-    const [isDarkMode, setIsDarkMode] = useState(false);
-
-    // Toggle dark mode on "d" / "D"
-    useEffect(() => {
-        const handleKeyDown = (e) => {
-            if (e.key && e.key.toLowerCase() === "d") {
-                setIsDarkMode((prev) => !prev);
-            }
-        };
-        window.addEventListener("keydown", handleKeyDown);
-        return () => window.removeEventListener("keydown", handleKeyDown);
-    }, []);
-
-    // Apply/remove class on <body>
-    useEffect(() => {
-        document.body.classList.toggle("dark-mode", isDarkMode);
-    }, [isDarkMode]);
 
     const scrollerRef = useRef(null);
 
