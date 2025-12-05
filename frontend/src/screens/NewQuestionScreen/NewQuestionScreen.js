@@ -68,40 +68,39 @@ export default function NewQuestionScreen() {
 
     const scrollerRef = useRef(null);
     const collapsed = useCollapseOnScroll(scrollerRef);
-   
 
     // Set gems on mount
     useEffect(() => {
         if (studentData && typeof studentData.gems === "number") {
-            console.log("[QuestionScreen] Setting initial gems:", studentData.gems);
+            console.log(
+                "[QuestionScreen] Setting initial gems:",
+                studentData.gems
+            );
             setGems(studentData.gems);
         }
     }, [studentData?.gems]);
 
-
     // Helper function to spend gems on powerups
     const spendGems = async (amount) => {
         try {
+            const gemCost = amount;
             // Call backed to deduct gems returns true if successful
-        const res = await fetch("http://localhost:5000/api/gems/remove", {
+            const res = await fetch("http://localhost:5000/api/gems/remove", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
                     username: studentData.username,
-                    amount: ADDTIME_COST,
+                    amount: gemCost,
                 }),
             });
-
-            
-
 
             const data = await res.json();
 
             const isSuccessful = data.successful;
 
-            if(isSuccessful){
+            if (isSuccessful) {
                 // We are good to deduct gems
                 setGems((prev) => prev - amount);
 
@@ -110,13 +109,16 @@ export default function NewQuestionScreen() {
                 return true;
             }
 
-            console.error("Backend rejected gem deduction for Add Time powerup message" + data);
+            console.error(
+                "Backend rejected gem deduction for Add Time powerup message" +
+                    data
+            );
             return false;
         } catch (error) {
             console.error("Error spending gems:", error);
         }
-    }
-            
+    };
+
     const loadQuestions = async () => {
         try {
             setLoading(true);
@@ -468,14 +470,20 @@ export default function NewQuestionScreen() {
         }
     };
 
-    // --- Powerup handlers ---
+    // Powerup handlers
 
     const handleEliminateAnswer = () => {
         if (stage !== "question") return;
         if (!questions[currentIndex]) return;
         if (hasAnsweredRef.current) return;
         if (usedEliminate) return;
-        if (gems < ELIMINATE_COST) return;
+
+        const isSuccessful = spendGems(ELIMINATE_COST);
+
+        if (!isSuccessful) {
+            console.log("[GEMS] Not enough gems to eliminate answer");
+            return;
+        }
 
         const q = questions[currentIndex];
 
@@ -503,7 +511,13 @@ export default function NewQuestionScreen() {
         if (!questions[currentIndex]) return;
         if (hasAnsweredRef.current) return;
         if (usedSkip) return;
-        if (gems < SKIP_COST) return;
+
+        const isSuccessful = spendGems(SKIP_COST);
+
+        if (!isSuccessful) {
+            console.log("[GEMS] Not enough gems to skip question");
+            return;
+        }
 
         const q = questions[currentIndex];
 
@@ -520,17 +534,15 @@ export default function NewQuestionScreen() {
         if (!questions[currentIndex]) return;
         if (hasAnsweredRef.current) return;
         if (usedAddTime) return;
-        
+
         // Try and spend gems
         const isSuccessful = await spendGems(ADDTIME_COST);
 
-
         // We are good to deduct gems
-        if(isSuccessful){
+        if (isSuccessful) {
             setUsedAddTime(true);
             setTimeLeft((prev) => prev + 20);
         }
-            
     };
 
     // For game over "Return to Tournaments" button
