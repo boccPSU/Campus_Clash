@@ -327,6 +327,10 @@ app.get("/api/load-prefs", async (req, res) => {
     );
 
     const userPrefs = results[0];
+
+    if(!userPrefs) 
+      return res.status(401).json({ error: "UnauthorizedL Cannot Find User" });
+
     res.status(201).json({darkMode: !!userPrefs.darkMode});
   } catch (err) {
     console.error("[BACKEND] Load Preferences Error: ", err);
