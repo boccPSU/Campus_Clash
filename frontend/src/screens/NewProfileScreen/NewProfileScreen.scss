@@ -89,3 +89,13 @@ body.dark-mode .profileContainer {
     background-color: $dark-primary;
     color: $dark-text-primary;
 }
+
+body.dark-mode .btn-label {
+    background-color: $dark-primary;
+    color: $dark-text-primary;
+}
+
+body.dark-mode .btn-label:hover {
+    background-color: $dark-secondary;
+    color: $dark-text-primary;
+}
