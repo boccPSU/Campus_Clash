@@ -127,7 +127,7 @@ function NewHomeScreen() {
         return;
     }
 
-    // We leveled up! Maybe multiple levels at once.
+    // We leveled up  
     const levelsGained = level - lastLevel;
     const gemsToAward = levelsGained * GEMS_PER_LEVEL;
 
@@ -394,12 +394,13 @@ function NewHomeScreen() {
                         <MainPopup
                             open={showLevelUpPopup}
                             title="Congrats, you leveled up!"
-                            message="Next level unlocked at 1500 XP."
+                            message={`You earned ${levelUpGemsAwarded} gems for reaching Level ${justLeveledTo}.`}
                             buttonLabel1="Leave"
                             buttonLabel2="Stay"
                             onButton1={"handleLeave"}
                             onButton2={"handleStay"}
                             type={"levelUp"}
+                            onClose={() => setShowLevelUpPopup(false)}
                         >
                             {/* optional extra content here */}
                         </MainPopup>

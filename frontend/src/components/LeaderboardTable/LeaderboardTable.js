@@ -7,7 +7,7 @@ import {useAuth} from "../../api/AuthContext";
 
 // Component displaying a leaderboard of majors ranked by XP
 function LeaderboardTable({ data = [] }) {
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [studentMajor, setStudentMajor] = useState(null);
 
     const {token} = useAuth();

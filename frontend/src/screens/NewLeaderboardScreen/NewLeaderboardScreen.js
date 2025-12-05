@@ -43,6 +43,7 @@ function NewLeaderboardScreen() {
     // Fetch major on mount
     useEffect(() => {
         (async () => {
+            console.log("[LEADERBOARD] Fetching major XP data...");
             setLoadingMajors(true);
             setMajorError("");
 
@@ -71,10 +72,12 @@ function NewLeaderboardScreen() {
 
                 setMajorData(mappedData);
                 console.log("[LEADERBOARD] Fetched major XP data:", mappedData);
+                console.log("[LEADERBOARD] Major data length:", mappedData.length);
             } catch (e) {
                 console.error(e);
                 setMajorError(e.cause || e.message || "Unknown error");
             } finally {
+                console.log("[LEADERBOARD] Finished fetching major XP data.");
                 setLoadingMajors(false);
             }
         })();
