@@ -1,14 +1,16 @@
 import React from 'react';
 import {Button} from 'react-bootstrap';
-import './LogoutButton.scss';
+import {useAuth} from "../../api/AuthContext";
 
-function LogoutButton({handleLogout}) {
+function LogoutButton() {
+
+    const {logout} = useAuth();
 
     return (
         <Button
-            aria-label="logout-button"
-            className="logoutButton"
-            onClick={handleLogout}>
+            aria-label="Logout"
+            className="btn-logout"
+            onClick={logout}>
             Log Out
         </Button>
     );

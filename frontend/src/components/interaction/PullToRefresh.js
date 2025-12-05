@@ -107,7 +107,8 @@ export default function PullToRefresh({
   }, [scrollerRef, refreshing, trigger, maxPull, damping]);
 
   return (
-    <div style={{ transform: pull ? `translateY(${pull}px)` : undefined }}>
+    <div className="pullContainer"
+    style={{ transform: pull ? `translateY(${pull}px)` : undefined }}>
       <div
         className={`ptrIndicator ${refreshing ? "is-refreshing" : ""}`}
         style={{ height: pull ? Math.min(64, pull) : 0, opacity: pull ? 1 : 0 }}

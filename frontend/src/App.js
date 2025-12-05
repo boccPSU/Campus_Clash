@@ -27,6 +27,7 @@ import PrivateRoute from "./api/PrivateRoute";
 import NewTournamentScreen from "./screens/NewTournamentScreen/NewTournamentScreen";
 import NewQuestionScreen from "./screens/NewQuestionScreen/NewQuestionScreen";
 import NewLeaderboardScreen from "./screens/NewLeaderboardScreen/NewLeaderboardScreen";
+import NewProfileScreen from "./screens/NewProfileScreen/NewProfileScreen";
 
 function App() {
 
@@ -86,7 +87,7 @@ function App() {
                 {/* /profile -> Profile Screen*/}
                 <Route path="/profile" element={
                     <PrivateRoute>
-                        <ProfileScreen />
+                        <NewProfileScreen />
                     </PrivateRoute>
                     } />
 

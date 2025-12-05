@@ -1,0 +1,64 @@
+.btn.btn-edit {
+    color: $light-text-primary;
+    background-color: $light-primary;
+    border-color: $light-primary;
+    border-radius: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.btn.btn-close {
+    background-color: inherit;
+    color: inherit;
+    border-radius: 0;
+}
+
+.btn.btn-close svg {
+    width: auto;
+    height: 100%;
+    display: block;
+}
+
+body.dark-mode .btn-edit {
+    color: $dark-text-primary;
+    background-color: $dark-primary;
+    border-color: $dark-primary;
+}
+
+.backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.6);
+    z-index: 10;
+}
+
+.modalMain {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 20;
+    display: flex;
+    justify-content: center;
+    align-items: start;
+    flex-direction: column;
+    background-color: inherit;
+    border-radius: 5%;
+    padding: 1rem;
+}
+
+.settingsEdit {
+
+    width: 100%;
+    height: 70%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 5%;
+}

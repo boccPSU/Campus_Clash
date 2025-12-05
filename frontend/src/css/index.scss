@@ -26,6 +26,8 @@
 @import "../components/TournamentCard/TournamentCard.scss";
 @import "../components/ScreenScroll/ScreenScroll.scss";
 @import "../components/interaction/PullToRefresh.scss";
+@import "../components/LogoutButton/LogoutButton.scss";
+@import "../newComponents/ProfileSettings/ProfileSettings.scss";
 
 @import "../newComponents/BottomNavBar/BottomNavBar.scss";
 @import "../newComponents/InfoTile/InfoTile.scss";
@@ -36,5 +38,8 @@
 @import "../newComponents/XpHeaderBar/XpHeaderBar.scss";
 @import "../screens/NewLeaderboardScreen/NewLeaderboardScreen.scss";
 @import "../newComponents/MainPopup/MainPopup.scss";
+@import "../screens/BaseScreen/BaseScreen.scss";
+@import "../screens/NewProfileScreen/NewProfileScreen.scss";
+
 // Main container that wraps content sections
 

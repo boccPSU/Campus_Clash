@@ -1,5 +1,9 @@
 @use "../../css/tokens.scss" as *;
 
+.pullContainer {
+  height: 100%;
+}
+
 .ptrIndicator {
   position: sticky;
   top: 0;

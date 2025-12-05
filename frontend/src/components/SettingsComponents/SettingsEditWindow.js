@@ -18,7 +18,6 @@ function SettingsEditWindow({state, onClose}) {
     const [error, setError] = useState("");
 
     const save = async () => {
-        console.log("[Change-User-Info] Starting API Call.");
         const newData = {
             firstName: studentData.firstName,
             lastName: studentData.lastName,
@@ -29,6 +28,7 @@ function SettingsEditWindow({state, onClose}) {
         }
         newData[schemaName] = field;
 
+        console.log("[Change-User-Info] New Data: ", newData);
         try {
             const res = await fetch("/api/change-user-info", {
                 method: "post",
@@ -99,7 +99,7 @@ function SettingsEditWindow({state, onClose}) {
     }
 
     return (
-                <div>
+                <div className="settingsEdit">
                     {error && (
                         <div className="text-danger">{error}</div>
                     )}

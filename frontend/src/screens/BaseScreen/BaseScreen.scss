@@ -1,0 +1,14 @@
+@use "../../css/tokens.scss" as *;
+
+.mainContainer {
+    @extend .mx-auto; // centers horizontally
+    padding: 10px;
+    background-color: $light-primary; // Background Color
+    color: $light-text-primary;       // Text Color
+    height: 100%;
+}
+
+body.dark-mode .mainContainer {
+    background-color: $dark-primary;
+    color: $dark-text-primary;
+}

@@ -1,0 +1,113 @@
+@use "../../css/tokens.scss" as *;
+
+.profileContainer {
+    @extend .mx-auto !optional; // centers horizontally
+    background-color: $light-primary; // Background Color
+    color: $light-text-primary;       // Text Color
+}
+
+.btn.btn-label {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-direction: row;
+    border-color: $light-primary;
+    border-width: 0;
+
+    background-color: inherit;
+    color: inherit;
+}
+
+/* Only apply hover effects if the device supports true hover */
+@media (hover: hover) {
+    .btn-label:hover {
+        background-color: $light-secondary;
+    }
+
+    body.dark-mode .btn-label:hover {
+    background-color: $dark-secondary;
+    color: $dark-text-primary;
+    }
+}
+
+.btn.btn-label:active {
+    background-color: inherit;
+    color: inherit;
+}
+
+.profileSectionTitle {
+    font-size: xx-large;
+}
+
+.profileHeader {
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    flex-direction: row;
+    gap: 1rem;
+    height: 15vh;
+    padding: 1%;
+}
+
+.profileIcon {
+    height: 100%;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    width: auto;
+}
+
+.profileIcon svg {
+    width: auto;
+    height: 100%;
+    display: block;
+}
+
+.profileHeader-text {
+    display: flex;
+    justify-content: start;
+    flex-direction: column;
+    font-size: 1rem;
+}
+
+.profileUsername {
+    font-size: x-large;  
+    font-weight: 600;
+    margin: 0.15rem;
+}
+
+.profileStudentInfo {
+    font-size: large;
+    font-weight: 400;
+    margin: 0.1rem;
+}
+
+.profileFooter {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    align-self: flex-end;
+    gap: 1rem;
+    height: 10vh;
+    padding: 0.5rem 0.25rem;
+}
+
+// Dark Mode
+
+body.dark-mode {
+    background-color: $dark-primary;
+    color: $dark-text-primary;
+}
+
+body.dark-mode .profileContainer {
+    background-color: $dark-primary;
+    color: $dark-text-primary;
+}
+
+// body.dark-mode .btn-label:active {
+//     background-color: $dark-secondary;
+//     color: $dark-text-primary;
+// }
