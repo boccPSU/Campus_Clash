@@ -59,6 +59,7 @@ function XpHeaderBar() {
         setLevel(info.level);
         setCurrentXp(info.currentXp);
         setXpForNextLevel(info.xpForNextLevel);
+        console.log("[XpHeaderBar] Level info:", info);
     }, [studentData, studentDataLoading]);
 
     const isLoading = studentDataLoading && !studentData;

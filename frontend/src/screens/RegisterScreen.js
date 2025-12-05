@@ -23,7 +23,7 @@ function RegisterScreen() {
 
     const navigate = useNavigate();
 
-    const {setToken} = useAuth();
+  const { setToken, token, isStudentDataFilled, studentDataLoading } = useAuth();
 
     useEffect(() => {
         if (isLoading) {
@@ -32,6 +32,17 @@ function RegisterScreen() {
             });
         }
     }, [isLoading]);
+
+    // Navigate to home if registration is complete
+    useEffect(() => {
+    // Only care after we have a token
+    if (!token) return;
+
+    // When we are NOT loading and studentData is fully filled in, then it's safe to go to the home screen.
+    if (!studentDataLoading && isStudentDataFilled()) {
+        navigate("/home");
+    }
+}, [token, studentDataLoading, isStudentDataFilled, navigate]);
 
     const registerNewUser = async () => {
         try {
@@ -47,7 +58,7 @@ function RegisterScreen() {
             if (!res.ok) throw new Error("[Register] Error", {cause: data.error});
             if (data.successful) {
                 setToken({"token": data.token});
-                navigate("/home");
+                // No longer navigate right to home
             } else {
                 setError(data.error);
             }

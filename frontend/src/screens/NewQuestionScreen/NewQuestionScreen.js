@@ -29,7 +29,7 @@ export default function NewQuestionScreen() {
     const navTitle = navState.title || "Tournament";
     const navId = navState.tournamentId;
     const navType = navState.tournamentType;
-    const { studentData, loadStudentData } = useAuth();
+    const { studentData, loadStudentData, loadBasicStudentData } = useAuth();
     const navigate = useNavigate();
 
     const [questions, setQuestions] = useState([]);
@@ -78,6 +78,45 @@ export default function NewQuestionScreen() {
         }
     }, [studentData?.gems]);
 
+
+    // Helper function to spend gems on powerups
+    const spendGems = async (amount) => {
+        try {
+            // Call backed to deduct gems returns true if successful
+        const res = await fetch("http://localhost:5000/api/gems/remove", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    username: studentData.username,
+                    amount: ADDTIME_COST,
+                }),
+            });
+
+            
+
+
+            const data = await res.json();
+
+            const isSuccessful = data.successful;
+
+            if(isSuccessful){
+                // We are good to deduct gems
+                setGems((prev) => prev - amount);
+
+                // Update student gem amount with load BASIC data
+                await loadBasicStudentData();
+                return true;
+            }
+
+            console.error("Backend rejected gem deduction for Add Time powerup message" + data);
+            return false;
+        } catch (error) {
+            console.error("Error spending gems:", error);
+        }
+    }
+            
     const loadQuestions = async () => {
         try {
             setLoading(true);
@@ -482,30 +521,12 @@ export default function NewQuestionScreen() {
         if (hasAnsweredRef.current) return;
         if (usedAddTime) return;
         
-        // Call backed to deduct gems returns true if successful
-        const res = await fetch("http://localhost:5000/api/gems/remove", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    username: studentData.username,
-                    amount: ADDTIME_COST,
-                }),
-            });
+        // Try and spend gems
+        const isSuccessful = await spendGems(ADDTIME_COST);
 
-        if (!res.ok) {
-            console.error("Failed to deduct gems for Add Time powerup");
-            return;
-        }
-
-        if (res.json().successful !== true) {
-            console.error("Backend rejected gem deduction for Add Time powerup message");
-            return;
-        }
 
         // We are good to deduct gems
-        if(res.json().successful === true){
+        if(isSuccessful){
             setUsedAddTime(true);
             setTimeLeft((prev) => prev + 20);
         }

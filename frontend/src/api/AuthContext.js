@@ -83,6 +83,49 @@ export function AuthProvider({ children }) {
     const [alertsLoading, setAlertsLoading] = useState(false);
     const [canvasError, setCanvasError] = useState(false);
 
+    // Function to load simple student data (firstName, lastName, username, university, major, xp, gems, canvasToken)
+    const loadBasicStudentData = async () => {
+        try {
+            console.log("[AUTH] Loading basic student data...");
+            setStudentDataLoading(true);
+            const res = await fetch("http://localhost:5000/api/profile", {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    "jwt-token": token,
+                },
+            });
+
+            if (res.status === 500)
+                throw new Error("[PROFILE] Error", {
+                    cause: "Could not Connect.",
+                });
+            const { firstName, lastName, username, university, major, xp, gems, canvasToken, error } =
+                await res.json();
+            if (!res.ok) throw new Error("[PROFILE] Error", { cause: error });
+
+            const newStudentData = {
+                firstName: firstName,
+                lastName: lastName,
+                username: username,
+                university: university,
+                major: major,
+                xp: xp,
+                gems: gems,
+                canvasToken: canvasToken,
+            };
+            saveStudentData({
+                ...newStudentData,
+            });
+            setStudentDataLoading(false);
+            console.log("[AUTH] Basic student data loaded successfully.");
+        } catch (err) {
+            console.log(err);
+            setStudentDataLoading(false);
+            return err;
+        }
+    }
+
     const loadStudentData = async () => {
         try {
             console.log("[AUTH] Loading student data...");
@@ -249,6 +292,7 @@ export function AuthProvider({ children }) {
                 setStudentData: saveStudentData,
                 isStudentDataFilled,
                 loadStudentData,
+                loadBasicStudentData,
                 studentDataLoading,
                 profileLoading,
                 coursesLoading,

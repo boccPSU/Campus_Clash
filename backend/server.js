@@ -2169,11 +2169,13 @@ app.post("/api/gems/remove", async (req, res) => {
       });
     }
 
-    // 1) Look up pid from users table
+    // Look up pid from users table
     const [userRows] = await pool.query(
       `SELECT pid FROM users WHERE username = ?`,
       [username]
     );
+
+    console.log("[GEMS] User lookup result for username", username, "=>", userRows);
 
     if (!userRows || userRows.length === 0) {
       console.log("[GEMS] No user found for username:", username);
@@ -2185,7 +2187,7 @@ app.post("/api/gems/remove", async (req, res) => {
     const pid = userRows[0].pid;
     console.log("[GEMS] Found pid for username", username, "=>", pid);
 
-    // 2) Atomic update on students: only subtract if enough gems
+    //  update on students: only subtract if enough gems
     const [updateResult] = await pool.query(
       `
       UPDATE students
@@ -2215,7 +2217,7 @@ app.post("/api/gems/remove", async (req, res) => {
       });
     }
 
-    // 3) Fetch new gem balance from students
+    // Fetch new gem balance from students
     const [rows] = await pool.query(
       `
       SELECT gems
@@ -2224,6 +2226,8 @@ app.post("/api/gems/remove", async (req, res) => {
       `,
       [pid]
     );
+
+    console.log("[GEMS] Gem lookup result for student pid", pid, "=>", rows);
 
     if (!rows || rows.length === 0) {
       console.log("[GEMS] Student not found for pid:", pid);
