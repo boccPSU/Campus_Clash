@@ -126,9 +126,12 @@
         box-shadow: 0 1px 5px rgba(0, 0, 0, 0.14);
     }
 
-    &:disabled {
-        opacity: 0.45;
-        cursor: not-allowed;
-        box-shadow: none;
-    }
+
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
 }

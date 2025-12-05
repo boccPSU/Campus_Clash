@@ -29,7 +29,7 @@ export default function NewQuestionScreen() {
     const navTitle = navState.title || "Tournament";
     const navId = navState.tournamentId;
     const navType = navState.tournamentType;
-    const { loadStudentData } = useAuth();
+    const { studentData, loadStudentData } = useAuth();
     const navigate = useNavigate();
 
     const [questions, setQuestions] = useState([]);
@@ -49,7 +49,7 @@ export default function NewQuestionScreen() {
 
     // --- Powerup related state ---
     // TODO: replace with real gem value from backend / context
-    const [gems, setGems] = useState(1000);
+    const [gems, setGems] = useState(0);
 
     const [usedEliminate, setUsedEliminate] = useState(false);
     const [usedSkip, setUsedSkip] = useState(false);
@@ -68,6 +68,15 @@ export default function NewQuestionScreen() {
 
     const scrollerRef = useRef(null);
     const collapsed = useCollapseOnScroll(scrollerRef);
+   
+
+    // Set gems on mount
+    useEffect(() => {
+        if (studentData && typeof studentData.gems === "number") {
+            console.log("[QuestionScreen] Setting initial gems:", studentData.gems);
+            setGems(studentData.gems);
+        }
+    }, [studentData?.gems]);
 
     const loadQuestions = async () => {
         try {
@@ -467,17 +476,40 @@ export default function NewQuestionScreen() {
         handleAnswer(q.correctIndex);
     };
 
-    const handleAddTimePowerup = () => {
+    const handleAddTimePowerup = async () => {
         if (stage !== "question") return;
         if (!questions[currentIndex]) return;
         if (hasAnsweredRef.current) return;
         if (usedAddTime) return;
-        if (gems < ADDTIME_COST) return;
+        
+        // Call backed to deduct gems returns true if successful
+        const res = await fetch("http://localhost:5000/api/gems/remove", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    username: studentData.username,
+                    amount: ADDTIME_COST,
+                }),
+            });
 
-        setUsedAddTime(true);
-        // TODO: sync gem deduction with backend
-        setGems((prev) => prev - ADDTIME_COST);
-        setTimeLeft((prev) => prev + 20);
+        if (!res.ok) {
+            console.error("Failed to deduct gems for Add Time powerup");
+            return;
+        }
+
+        if (res.json().successful !== true) {
+            console.error("Backend rejected gem deduction for Add Time powerup message");
+            return;
+        }
+
+        // We are good to deduct gems
+        if(res.json().successful === true){
+            setUsedAddTime(true);
+            setTimeLeft((prev) => prev + 20);
+        }
+            
     };
 
     // For game over "Return to Tournaments" button
