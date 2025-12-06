@@ -16,6 +16,14 @@ const pool = mysql.createPool({
 // Initializes database when server is started
 async function initDb() {
 
+  await pool.query(`
+    DROP TABLE IF EXISTS active_battles;
+  `);
+
+  await pool.query(`
+    DROP TABLE IF EXISTS looking_for_battle;
+  `);
+
   // Drop dependent table first (if it exists)
   await pool.query(`
     DROP TABLE IF EXISTS tournament_participants;
@@ -132,39 +140,60 @@ async function initDb() {
 
     // Create tournament_participants table with FKs to tournaments and students
     await pool.query(`
-        CREATE TABLE IF NOT EXISTS tournament_participants (
-            tid    INT NOT NULL,
-            pid    INT NOT NULL,
-            score  INT NOT NULL DEFAULT 0,
-            PRIMARY KEY (tid, pid),
+      CREATE TABLE IF NOT EXISTS tournament_participants (
+          tid    INT NOT NULL,
+          pid    INT NOT NULL,
+          score  INT NOT NULL DEFAULT 0,
+          PRIMARY KEY (tid, pid),
 
-            CONSTRAINT fk_tp_tournament
-                FOREIGN KEY (tid)
-                REFERENCES tournaments (tid)
-                ON DELETE CASCADE,
+          CONSTRAINT fk_tp_tournament
+              FOREIGN KEY (tid)
+              REFERENCES tournaments (tid)
+              ON DELETE CASCADE,
 
-            CONSTRAINT fk_tp_student
-                FOREIGN KEY (pid)
-                REFERENCES students (pid)
-                ON DELETE CASCADE
-        ) ENGINE=InnoDB
-          DEFAULT CHARSET=utf8mb4
-          COLLATE=utf8mb4_0900_ai_ci;
+          CONSTRAINT fk_tp_student
+              FOREIGN KEY (pid)
+              REFERENCES students (pid)
+              ON DELETE CASCADE
+      ) ENGINE=InnoDB
+        DEFAULT CHARSET=utf8mb4
+        COLLATE=utf8mb4_0900_ai_ci;
     `);
 
     // Create a tournaments topic table for each major, storing the major, possible topics, and already used topics
-    await pool.query(
-  `
-  CREATE TABLE IF NOT EXISTS tournament_topics (
-    mid           INT NOT NULL AUTO_INCREMENT,
-    major         VARCHAR(64) NOT NULL,
-    topics        JSON NOT NULL,
-    used_topics   JSON NULL,
-    PRIMARY KEY (mid),
-    UNIQUE KEY uk_major (major)
-  )
-  `
-);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS tournament_topics (
+        mid           INT NOT NULL AUTO_INCREMENT,
+        major         VARCHAR(64) NOT NULL,
+        topics        JSON NOT NULL,
+        used_topics   JSON NULL,
+        PRIMARY KEY (mid),
+        UNIQUE KEY uk_major (major)
+      )
+      `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS looking_for_battle (
+        pid INT NOT NULL,
+        KEY pid (pid),
+        CONSTRAINT fk_lfb_pid FOREIGN KEY (pid) REFERENCES users (pid) ON DELETE CASCADE
+      )`);
+
+      await pool.query(`
+      CREATE TABLE IF NOT EXISTS active_battles (
+        bid INT NOT NULL AUTO_INCREMENT,
+        pid1 INT NOT NULL,
+        pid2 INT NOT NULL,
+        starting_xp_p1 INT NOT NULL DEFAULT 0,
+        starting_xp_p2 INT NOT NULL DEFAULT 0,
+        reward INT NOT NULL DEFAULT 1000,
+        start_date DATE NOT NULL DEFAULT CURRENT_DATE(),
+        PRIMARY KEY (bid),
+        KEY (pid1),
+        CONSTRAINT fk_btl_pid1 FOREIGN KEY (pid1) REFERENCES users (pid) ON DELETE CASCADE,
+        KEY (pid2),
+        CONSTRAINT fk_btl_pid2 FOREIGN KEY (pid2) REFERENCES users (pid) ON DELETE CASCADE
+      )`)
 
 // Drop + recreate tournament procedures
 await pool.query(`DROP PROCEDURE IF EXISTS create_tournament`);

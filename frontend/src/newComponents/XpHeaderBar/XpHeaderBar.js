@@ -76,7 +76,7 @@ function XpHeaderBar() {
             : 0;
 
     return (
-        <div className="xpHeaderBar">
+        <div className="xpHeaderBar" id="xpHeader">
             <div className="xpHeaderBarTop">
                 <span className="xpHeaderBarLevel">
                     {isLoading ? "Level ..." : `Level ${level}`}

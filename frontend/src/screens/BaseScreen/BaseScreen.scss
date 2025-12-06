@@ -5,7 +5,7 @@
     padding: 10px;
     background-color: $light-primary; // Background Color
     color: $light-text-primary;       // Text Color
-    height: 100%;
+    height: inherit;
 }
 
 body.dark-mode .mainContainer {

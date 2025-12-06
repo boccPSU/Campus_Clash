@@ -38,7 +38,7 @@ function BaseScreen({children}) {
         <>
             <ScreenScroll ref={scrollerRef}>
                 <PullToRefresh scrollerRef={scrollerRef} onRefresh={refresh}>
-                    <Container className="mainContainer">
+                    <Container className="mainContainer" id="mainContainer">
                         {/* Level Up Popup (should be on each screen) */}
                         <MainPopup
                             open={false}

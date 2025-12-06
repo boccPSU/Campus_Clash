@@ -26,6 +26,7 @@ import NewTournamentScreen from "./screens/NewTournamentScreen/NewTournamentScre
 import NewQuestionScreen from "./screens/NewQuestionScreen/NewQuestionScreen";
 import NewLeaderboardScreen from "./screens/NewLeaderboardScreen/NewLeaderboardScreen";
 import NewProfileScreen from "./screens/NewProfileScreen/NewProfileScreen";
+import BattleScreen from "./screens/BattleScreen/BattleScreen";
 
 function App() {
 
@@ -60,6 +61,12 @@ function App() {
                 <Route path="/leaderboard" element={
                     <PrivateRoute>
                         <NewLeaderboardScreen />
+                    </PrivateRoute>} />
+
+                {/* /battle path -> Battle screen */}
+                <Route path="/battle" element={
+                    <PrivateRoute>
+                        <BattleScreen/>
                     </PrivateRoute>} />
 
                 {/* /studyPlan -> Study Plan screen */}

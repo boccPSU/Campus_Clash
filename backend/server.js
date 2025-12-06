@@ -329,7 +329,7 @@ app.get("/api/load-prefs", async (req, res) => {
     const userPrefs = results[0];
 
     if(!userPrefs) 
-      return res.status(401).json({ error: "UnauthorizedL Cannot Find User" });
+      return res.status(401).json({ error: "Unauthorized Cannot Find User" });
 
     res.status(201).json({darkMode: !!userPrefs.darkMode});
   } catch (err) {
@@ -411,6 +411,158 @@ app.post("/api/receive-xp", async (req, res) => {
   }
 });
 
+app.get("/api/find-battle", async (req, res) => {
+  const token = req.headers["jwt-token"];
+  if (!token) {
+    return res.status(401).json({ error: "Unauthorized: missing token" });
+  }
+  const {pid} = decryptToken(token);
+
+  try {
+    const [results] = await pool.query(
+      `SELECT pid FROM looking_for_battle;
+       `
+    );
+
+    if (results.length === 0) {
+      await pool.query(
+        `INSERT INTO looking_for_battle (pid)
+          VALUES (?)`,
+          [pid]
+      );
+      console.log("[Find-Battle] No Opponent Found.");
+      return res.status(201).json({logMessage: "No Opponent Found."});
+    }
+
+    var i = 0;
+    var row = results[0];
+    var found = false;
+    var oppPid = row?.pid;
+    while (!found && i < results.length) {
+      row = results[i];
+      oppPid = row.pid;
+
+      if (pid === oppPid) {
+        i += 1;
+        continue;
+      }
+
+      //Check to see if either User was already found
+      const [checkRows] = await pool.query(
+        `SELECT * FROM active_battles
+          WHERE pid1 = ? OR pid2 = ? OR pid1 = ? OR pid2 = ?`,
+            [pid, pid, oppPid, oppPid]
+      );
+
+      if (checkRows.length !== 0) {
+        i += 1;
+        continue;
+      } else {
+        found = true;
+      }
+    }
+
+    if (!found) {
+      await pool.query(
+        `INSERT INTO looking_for_battle (pid)
+          VALUES (?)`,
+          [pid]
+      );
+      console.log("[Find-Battle] No Opponent Found.");
+      return res.status(201).json({logMessage: "No Opponent Found."});
+    }
+
+    const [selfResults] = await pool.query(
+      `SELECT username, xp 
+      FROM users INNER JOIN students
+      ON users.pid = students.pid
+      WHERE users.pid = ?`,
+      [pid]
+    );
+
+    const selfData = selfResults[0];
+    if (!selfData) {
+      return res.status(401).json({error: "Cannot find own data."});
+    }
+
+    const [oppResults] = await pool.query(
+      `SELECT username, xp 
+      FROM users INNER JOIN students
+      ON users.pid = students.pid
+      WHERE users.pid = ?`,
+      [oppPid]
+    );
+
+    const oppData = oppResults[0];
+    if (!oppData) {
+      await pool.query(
+          `INSERT INTO looking_for_battle (pid)
+            VALUES (?)`,
+            [pid]
+        );
+      return res.status(401).json({error: "Cannot find Opponent Data"});
+    }
+    
+    await pool.query(
+      `INSERT INTO active_battles (pid1, starting_xp_p1, pid2, starting_xp_p2)
+        VALUES (?, ?, ?, ?)`,
+        [pid, selfData.xp, oppPid, oppData.xp]
+    );
+
+    await pool.query(
+      `DELETE FROM looking_for_battle
+        WHERE pid = ? OR pid = ?`,
+        [pid, oppPid]
+    );
+
+    //Notify Players
+
+
+    return res.status(201).json({opponent: oppData});
+
+  } catch (err) {
+    console.log("[Find-Battle] Error: ", err);
+    return res.status(500).json({error: err});
+  }
+});
+
+app.get("/api/cancel-battle-request", async (req, res) => {
+  const token = req.headers["jwt-token"];
+  if (!token) {
+    return res.status(401).json({ error: "Unauthorized: missing token" });
+  }
+  const {pid} = decryptToken(token);
+
+  try {
+    const [lookingCheck] = await pool.query(
+      `SELECT pid FROM looking_for_battle
+      WHERE pid = ?;`,
+      [pid]
+    );
+
+    if (lookingCheck.length !== 0) {
+      await pool.query(
+        `DELETE FROM looking_for_battle
+        WHERE pid = ?;`,
+      [pid]);
+    }
+
+    const [activeCheck] = await pool.query(
+      `SELECT * FROM active_battles
+      WHERE pid1 = ? OR pid2 = ?;`,
+      [pid, pid]
+    );
+
+    if (activeCheck.length !== 0) {
+      return res.status(201).json({successful: false});
+    }
+
+    return res.status(201).json({successful: true});
+  } catch (err) {
+    console.log("[Cancel-Battle] Error: ", err);
+    res.status(500).json({error: err});
+  }
+});
 
 // POST /api/auth
 app.post("/api/auth", (req, res) => {

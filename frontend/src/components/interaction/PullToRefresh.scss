@@ -1,7 +1,7 @@
 @use "../../css/tokens.scss" as *;
 
 .pullContainer {
-  height: 100%;
+  height: inherit;
 }
 
 .ptrIndicator {
