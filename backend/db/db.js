@@ -179,6 +179,7 @@ async function initDb() {
         CONSTRAINT fk_lfb_pid FOREIGN KEY (pid) REFERENCES users (pid) ON DELETE CASCADE
       )`);
 
+      
       await pool.query(`
       CREATE TABLE IF NOT EXISTS active_battles (
         bid INT NOT NULL AUTO_INCREMENT,
@@ -187,7 +188,7 @@ async function initDb() {
         starting_xp_p1 INT NOT NULL DEFAULT 0,
         starting_xp_p2 INT NOT NULL DEFAULT 0,
         reward INT NOT NULL DEFAULT 1000,
-        start_date DATE NOT NULL DEFAULT CURRENT_DATE(),
+        start_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, 
         PRIMARY KEY (bid),
         KEY (pid1),
         CONSTRAINT fk_btl_pid1 FOREIGN KEY (pid1) REFERENCES users (pid) ON DELETE CASCADE,

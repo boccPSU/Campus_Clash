@@ -1,22 +1,31 @@
 @use "../../css/tokens.scss" as *;
 
 .infoTile {
-    //@extend allows us to add in bootsrap styles into our css
-    @extend .mx-auto; // centers horizontally
-    
-    
+    @extend .mx-auto;
+
     padding-bottom: 10px;
     padding-left: 10px;
     padding-right: 10px;
     margin: 10px;
     border-radius: 10px;
-    background-color: $light-secondary; // Background Color
-    color: $light-text-primary; //Text Color
-    
-    max-height: 35rem;
-    overflow-y: auto;
+    background-color: $light-secondary;
+    color: $light-text-primary;
+
+    // Make it fill the parent width but never force horizontal scrolling
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+
+    // Only vertical overflow allowed
+    overflow-x: hidden;   // 🔹 no horizontal scrollbar
+    overflow-y: visible;  // 🔹 let it grow vertically with content
+
+    // Remove this if you want full vertical expansion:
+    // max-height: 35rem;
+    // overflow-y: auto;
+
     h2 {
-        @extend .text-center; // centers title
+        @extend .text-center;
     }
 }
 

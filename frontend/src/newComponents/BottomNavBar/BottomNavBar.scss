@@ -6,6 +6,7 @@
     @extend .border-top;
     @extend .py-2;
 
+
     //margin-left: 6px;
     //margin-right: 6px;
     background-color: $light-secondary;
@@ -36,6 +37,10 @@
     }
 }
 
+.bottomNavSpacer {
+    height: 30px; // a bit more than $bottom-nav-height so the last row can scroll fully above the bar
+    flex-shrink: 0;
+}
 // Dark Mode  
 
 

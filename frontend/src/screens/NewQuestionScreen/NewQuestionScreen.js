@@ -701,7 +701,7 @@ export default function NewQuestionScreen() {
                                         onClick={handleEliminateAnswer}
                                         disabled={eliminateDisabled}
                                     >
-                                        Eliminate Answer
+                                        Drop Answer
                                     </button>
                                 </div>
 
