@@ -1,13 +1,17 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useRef } from "react";
 import {
     loadCourses,
     loadAlerts,
     validateCanvasToken,
 } from "./canvas";
 
+import io from "socket.io-client";
+
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
+
+
     const getToken = () => {
         const tokenString = localStorage.getItem(`token`);
         const userToken = JSON.parse(tokenString);
@@ -341,6 +345,37 @@ export function AuthProvider({ children }) {
         return true;
     };
 
+    const [oppFound, setOppFound] = useState(false);
+    const [oppData, setOppData] = useState({});
+
+    const socketRef = useRef(null);
+
+    useEffect(() => {
+        if (!token || socketRef.current) return ;
+
+
+        console.log("Creating new Socket Connection");
+        socketRef.current = io("http://localhost:5000", {
+            auth: { token }
+        });
+
+        socketRef.current.on("connect", () => {
+            console.log("Connected to Socket");
+        });
+
+        socketRef.current.on("battle-found", (payload) => {
+            console.log("Battle found!");
+            console.log("Opponent: ", payload);
+            setOppData(payload);
+            setOppFound(true);
+        });
+
+        return () => {
+            socketRef.current?.disconnect();
+            socketRef.current = null;
+        }
+    }, [token]);
+
     return (
         <AuthContext.Provider
             value={{
@@ -364,6 +399,8 @@ export function AuthProvider({ children }) {
                 coursesLoading,
                 alertsLoading,
                 canvasError,
+                oppFound,
+                oppData,
             }}
         >
             {children}
@@ -374,3 +411,5 @@ export function AuthProvider({ children }) {
 export function useAuth() {
     return useContext(AuthContext);
 }
+
+
