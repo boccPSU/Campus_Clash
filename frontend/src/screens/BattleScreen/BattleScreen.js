@@ -8,10 +8,10 @@ import { useAuth } from "../../api/AuthContext";
 
 function BattleScreen() {
 
-    const {token} = useAuth();
+    const {token, studentData, oppFound, oppData} = useAuth();
     const [isLoading, setLoading] = useState(false);
 
-    const [opponentData, setOpponentData] = useState();
+    const [opponentData, setOpponentData] = useState({});
 
     useEffect(() => {
         if (isLoading) {
@@ -20,6 +20,38 @@ function BattleScreen() {
     }, [isLoading]);
     //States are loading, search, looking, found, results
     const [page, setPage] = useState("search");
+
+    const initalLoad = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch("http://localhost:5000/api/load-battle", {
+                method: "get",
+                headers: {
+                    "Content-Type": "application/json",
+                    "jwt-token": token,
+                }
+            });
+            if (res.status === 500) 
+                throw new Error("[BATTLE] Error", {cause: "Could not connect."});
+            const data = await res.json();
+            if (!res.ok)
+                throw new Error("[BATTLE] Error", {cause: data.error});
+
+            const {
+                successful,
+                pid1,
+                pid2,
+                starting_xp_p1,
+                starting_xp_p2,
+                start_time,
+                end_time,
+                reward,
+            } = data;
+
+        } catch (err) {
+
+        }
+    }
 
     const beginSearch = async () => {
         setLoading(true);
@@ -80,6 +112,15 @@ function BattleScreen() {
             setLoading(false);
         }
     }
+
+    useEffect(() => {
+        console.log("OppFound Changed Values: ", oppFound);
+        if (oppFound) {
+            setOpponentData(oppData);
+            console.log(opponentData);
+            setPage("found");
+        }
+    }, [oppFound]);
 
     const loadOpponent = async (username) => {
 
@@ -166,7 +207,7 @@ function BattleScreen() {
                             <PersonCircle/>
                         </div>
                         
-                        <h1 className="username">{"Scholar"}</h1>
+                        <h1 className="username">{studentData?.username || "Scholar"}</h1>
                         <div className="xp-container">
                             <h1 className="xp-gained">XP Gained:</h1>
                             <h1 className="xp-gained">{"0"}</h1>
@@ -177,7 +218,7 @@ function BattleScreen() {
                         <div className="icon">
                             <PersonCircle/>
                         </div>
-                        <h1 className="username">{"Opponent"}</h1>
+                        <h1 className="username">{opponentData?.username || "Opponent"}</h1>
                         <div className="xp-container">
                             <h1 className="xp-gained">XP Gained:</h1>
                             <h1 className="xp-gained">{"0"}</h1>

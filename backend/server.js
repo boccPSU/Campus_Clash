@@ -5,6 +5,8 @@ const OpenAI = require("openai");
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const http = require("http");
+const socketIO = require("socket.io");
 const { pool, initDb, addMockUsers } = require("./db/db.js");
 const { getSortedMajors, getSortedStudents } = require("./db/sortData.js");
 const auth = require("./db/authentication.js");
@@ -22,6 +24,57 @@ if (!TOKEN) throw new Error("Missing CANVAS_TOKEN in .env");
 const app = express();
 app.use(express.json());
 app.use(cors({ origin: "http://localhost:3000" })); //Bybass CORS
+
+const server = http.createServer(app);
+
+const io = socketIO(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+});
+
+const users = new Map();
+
+io.use((socket, next) => {
+  const token = socket.handshake.auth.token;
+
+  try {
+    const {pid} = decryptToken(token);
+    socket.user = pid;
+    users.set(pid, socket.id);
+    console.log(`User ${pid} authenticated on ${socket.id}`);
+    next();
+  } catch (err) {
+    next(new Error("Unauthorized"));
+  }
+});
+
+io.on("connection", (socket) => {
+
+
+  io.on("join-battle", (bid) => {
+    socket.join(bid);
+    console.log(`User ${username} joined battle room ${bid}`);
+  })
+
+  io.on("disconnect", () => {
+    console.log(`User ${pid} authenticated on ${socket.id}`);
+
+    for (const [userId, socketId] of users.entries()) {
+      if (socketId === socket.id) {
+        users.delete(userId);
+        break;
+      }
+    }
+  });
+})
+
+
+
+server.listen(PORT, () => {
+  console.log(`Web Socket Server listening on http://localhost:${PORT}`)
+});
 
 // Start Server
 (async () => {
@@ -516,7 +569,7 @@ app.get("/api/find-battle", async (req, res) => {
     );
 
     //Notify Players
-
+    sendToUser(oppPid, "battle-found", {username: selfData.username, xp: selfData.xp});
 
     return res.status(201).json({opponent: oppData});
 
@@ -563,6 +616,31 @@ app.get("/api/cancel-battle-request", async (req, res) => {
     res.status(500).json({error: err});
   }
 });
+
+app.get("/api/load-battle", async (req, res) => {
+  const token = req.headers["jwt-token"];
+  if (!token) {
+    return res.status(401).json({ error: "Unauthorized: missing token" });
+  }
+  const {pid} = decryptToken(token);
+
+  try {
+    const [results] = await pool.query(`
+      SELECT * FROM active_battles
+      WHERE pid1 = ? OR pid2 = ?;`
+    , [pid, pid]);
+
+    if (results.length === 0) {
+      return res.status(201).json({successful: false});
+    }
+
+    const battleData = results[0];
+
+    return res.status(201).json({battleData});
+  } catch (err) {
+    return res.status(500).json({error: err});
+  }
+})
 
 // POST /api/auth
 app.post("/api/auth", (req, res) => {
@@ -2463,3 +2541,13 @@ app.post("/api/gems/remove", async (req, res) => {
       .json({ successful: false, error: "Internal server error" });
   }
 });
+
+function sendToUser(userId, eventName, payload) {
+  const targetSocket = users.get(userId);
+
+  if (targetSocket) {
+    io.to(targetSocket).emit(eventName, payload);
+  } else {
+    console.log(`User ${userId} is not connected.`);
+  }
+}
