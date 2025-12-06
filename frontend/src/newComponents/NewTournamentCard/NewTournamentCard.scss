@@ -42,8 +42,10 @@
 .leaderboard {
     @extend .d-flex;
     @extend .flex-column;
-    @extend .align-items-center; // centers whole block in parent
     @extend .text-center;
+
+    width: 100%;
+    align-items: stretch;
 
     .leaderboardTitle {
         margin-bottom: 0.5rem;
@@ -51,42 +53,61 @@
 }
 
 .leaderboardBody {
-    display: inline-block; // shrink to content, lets it be centered nicely
+    width: 100%;
+    display: block;
+    margin: 0;
 }
 
 .leaderboardRow {
     display: grid;
-    grid-template-columns: 3rem 8rem 3rem 2rem; // place | name | score
-    column-gap: 1.5rem;
+    /* Wider gap between Place and Username, and reasonable column shares */
+    grid-template-columns:
+        minmax(0, 3rem)   /* Place */
+        minmax(0, 1.6fr)  /* Username */
+        minmax(0, 1fr)    /* Score */
+        minmax(0, 1fr);   /* Advancing */
+    column-gap: 1rem;      /* more space between Place & Username */
+    align-items: center;
     margin: 0.15rem 0;
+    padding: 0;            /* aligns with "Difficulty" on the left (InfoTile padding only) */
+}
+
+.leaderboardHeaderRow {
+    font-weight: 600;
+    font-size: 0.8rem;
 }
 
 .leaderboardPlace {
-    text-align: right;
+    text-align: left;      /* aligns with "Difficulty" on the left */
 }
 
 .leaderboardName {
     text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .leaderboardScore {
     text-align: right;
 }
 
-.rankedCheck{
-    font-size: x-large;
+.leaderboardStatus {
+    text-align: center;    // centers the checkmark or X
+}
+
+.rankedCheck {
+    font-size: 1.2rem;
     color: green;
 }
 
-.rankedX{
-    font-size: x-large;
+.rankedX {
+    font-size: 1.2rem;
     color: red;
 }
 
-.leaderboardToggle {
-    margin-top: 0.5rem;
-    background: none;
-    border: none;
-    cursor: pointer;
+.tournamentXp,
+.leaderboardBody {
+    padding-left: 15px;   
+    padding-right: 15px;  
 }
-

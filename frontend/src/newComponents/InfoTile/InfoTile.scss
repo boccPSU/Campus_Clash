@@ -17,8 +17,8 @@
     box-sizing: border-box;
 
     // Only vertical overflow allowed
-    overflow-x: hidden;   // 🔹 no horizontal scrollbar
-    overflow-y: visible;  // 🔹 let it grow vertically with content
+    overflow-x: hidden;   // no horizontal scrollbar
+    overflow-y: visible;  // let it grow vertically with content
 
     // Remove this if you want full vertical expansion:
     // max-height: 35rem;
