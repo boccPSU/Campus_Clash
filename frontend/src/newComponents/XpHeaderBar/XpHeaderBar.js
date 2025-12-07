@@ -26,16 +26,35 @@ function computeLevelInfo(totalXp) {
 }
 
 function XpHeaderBar() {
-    const { studentData, studentDataLoading } = useAuth();
+    const {
+        token,
+        studentData,
+        studentDataLoading,
+        loadBasicStudentData,  
+    } = useAuth();
 
     const [level, setLevel] = useState(1);
     const [currentXp, setCurrentXp] = useState(0);
     const [xpForNextLevel, setXpForNextLevel] = useState(BASE_XP_PER_LEVEL);
     const [error, setError] = useState("");
 
+    // Make sure we at least have basic student data when header shows
     useEffect(() => {
-        console.log("[XpHeaderBar] studentDataLoading:", studentDataLoading);
-        console.log("[XpHeaderBar] studentData:", studentData);
+        if (!token) {
+            return;
+        }
+
+        // If nothing loaded yet and we’re not currently loading, trigger a basic load
+        if (!studentData && !studentDataLoading) {
+            console.log("[LOAD] [XpHeaderBar] No studentData, calling loadBasicStudentData()");
+            loadBasicStudentData();
+        }
+    }, [token, studentData, studentDataLoading, loadBasicStudentData]);
+
+    // Recompute level/xp whenever studentData changes
+    useEffect(() => {
+        //console.log("[XpHeaderBar] studentDataLoading:", studentDataLoading);
+        //console.log("[XpHeaderBar] studentData:", studentData);
 
         // While context is still loading the profile, we just show "Loading..."
         if (studentDataLoading && !studentData) {

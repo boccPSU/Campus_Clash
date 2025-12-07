@@ -94,7 +94,7 @@ server.listen(PORT, () => {
 
 // Checks for tournaments that have ended and finalizes them every minute
 function startTournamentFinalizer() {
-  const INTERVAL_MS = 5 * 1000; // check once per minute can teak if needed
+  const INTERVAL_MS = 1000; // check once per minute can teak if needed
 
   setInterval(async () => {
     try {
@@ -2551,3 +2551,43 @@ function sendToUser(userId, eventName, payload) {
     console.log(`User ${userId} is not connected.`);
   }
 }
+// Endpoint to change the endtime of a tournament
+app.post("/api/tournament/change-endtime", async (req, res) => {
+  try {
+    const { tid, newEndTime } = req.body || {};
+
+    if (!tid || newEndTime == null) {
+      return res
+        .status(400)
+        .json({ successful: false, error: "Missing tid or newEndTime" });
+    }
+
+    // We expect newEndTime as a JS ms timestamp from the frontend
+    const newEndMs = Number(newEndTime);
+    if (!Number.isFinite(newEndMs)) {
+      return res
+        .status(400)
+        .json({ successful: false, error: "Invalid newEndTime" });
+    }
+
+    const newEndDate = new Date(newEndMs);
+    if (isNaN(newEndDate.getTime())) {
+      return res
+        .status(400)
+        .json({ successful: false, error: "Invalid newEndTime" });
+    }
+
+    // endDate is DATETIME, so pass a JS Date object
+    await pool.query(
+      "UPDATE tournaments SET endDate = ? WHERE tid = ?",
+      [newEndDate, tid]
+    );
+
+    return res.json({ successful: true });
+  } catch (err) {
+    console.error("[API] change-endtime error:", err);
+    return res
+      .status(500)
+      .json({ successful: false, error: "Internal server error" });
+  }
+});

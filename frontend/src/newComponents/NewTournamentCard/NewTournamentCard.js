@@ -130,6 +130,7 @@ function NewTournamentCard({
             try {
                 setLeaderboardLoading(true);
 
+                console.log("[NewTournamentCard] Loading leaderboard");
                 const res = await fetch(
                     "http://localhost:5000/api/tournament/participating-users-info",
                     {
@@ -140,6 +141,8 @@ function NewTournamentCard({
                 );
 
                 const data = await res.json().catch(() => null);
+
+                console.log("[NewTournamentCard] Leaderboard response data:", data);
 
                 if (!res.ok || !data?.successful) {
                     //console.log(
@@ -223,19 +226,19 @@ function NewTournamentCard({
     // Handle joining a tournament
     const handleJoin = async () => {
         if (!tid) {
-            //console.log(
-            //    "[NewTournamentCard] Tried to join but no tid present for",
-            //    title
-            //);
+            console.log(
+                "[NewTournamentCard] Tried to join but no tid present for",
+                title
+            );
             return;
         }
 
         // Don't allow joining if tournament logically over
         if (tournamentOver) {
-            //console.log(
-            //    "[NewTournamentCard] Tournament is over, cannot join:",
-            //    tid
-            //);
+            console.log(
+                "[NewTournamentCard] Tournament is over, cannot join:",
+                tid
+            );
             setCanJoin(false);
             return;
         }
@@ -243,7 +246,7 @@ function NewTournamentCard({
         // Get user's token
         const tokenString = sessionStorage.getItem("token");
         if (!tokenString) {
-            //console.log("[NewTournamentCard] No token, cannot join tournament");
+            console.log("[NewTournamentCard] No token, cannot join tournament");
             setCanJoin(false);
             return;
         }
@@ -257,6 +260,8 @@ function NewTournamentCard({
         }
 
         try {
+            console.log("[NewTournamentCard] Joining tournament:", tid);
+
             setJoining(true);
 
             const res = await fetch(
@@ -270,8 +275,8 @@ function NewTournamentCard({
                     body: JSON.stringify({ tid }),
                 }
             );
-
-            //console.log("[NewTournamentCard] joining tournament " + tid);
+            console.log("[NewTournamentCard] join-tournament response status:", res.status);
+            
 
             if (!res.ok) {
                 console.error(

@@ -13,10 +13,10 @@ import BottomNavBar from "../../newComponents/BottomNavBar/BottomNavBar.js";
 import { useAuth } from "../../api/AuthContext.js";
 
 // Timers for each question
-const questionTime = 20; // 15s answer phase + 5s reveal
-const answerTime = 15; // timer bar duration
-const REVEAL_PHASE_SECONDS = 5; // last 5 seconds
-const REVEAL_AT_SECONDS = REVEAL_PHASE_SECONDS; // when timeLeft === 5
+const questionTime = 20;        // 15s answer phase + 5s reveal
+const answerTime = 15;          // timer bar duration
+const REVEAL_PHASE_SECONDS = 3; // last 3 seconds
+const REVEAL_AT_SECONDS = REVEAL_PHASE_SECONDS; // when timeLeft === 3
 
 // Powerup costs (gems)
 const ELIMINATE_COST = 200;
@@ -47,10 +47,10 @@ export default function NewQuestionScreen() {
 
     const [timeLeft, setTimeLeft] = useState(questionTime);
 
-    // --- Powerup related state ---
-    // TODO: replace with real gem value from backend / context
+    // Players curerrent gem count
     const [gems, setGems] = useState(0);
 
+    // Tracks when powerups are used
     const [usedEliminate, setUsedEliminate] = useState(false);
     const [usedSkip, setUsedSkip] = useState(false);
     const [usedAddTime, setUsedAddTime] = useState(false);
@@ -69,13 +69,16 @@ export default function NewQuestionScreen() {
     const scrollerRef = useRef(null);
     const collapsed = useCollapseOnScroll(scrollerRef);
 
+    // Use effect to load student data
+    useEffect(() => {
+        console.log("[LOAD] [QuestionScreen] Loading basic student data");
+        loadBasicStudentData();
+    }, [studentData, loadBasicStudentData]);
+
     // Set gems on mount
     useEffect(() => {
-        if (studentData && typeof studentData.gems === "number") {
-            console.log(
-                "[QuestionScreen] Setting initial gems:",
-                studentData.gems
-            );
+        if (studentData) {
+            console.log("[QuestionScreen] Setting initial gems:",studentData.gems);
             setGems(studentData.gems);
         }
     }, [studentData?.gems]);
@@ -105,6 +108,7 @@ export default function NewQuestionScreen() {
                 setGems((prev) => prev - amount);
 
                 // Update student gem amount with load BASIC data
+                console.log("[LOAD] [QuestionScreen] Reloading basic student data after gem deduction");
                 await loadBasicStudentData();
                 return true;
             }
@@ -414,7 +418,7 @@ export default function NewQuestionScreen() {
                 );
 
                 //  Refresh studentData so XpHeaderBar sees new XP
-                await loadStudentData();
+                await loadBasicStudentData();
             } catch (e) {
                 console.log("[QuestionScreen] Error adding XP:", e);
             }

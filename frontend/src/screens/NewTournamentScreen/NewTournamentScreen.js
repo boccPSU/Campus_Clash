@@ -8,35 +8,32 @@ import BottomNavBar from "../../newComponents/BottomNavBar/BottomNavBar.js";
 import NewTournamentCard from "../../newComponents/NewTournamentCard/NewTournamentCard.js";
 import XpHeaderBar from "../../newComponents/XpHeaderBar/XpHeaderBar.js";
 
-import {useAuth} from "../../api/AuthContext";
+import { useAuth } from "../../api/AuthContext";
 
 function NewTournamentScreen() {
-    const {token, studentData} = useAuth();
+    const { token, studentData, loadBasicStudentData } = useAuth();
     // Time variables for tournament refresh
 
-    // Short times for testing
-    //const dailyRefreshTime = 30000; // 10s
-    // const weeklyRefreshTime = 90000; // 30s
-    // const rankedRefreshTime = 5 * 60000; // 60s
     const dailyRefreshTime = 24 * 60 * 60 * 1000;
     const weeklyRefreshTime = 7 * 24 * 60 * 60 * 1000;
     const rankedRefreshTime = 14 * 24 * 60 * 60 * 1000;
+    const FORCE_END_IN_MS = 10_000; // 10 seconds
 
-    const betweenTournamentTime = 30000; // For testing
-    //const betweenTournamentTime = 5 * 60 * 1000; // 5 minutes between tournaments to alert users of winners
+    // Time between tournaments
+    const betweenTournamentTime = 15000; // testing: 15 seconds
 
     // In-between flags (show old card, count down to next start)
     const [dailyInBetween, setDailyInBetween] = useState(false);
     const [weeklyInBetween, setWeeklyInBetween] = useState(false);
     const [rankedInBetween, setRankedInBetween] = useState(false);
 
-    // Logged-in student's major (default to CS so existing behavior still works until we fetch real major)
+    // Logged-in student's major
     const [major, setMajor] = useState(studentData?.major);
 
-    // Remaining time for display purposes (always "relevant" countdown)
-    const [dailyRemainingTime, setDailyRemainingTime] = useState(); // in ms
-    const [weeklyRemainingTime, setWeeklyRemainingTime] = useState(); // in ms
-    const [rankedRemainingTime, setRankedRemainingTime] = useState(); // in ms
+    // Remaining time for display purposes
+    const [dailyRemainingTime, setDailyRemainingTime] = useState(0); // in ms
+    const [weeklyRemainingTime, setWeeklyRemainingTime] = useState(0); // in ms
+    const [rankedRemainingTime, setRankedRemainingTime] = useState(0); // in ms
 
     // Loading a tournament
     const [loadingTournament, setLoadingTournament] = useState(false);
@@ -96,72 +93,252 @@ function NewTournamentScreen() {
     const scrollerRef = useRef(null);
     const collapsed = useCollapseOnScroll(scrollerRef);
 
+    // 🔹 ref to hold the polling interval id
+    const studentRefreshIntervalRef = useRef(null);
+
+    // REMOVE THIS LATER
     const refresh = async () => {
         // later: maybe reload from backend
         await new Promise((r) => setTimeout(r, 700));
     };
 
-    // Fetch logged-in student's major once on mount
-    useEffect(() => {
-        async function fetchStudentMajor() {
-            try {
-                // const tokenString = localStorage.getItem("token");
-                // if (!tokenString) {
-                //     console.log(
-                //         "[NewTournamentScreen] No token, skipping student-major fetch."
-                //     );
-                //     return;
-                // }
-
-                // let tokenValue = "";
-                // try {
-                //     const parsed = JSON.parse(tokenString);
-                //     tokenValue = parsed.token || tokenString;
-                // } catch {
-                //     tokenValue = tokenString;
-                // }
-
-                const res = await fetch(
-                    "http://localhost:5000/api/student-major",
-                    {
-                        method: "GET",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "jwt-token": token,
-                        },
-                    }
-                );
-
-                if (!res.ok) {
-                    const body = await res.json().catch(() => ({}));
-                    console.warn(
-                        "[NewTournamentScreen] Failed to fetch student major:",
-                        body
-                    );
-                    return;
-                }
-
-                const body = await res.json();
-                if (body.major) {
-                    setMajor(body.major);
-                    console.log(
-                        "[NewTournamentScreen] Using student major:",
-                        body.major
-                    );
-                }
-            } catch (e) {
-                console.error(
-                    "[NewTournamentScreen] Error fetching student major:",
-                    e
-                );
-            }
+    // 🔹 Helper: refresh student data once per second for 5 seconds
+    function startStudentDataRefreshBurst() {
+        // Avoid overlapping bursts
+        if (studentRefreshIntervalRef.current) {
+            clearInterval(studentRefreshIntervalRef.current);
+            studentRefreshIntervalRef.current = null;
         }
 
-        fetchStudentMajor();
+        let count = 0;
+        console.log(
+            "[NewTournamentScreen] Starting student data refresh burst (5 seconds)"
+        );
+
+        // Immediate first refresh
+        loadBasicStudentData();
+        count++;
+
+        const id = setInterval(() => {
+            if (count >= 5) {
+                clearInterval(id);
+                studentRefreshIntervalRef.current = null;
+                console.log(
+                    "[NewTournamentScreen] Student data refresh burst completed"
+                );
+                return;
+            }
+
+            console.log(
+                `[NewTournamentScreen] Student data refresh burst tick ${count + 1}`
+            );
+            loadBasicStudentData();
+            count++;
+        }, 1000);
+
+        studentRefreshIntervalRef.current = id;
+    }
+
+    // cleanup burst interval on unmount
+    useEffect(() => {
+        return () => {
+            if (studentRefreshIntervalRef.current) {
+                clearInterval(studentRefreshIntervalRef.current);
+            }
+        };
     }, []);
 
+    // Forces tournament to end early by changing its endTime to now + 10s
+    async function forceEndTournament(tid) {
+        if (!tid) return;
+        const newEndTime = Date.now() + FORCE_END_IN_MS;
+
+        // Call backend to change endTime
+        try {
+            const res = await fetch(
+                "http://localhost:5000/api/tournament/change-endtime",
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        tid,
+                        newEndTime,
+                    }),
+                }
+            );
+
+            // Get data from endpoint
+            const data = await res.json().catch(() => null);
+            if (!res.ok || !data?.successful) {
+                console.error(
+                    "[NewTournamentScreen] forceEndTournament failed",
+                    data
+                );
+            } else {
+                console.log(
+                    "[NewTournamentScreen] forceEndTournament succeeded for tid",
+                    tid
+                );
+            }
+        } catch (err) {
+            console.error(
+                "[NewTournamentScreen] Error in forceEndTournament:",
+                err
+            );
+        }
+    }
+
+    // Reloads a tournament of a certain type from backend after force end
+    async function reloadTournamentForType(tournamentType, currentTournament) {
+        if (!major) return;
+
+        let title;
+        if (tournamentType === "daily") title = "Daily Tournament";
+        else if (tournamentType === "weekly") title = "Weekly Tournament";
+        else if (tournamentType === "ranked") title = "Ranked Tournament";
+        else return;
+
+        // Use current topics if we have them; if not, just send something.
+        const topicsToSend = currentTournament?.topics || "General";
+
+        const body = {
+            title,
+            topics: topicsToSend,
+            reward: currentTournament?.reward ?? 150,
+            tournamentType, // "daily" | "weekly" | "ranked"
+            endTime: null, // let backend use stored or computed endDate
+            startTime: Date.now(), // only used if it has to create a new one
+            studentMajor: major,
+        };
+
+        try {
+            const res = await fetch(
+                "http://localhost:5000/api/create-tournament",
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(body),
+                }
+            );
+
+            const data = await res.json().catch(() => null);
+            if (!res.ok || !data?.successful) {
+                console.error(
+                    `[NewTournamentScreen] reloadTournamentForType failed for ${tournamentType}`,
+                    data
+                );
+                return;
+            }
+
+            const updatedTournament = {
+                id: data.tid,
+                title,
+                topics: data.topics,
+                endDateLabel: "",
+                endTime: new Date(data.endDate).getTime(),
+                reward: currentTournament?.reward ?? 150,
+                isRanked: tournamentType === "ranked",
+                tournamentType,
+                startTime: new Date(data.startDate).getTime(),
+            };
+
+            if (tournamentType === "daily") {
+                setDailyTournament([updatedTournament]);
+            } else if (tournamentType === "weekly") {
+                setWeeklyTournament([updatedTournament]);
+            } else if (tournamentType === "ranked") {
+                setRankedTournament([updatedTournament]);
+            }
+
+            console.log(
+                `[NewTournamentScreen] Reloaded ${tournamentType} tournament from backend`,
+                updatedTournament
+            );
+        } catch (err) {
+            console.error(
+                `[NewTournamentScreen] Error reloading ${tournamentType} tournament:`,
+                err
+            );
+        }
+    }
+
+    // P key handler to end tournament early for testing
+    useEffect(() => {
+        function handleKeyDown(e) {
+            if (e.key !== "p" && e.key !== "P") return;
+
+            console.log("[Tournament] Forcing tournaments to end in 10s...");
+
+            const activeDaily = dailyTournament[0];
+            const activeWeekly = weeklyTournament[0];
+            const activeRanked = rankedTournament[0];
+
+            (async () => {
+                const ops = [];
+
+                if (!dailyInBetween && activeDaily?.id) {
+                    ops.push(
+                        (async () => {
+                            await forceEndTournament(activeDaily.id);
+                            await reloadTournamentForType("daily", activeDaily);
+                        })()
+                    );
+                }
+                if (!weeklyInBetween && activeWeekly?.id) {
+                    ops.push(
+                        (async () => {
+                            await forceEndTournament(activeWeekly.id);
+                            await reloadTournamentForType(
+                                "weekly",
+                                activeWeekly
+                            );
+                        })()
+                    );
+                }
+                if (!rankedInBetween && activeRanked?.id) {
+                    ops.push(
+                        (async () => {
+                            await forceEndTournament(activeRanked.id);
+                            await reloadTournamentForType(
+                                "ranked",
+                                activeRanked
+                            );
+                        })()
+                    );
+                }
+
+                if (ops.length > 0) {
+                    await Promise.all(ops);
+                    console.log(
+                        "[Tournament] Finished refreshing tournaments after force end"
+                    );
+                }
+            })();
+        }
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [
+        dailyTournament,
+        weeklyTournament,
+        rankedTournament,
+        dailyInBetween,
+        weeklyInBetween,
+        rankedInBetween,
+        major,
+    ]);
+
+    // Basic load student data on mount
+    useEffect(() => {
+        console.log(
+            "[LOAD] [NewTournamentScreen] Loading basic student data on mount"
+        );
+        loadBasicStudentData();
+        setMajor(studentData?.major);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
     // Ensures topics exist for major on mount / major change
-    useEffect( () => {
+    useEffect(() => {
         async function ensureTopicsForMajor() {
             try {
                 const res = await fetch(
@@ -173,15 +350,17 @@ function NewTournamentScreen() {
                     }
                 );
 
-                // If we had to generate topics, create trounaments as well after
+                // If we had to generate topics, create tournaments as well after
                 if ((await res.json()).topicsGenerated) {
                     await createTournamentForType(major, "daily");
                     await createTournamentForType(major, "weekly");
                     await createTournamentForType(major, "ranked");
                 }
 
-                console.log("[NewTournamentScreen] Ensured topics for major:", major);
-
+                console.log(
+                    "[NewTournamentScreen] Ensured topics for major:",
+                    major
+                );
             } catch (e) {
                 console.log("Failed to generate topics for major. Error: " + e);
             }
@@ -235,7 +414,7 @@ function NewTournamentScreen() {
         isUpcoming = false
     ) {
         try {
-            console.log("[NewTournamentScreen] [1] setting loading to true" );
+            console.log("[NewTournamentScreen] [1] setting loading to true");
             setLoadingTournament(true);
             console.log(
                 "Entering create tournament for tournament type ",
@@ -433,23 +612,28 @@ function NewTournamentScreen() {
         }
     }
 
-    // On mount, load current tournaments or create new ones
-    // On mount, load current tournaments or create new ones
+    // On mount, load current tournaments or create new ones, as long as we are not in between phase
     useEffect(() => {
         async function loadOrCreate() {
             try {
-                await createTournamentForType(major, "daily");
-                await createTournamentForType(major, "weekly");
-                await createTournamentForType(major, "ranked");
+                if (!dailyInBetween) {
+                    await createTournamentForType(major, "daily");
+                }
+                if (!weeklyInBetween) {
+                    await createTournamentForType(major, "weekly");
+                }
+                if (!rankedInBetween) {
+                    await createTournamentForType(major, "ranked");
+                }
             } catch (e) {
-                console.log("Failed to create tournaments. Error:", e);
+            console.log("Failed to create tournaments. Error:", e);
             }
         }
 
         if (major) {
             loadOrCreate();
         }
-    }, [major]);
+    }, [major, dailyInBetween, weeklyInBetween, rankedInBetween]);
 
     // Timer to rotate tournaments out when their endTime passes
     useEffect(() => {
@@ -460,126 +644,164 @@ function NewTournamentScreen() {
             const weekly = weeklyTournament[0];
             const ranked = rankedTournament[0];
 
-            // ---- DAILY ----
+            // DAILY tournament check
             if (daily) {
+                // In between phase
                 if (dailyInBetween) {
-                    // Between tournaments: we use upcoming's startTime for countdown
+                    // Make sure we have an upcoming tournament
                     if (dailyUpcomingTournament) {
+                        // Update remaining time
                         setDailyRemainingTime(
                             dailyUpcomingTournament.startTime - now
                         );
 
+                        // Time to start next tournament
                         if (now >= dailyUpcomingTournament.startTime) {
-                            console.log("Ending daily in between state");
-                            setDailyInBetween(false);
                             console.log(
-                                "[3] Setting up daily tournament to ",
-                                dailyUpcomingTournament
+                                "[NewTournamentScreen] Ending DAILY in-between state"
                             );
+                            setDailyInBetween(false);
                             setDailyTournament([dailyUpcomingTournament]);
                             setDailyUpcomingTournament(null);
                         }
+                    } else {
+                        console.warn(
+                            "[NewTournamentScreen] In DAILY in-between phase but no upcoming tournament found."
+                        );
                     }
-                } else if (daily.id && daily.endTime && now >= daily.endTime) {
-                    // Tournament is over
+                }
+                // Active tournament ended
+                else if (daily.id && daily.endTime && now >= daily.endTime) {
+                    console.log(
+                        "[NewTournamentScreen] DAILY tournament ended, starting student data refresh burst"
+                    );
+                    // 🔹 start 5-second burst of student data reloads
+                    startStudentDataRefreshBurst();
 
-                    // Award XP to winners here
-
-                    // Just ended: go into between phase & schedule the next tournament
+                    // Go to in-between phase
                     setDailyInBetween(true);
 
                     const nextStartTime = now + betweenTournamentTime;
 
+                    // Create next tournament as upcoming
                     await createTournamentForType(
                         major,
                         "daily",
                         nextStartTime,
                         true // isUpcoming
                     );
-                } else if (daily.endTime) {
-                    // Active tournament: count down to end
+                }
+                // Tournament still active
+                else if (daily.endTime) {
+                    // Update remaining time
                     setDailyRemainingTime(daily.endTime - now);
                 }
             }
 
-            // ---- WEEKLY ----
+            // WEEKLY tournament check
             if (weekly) {
+                // In between phase
                 if (weeklyInBetween) {
+                    // Make sure we have an upcoming tournament
                     if (weeklyUpcomingTournament) {
+                        // Update remaining time
                         setWeeklyRemainingTime(
                             weeklyUpcomingTournament.startTime - now
                         );
 
+                        // Time to start next tournament
                         if (now >= weeklyUpcomingTournament.startTime) {
-                            console.log("Ending weekly in between state");
-                            setWeeklyInBetween(false);
                             console.log(
-                                "[3] Setting up weekly tournament to ",
-                                weeklyUpcomingTournament
+                                "[NewTournamentScreen] Ending WEEKLY in-between state"
                             );
+                            setWeeklyInBetween(false);
                             setWeeklyTournament([weeklyUpcomingTournament]);
                             setWeeklyUpcomingTournament(null);
                         }
+                    } else {
+                        console.warn(
+                            "[NewTournamentScreen] In WEEKLY in-between phase but no upcoming tournament found."
+                        );
                     }
-                } else if (
-                    weekly.id &&
-                    weekly.endTime &&
-                    now >= weekly.endTime
-                ) {
-                    // Award XP to winners here
+                }
+                // Active tournament ended
+                else if (weekly.id && weekly.endTime && now >= weekly.endTime) {
+                    console.log(
+                        "[NewTournamentScreen] WEEKLY tournament ended, starting student data refresh burst"
+                    );
+                    // 🔹 start 5-second burst of student data reloads
+                    startStudentDataRefreshBurst();
 
+                    // Go to in-between phase
                     setWeeklyInBetween(true);
 
                     const nextStartTime = now + betweenTournamentTime;
 
+                    // Create next tournament as upcoming
                     await createTournamentForType(
                         major,
                         "weekly",
                         nextStartTime,
-                        true
+                        true // isUpcoming
                     );
-                } else if (weekly.endTime) {
+                }
+                // Tournament still active
+                else if (weekly.endTime) {
+                    // Update remaining time
                     setWeeklyRemainingTime(weekly.endTime - now);
                 }
             }
 
-            // ---- RANKED ----
+            // RANKED tournament check
             if (ranked) {
+                // In between phase
                 if (rankedInBetween) {
+                    // Make sure we have an upcoming tournament
                     if (rankedUpcomingTournament) {
+                        // Update remaining time
                         setRankedRemainingTime(
                             rankedUpcomingTournament.startTime - now
                         );
 
+                        // Time to start next tournament (or next bracket round)
                         if (now >= rankedUpcomingTournament.startTime) {
-                            console.log("Ending ranked in between state");
-                            setRankedInBetween(false);
                             console.log(
-                                "[3] Setting up ranked tournament to ",
-                                rankedUpcomingTournament
+                                "[NewTournamentScreen] Ending RANKED in-between state"
                             );
+                            setRankedInBetween(false);
                             setRankedTournament([rankedUpcomingTournament]);
                             setRankedUpcomingTournament(null);
                         }
+                    } else {
+                        console.warn(
+                            "[NewTournamentScreen] In RANKED in-between phase but no upcoming tournament found."
+                        );
                     }
-                } else if (
-                    ranked.id &&
-                    ranked.endTime &&
-                    now >= ranked.endTime
-                ) {
-                    // Award XP to winners here
+                }
+                // Active tournament ended
+                else if (ranked.id && ranked.endTime && now >= ranked.endTime) {
+                    console.log(
+                        "[NewTournamentScreen] RANKED tournament ended, starting student data refresh burst"
+                    );
+                    // 🔹 start 5-second burst of student data reloads
+                    startStudentDataRefreshBurst();
 
+                    // Go to in-between phase
                     setRankedInBetween(true);
 
                     const nextStartTime = now + betweenTournamentTime;
-                    // TODO: Update winners XP here (and handle final winner if keepGoing=false)
+
+                    // Create next tournament (or next bracket round) as upcoming
                     await createTournamentForType(
                         major,
                         "ranked",
                         nextStartTime,
-                        true
+                        true // isUpcoming
                     );
-                } else if (ranked.endTime) {
+                }
+                // Tournament still active
+                else if (ranked.endTime) {
+                    // Update remaining time
                     setRankedRemainingTime(ranked.endTime - now);
                 }
             }
@@ -601,6 +823,7 @@ function NewTournamentScreen() {
         dailyUpcomingTournament,
         weeklyUpcomingTournament,
         rankedUpcomingTournament,
+        loadBasicStudentData,
     ]);
 
     // Helper function to format time from ms to d h m s
@@ -643,11 +866,7 @@ function NewTournamentScreen() {
                 <PullToRefresh scrollerRef={scrollerRef} onRefresh={refresh}>
                     <Container className="mainContainer">
                         {/* Progress bar */}
-                        <XpHeaderBar
-                            level={1}
-                            currentXp={50}
-                            xpForNextLevel={100}
-                        ></XpHeaderBar>
+                        <XpHeaderBar />
 
                         {/* Tournament Screen Header */}
                         <div

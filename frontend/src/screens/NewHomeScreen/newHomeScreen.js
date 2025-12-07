@@ -291,13 +291,7 @@ function NewHomeScreen() {
                                     {studentData?.username ?? "Scholar"}
                                 </h1>
                             </div>
-                            <button
-                                type="button"
-                                className="homeHeader-notifications"
-                                aria-label="Notifications"
-                            >
-                                <Bell size={22} />
-                            </button>
+                            
                         </div>
 
                         <InfoTile>

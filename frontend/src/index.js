@@ -9,12 +9,10 @@ import "./css/index.scss";
 //import 'bootstrap/scss/bootstrap.scss';
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
-    <React.StrictMode>
-        {/* sets each screen to a distinct URL within the app */}
-        <Router>
-            <App />
-        </Router>
-    </React.StrictMode>,
+    // No StrictMode
+    <Router>
+        <App />
+    </Router>
 );
 
 
