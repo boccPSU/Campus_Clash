@@ -11,10 +11,11 @@ import MainPopup from "../../newComponents/MainPopup/MainPopup.js";
 import XpHeaderBar from "../../newComponents/XpHeaderBar/XpHeaderBar.js";
 import BottomNavBar from "../../newComponents/BottomNavBar/BottomNavBar.js";
 import { useAuth } from "../../api/AuthContext.js";
+import { Gem } from "react-bootstrap-icons";
 
 // Timers for each question
-const questionTime = 20;        // 15s answer phase + 5s reveal
-const answerTime = 15;          // timer bar duration
+const questionTime = 20; // 15s answer phase + 5s reveal
+const answerTime = 15; // timer bar duration
 const REVEAL_PHASE_SECONDS = 3; // last 3 seconds
 const REVEAL_AT_SECONDS = REVEAL_PHASE_SECONDS; // when timeLeft === 3
 
@@ -78,7 +79,10 @@ export default function NewQuestionScreen() {
     // Set gems on mount
     useEffect(() => {
         if (studentData) {
-            console.log("[QuestionScreen] Setting initial gems:",studentData.gems);
+            console.log(
+                "[QuestionScreen] Setting initial gems:",
+                studentData.gems
+            );
             setGems(studentData.gems);
         }
     }, [studentData?.gems]);
@@ -108,7 +112,9 @@ export default function NewQuestionScreen() {
                 setGems((prev) => prev - amount);
 
                 // Update student gem amount with load BASIC data
-                console.log("[LOAD] [QuestionScreen] Reloading basic student data after gem deduction");
+                console.log(
+                    "[LOAD] [QuestionScreen] Reloading basic student data after gem deduction"
+                );
                 await loadBasicStudentData();
                 return true;
             }
@@ -418,6 +424,9 @@ export default function NewQuestionScreen() {
                 );
 
                 //  Refresh studentData so XpHeaderBar sees new XP
+                console.log(
+                    "[LOAD] [QuestionScreen] Reloading basic student data after adding XP"
+                );
                 await loadBasicStudentData();
             } catch (e) {
                 console.log("[QuestionScreen] Error adding XP:", e);
@@ -692,12 +701,14 @@ export default function NewQuestionScreen() {
                             )}
                         </div>
 
+                       
+
                         {/* Powerups section */}
                         <div className="questionPowerups">
                             <div className="questionPowerupButtons">
                                 <div className="powerupItem">
                                     <div className="powerupCostLabel">
-                                        200 Gems
+                                        200 <Gem className="powerupGemIcon" />
                                     </div>
                                     <button
                                         type="button"
@@ -711,7 +722,7 @@ export default function NewQuestionScreen() {
 
                                 <div className="powerupItem">
                                     <div className="powerupCostLabel">
-                                        500 Gems
+                                        500 <Gem className="powerupGemIcon" />
                                     </div>
                                     <button
                                         type="button"
@@ -725,7 +736,7 @@ export default function NewQuestionScreen() {
 
                                 <div className="powerupItem">
                                     <div className="powerupCostLabel">
-                                        100 Gems
+                                        100 <Gem className="powerupGemIcon" />
                                     </div>
                                     <button
                                         type="button"

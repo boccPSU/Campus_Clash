@@ -1,7 +1,10 @@
 // src/newComponents/MainPopup/MainPopup.js
 import React, { useEffect } from "react";
 import "./MainPopup.scss";
-import { ExclamationTriangleFill } from "react-bootstrap-icons";
+import {
+    ExclamationTriangleFill,
+    StarFill
+} from "react-bootstrap-icons";
 
 function MainPopup({
     open,
@@ -48,12 +51,16 @@ function MainPopup({
                 </button>
 
                 <div className="mainPopup-iconWrapper">
-                    <ExclamationTriangleFill className="mainPopup-icon" />
+                    {type === "levelUp" ? (
+                        <StarFill className="starIcon" />
+                    ) : (
+                        <ExclamationTriangleFill className="mainPopup-icon" />
+                    )}
                 </div>
 
                 {title && <h2 className="mainPopup-title">{title}</h2>}
 
-                {message && (
+                {message && !children && (
                     <p className="mainPopup-message">{message}</p>
                 )}
 
@@ -63,8 +70,9 @@ function MainPopup({
                     </div>
                 )}
 
-                <div className="mainPopup-actions">
-                    {type == "alert" && (
+                {/* Only show buttons for non-levelUp popups (e.g., alerts) */}
+                {type === "alert" && (
+                    <div className="mainPopup-actions">
                         <button
                             type="button"
                             className="mainPopup-btn mainPopup-btn-primary"
@@ -72,9 +80,7 @@ function MainPopup({
                         >
                             {buttonLabel1}
                         </button>
-                    )}
 
-                    {type == "alert" && (
                         <button
                             type="button"
                             className="mainPopup-btn mainPopup-btn-secondary"
@@ -82,8 +88,8 @@ function MainPopup({
                         >
                             {buttonLabel2}
                         </button>
-                    )}
-                </div>
+                    </div>
+                )}
             </div>
         </div>
     );

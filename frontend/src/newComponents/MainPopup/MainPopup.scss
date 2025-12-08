@@ -92,6 +92,12 @@
     cursor: pointer;
 }
 
+.starIcon {
+    color: $secondary;
+    width: 32px;
+    height: 32px;
+}
+
 /* Dark mode override (assuming you toggle a class on body) */
 body.dark-mode .mainPopup-card {
     background-color: $dark-secondary;

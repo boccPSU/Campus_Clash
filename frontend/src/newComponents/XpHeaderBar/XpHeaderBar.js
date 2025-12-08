@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import ProgressBar from "react-bootstrap/ProgressBar";
 import { useAuth } from "../../api/AuthContext";
+import { Gem } from "react-bootstrap-icons";
 
 // Leveling constraints
 const BASE_XP_PER_LEVEL = 200;
@@ -26,12 +27,8 @@ function computeLevelInfo(totalXp) {
 }
 
 function XpHeaderBar() {
-    const {
-        token,
-        studentData,
-        studentDataLoading,
-        loadBasicStudentData,  
-    } = useAuth();
+    const { token, studentData, studentDataLoading, loadBasicStudentData } =
+        useAuth();
 
     const [level, setLevel] = useState(1);
     const [currentXp, setCurrentXp] = useState(0);
@@ -46,7 +43,9 @@ function XpHeaderBar() {
 
         // If nothing loaded yet and we’re not currently loading, trigger a basic load
         if (!studentData && !studentDataLoading) {
-            console.log("[LOAD] [XpHeaderBar] No studentData, calling loadBasicStudentData()");
+            console.log(
+                "[LOAD] [XpHeaderBar] No studentData, calling loadBasicStudentData()"
+            );
             loadBasicStudentData();
         }
     }, [token, studentData, studentDataLoading, loadBasicStudentData]);
@@ -90,9 +89,7 @@ function XpHeaderBar() {
 
     const gemsRaw = studentData?.gems;
     const gems =
-        typeof gemsRaw === "number" && Number.isFinite(gemsRaw)
-            ? gemsRaw
-            : 0;
+        typeof gemsRaw === "number" && Number.isFinite(gemsRaw) ? gemsRaw : 0;
 
     return (
         <div className="xpHeaderBar" id="xpHeader">
@@ -101,7 +98,15 @@ function XpHeaderBar() {
                     {isLoading ? "Level ..." : `Level ${level}`}
                 </span>
                 <span className="xpHeaderBarGems">
-                    {isLoading ? "Gems ..." : `Gems: ${gems}`}
+                    <span className="xpHeaderBarGems">
+                        {isLoading ? (
+                            "Gems ..."
+                        ) : (
+                            <>
+                                {gems} <Gem className="xpHeaderBarGemIcon" />
+                            </>
+                        )}
+                    </span>
                 </span>
             </div>
 

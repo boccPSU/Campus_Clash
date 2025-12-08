@@ -10,7 +10,7 @@ import PullToRefresh from "../../components/interaction/PullToRefresh.js";
 import ScreenScroll from "../../components/ScreenScroll/ScreenScroll.js";
 import SettingsEditWindow from "../../newComponents/ProfileSettings/SettingsEditWindow.js";
 
-import { Bell, ChevronDown, ChevronUp } from "react-bootstrap-icons";
+import { Bell, ChevronDown, ChevronUp, Gem } from "react-bootstrap-icons";
 import XpHeaderBar from "../../newComponents/XpHeaderBar/XpHeaderBar.js";
 import MainPopup from "../../newComponents/MainPopup/MainPopup.js";
 
@@ -70,112 +70,98 @@ function NewHomeScreen() {
     const [showAllCourses, setShowAllCourses] = useState(false);
     const [showAllAlerts, setShowAllAlerts] = useState(false);
 
-    // Toggle dark mode on "d" / "D"
-    useEffect(() => {
-        const handleKeyDown = (e) => {
-            if (e.key && e.key.toLowerCase() === "d") {
-                setIsDarkMode((prev) => !prev);
-            }
-        };
-        window.addEventListener("keydown", handleKeyDown);
-        return () => window.removeEventListener("keydown", handleKeyDown);
-    }, []);
-
-    // Apply/remove class on <body>
-    // useEffect(() => {
-    //     document.body.classList.toggle("dark-mode", isDarkMode);
-    // }, [isDarkMode]);
-
     const scrollerRef = useRef(null);
+
+    // Effect to detect level ups
     useEffect(() => {
-    // Wait until we have studentData and XP
-    if (!studentData || typeof studentData.xp !== "number") {
-        return;
-    }
-
-    const totalXp = studentData.xp;
-    const { level } = computeLevelInfo(totalXp);
-
-    // Use a per-user key so if user A logs out and B logs in, the levels don’t mix
-    const levelKey = studentData.username
-        ? `lastLevel_${studentData.username}`
-        : "lastLevel";
-
-    // On first run, initialize lastLevel from storage or from current level
-    if (lastLevel === null) {
-        const stored = sessionStorage.getItem(levelKey);
-        const initialLevel = stored ? parseInt(stored, 10) : level;
-        setLastLevel(initialLevel);
-        if (!stored) {
-            sessionStorage.setItem(levelKey, String(initialLevel));
+        // Wait until we have studentData and XP
+        if (!studentData || typeof studentData.xp !== "number") {
+            return;
         }
-        return;
-    }
 
-    // If level did not change, nothing to do
-    if (level <= lastLevel) {
-        return;
-    }
+        const totalXp = studentData.xp;
+        const { level } = computeLevelInfo(totalXp);
 
-    // We leveled up  
-    const levelsGained = level - lastLevel;
-    const gemsToAward = levelsGained * GEMS_PER_LEVEL;
+        // Use a per-user key so if user A logs out and B logs in, the levels don’t mix
+        const levelKey = studentData.username
+            ? `lastLevel_${studentData.username}`
+            : "lastLevel";
 
-    console.log(
-        `[HOME] Level up detected: lastLevel=${lastLevel}, newLevel=${level}, levelsGained=${levelsGained}, gemsToAward=${gemsToAward}`
-    );
-
-    setJustLeveledTo(level);
-    setLevelUpGemsAwarded(gemsToAward);
-    setShowLevelUpPopup(true);
-
-    // Update local state immediately so we don't re-trigger for same XP
-    setLastLevel(level);
-    sessionStorage.setItem(levelKey, String(level));
-
-    // Award gems via backend
-    (async () => {
-        try {
-            const username = studentData.username;
-            if (!username) {
-                console.warn("[HOME] No username for gem award.");
-                return;
+        // On first run, initialize lastLevel from storage or from current level
+        if (lastLevel === null) {
+            const stored = sessionStorage.getItem(levelKey);
+            const initialLevel = stored ? parseInt(stored, 10) : level;
+            setLastLevel(initialLevel);
+            if (!stored) {
+                sessionStorage.setItem(levelKey, String(initialLevel));
             }
-
-            const res = await fetch("http://localhost:5000/api/gems/add", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    username,
-                    amount: gemsToAward,
-                }),
-            });
-
-            if (!res.ok) {
-                console.error(
-                    "[HOME] Failed to award gems on level up:",
-                    res.status,
-                    res.statusText
-                );
-                return;
-            }
-
-            const data = await res.json().catch(() => ({}));
-            console.log("[HOME] Gems awarded on level up:", data);
-
-            // Optimistically update gems in context so XpHeaderBar updates immediately
-            const prevGems = Number(studentData.gems) || 0;
-            setStudentData({
-                ...studentData,
-                gems: prevGems + gemsToAward,
-            });
-        } catch (err) {
-            console.error("[HOME] Error awarding gems on level up:", err);
+            return;
         }
-    })();
-}, [studentData, lastLevel, setStudentData]);
+
+        // If level did not change, nothing to do
+        if (level <= lastLevel) {
+            return;
+        }
+
+        // We leveled up
+        const levelsGained = level - lastLevel;
+        const gemsToAward = levelsGained * GEMS_PER_LEVEL;
+
+        console.log(
+            `[HOME] Level up detected: lastLevel=${lastLevel}, newLevel=${level}, levelsGained=${levelsGained}, gemsToAward=${gemsToAward}`
+        );
+
+        setJustLeveledTo(level);
+        setLevelUpGemsAwarded(gemsToAward);
+        setShowLevelUpPopup(true);
+
+        // Update local state immediately so we don't re-trigger for same XP
+        setLastLevel(level);
+        sessionStorage.setItem(levelKey, String(level));
+
+        // Award gems via backend
+        (async () => {
+            try {
+                const username = studentData.username;
+                if (!username) {
+                    console.warn("[HOME] No username for gem award.");
+                    return;
+                }
+
+                const res = await fetch("http://localhost:5000/api/gems/add", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        username,
+                        amount: gemsToAward,
+                    }),
+                });
+
+                if (!res.ok) {
+                    console.error(
+                        "[HOME] Failed to award gems on level up:",
+                        res.status,
+                        res.statusText
+                    );
+                    return;
+                }
+
+                const data = await res.json().catch(() => ({}));
+                console.log("[HOME] Gems awarded on level up:", data);
+
+                // Optimistically update gems in context so XpHeaderBar updates immediately
+                const prevGems = Number(studentData.gems) || 0;
+                setStudentData({
+                    ...studentData,
+                    gems: prevGems + gemsToAward,
+                });
+            } catch (err) {
+                console.error("[HOME] Error awarding gems on level up:", err);
+            }
+        })();
+    }, [studentData, lastLevel, setStudentData]);
 
     // On mount, make sure studentData is fresh
     useEffect(() => {
@@ -198,7 +184,6 @@ function NewHomeScreen() {
                 setLoading(false);
             }
         })();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // pull-to-refresh
@@ -233,15 +218,20 @@ function NewHomeScreen() {
                         <MainPopup
                             open={showLevelUpPopup}
                             title="Congrats, you leveled up!"
-                            message={`You earned ${levelUpGemsAwarded} gems for reaching Level ${justLeveledTo}.`}
+                            // message is optional now; we’ll use children instead
                             buttonLabel1="Leave"
                             buttonLabel2="Stay"
-                            onButton1={"handleLeave"}
-                            onButton2={"handleStay"}
-                            type={"levelUp"}
+                            type="levelUp"
                             onClose={() => setShowLevelUpPopup(false)}
                         >
-                            {/* optional extra content here */}
+                            <p className="mainPopup-message">
+                                You earned{" "}
+                                <span className="levelUpGems">
+                                    {levelUpGemsAwarded}{" "}
+                                    <Gem className="levelUpGemIcon" />
+                                </span>{" "}
+                                for reaching Level {justLeveledTo}.
+                            </p>
                         </MainPopup>
 
                         {/* Invalid Token Popup*/}
@@ -254,7 +244,7 @@ function NewHomeScreen() {
                             <SettingsEditWindow state={5} onClose={() => {}} />
                         </MainPopup>
 
-                        {/* Quest Popup */}
+                        {/* Quest Popup 
                         <MainPopup
                             open={false}
                             title="Quests"
@@ -277,13 +267,9 @@ function NewHomeScreen() {
                                 Quest 3: Participate in 2 battles this week -
                                 150 gems
                             </InfoTile>
-                        </MainPopup>
+                        </MainPopup>*/}
 
-                        <XpHeaderBar
-                            level={4}
-                            currentXp={1200}
-                            xpForNextLevel={1500}
-                        ></XpHeaderBar>
+                        <XpHeaderBar></XpHeaderBar>
                         <div className="homeHeader">
                             <div className="homeHeader-text">
                                 <h1 className="homeHeaderGreeting">
@@ -291,7 +277,6 @@ function NewHomeScreen() {
                                     {studentData?.username ?? "Scholar"}
                                 </h1>
                             </div>
-                            
                         </div>
 
                         <InfoTile>
