@@ -381,6 +381,10 @@ export function AuthProvider({ children }) {
             });
         });
 
+        socketRef.current.on("reload-student", () => {
+            loadBasicStudentData();
+        });
+
         return () => {
             socketRef.current?.disconnect();
             socketRef.current = null;
