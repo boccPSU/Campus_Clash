@@ -11,11 +11,11 @@ const pool = mysql.createPool({
   database: process.env.DB_NAME,
   port: Number(process.env.DB_PORT || 3306),
   waitForConnections: true,
-  dateStrings: true,
 });
 
 // Initializes database when server is started
 async function initDb() {
+  
   await pool.query(`
     DROP TABLE IF EXISTS battle_history
   `);
@@ -151,6 +151,7 @@ async function initDb() {
           tid    INT NOT NULL,
           pid    INT NOT NULL,
           score  INT NOT NULL DEFAULT 0,
+          hasPlayed BOOLEAN NOT NULL DEFAULT FALSE,
           PRIMARY KEY (tid, pid),
 
           CONSTRAINT fk_tp_tournament
@@ -562,7 +563,7 @@ async function addMockUsers(numUsers) {
       const uni = "Penn State";
       const mockCanvasTok = null;
 
-      // 1) insert into users
+      // insert into users
       const [res] = await conn.query(
         `INSERT INTO users (firstName, lastName, username, password)
          VALUES (?, ?, ?, ?)`,
@@ -570,7 +571,7 @@ async function addMockUsers(numUsers) {
       );
       const pid = res.insertId;
 
-      // 2) insert into students (linked via pid)
+      // insert into students (linked via pid)
       await conn.query(
         `INSERT INTO students (pid, university, major, XP, canvasToken)
          VALUES (?, ?, ?, ?, ?)`,

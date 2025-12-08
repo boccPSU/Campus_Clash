@@ -94,7 +94,7 @@ function LeaderboardScreen() {
             />
             {error && <div className="text-danger">{error}</div>}
             {/* Internal scrollable container for screen content */}
-            <ScreenScroll ref={scrollerRef}>
+            
                 {/* Wrap content in PullToRefresh (optional) */}
                 <PullToRefresh scrollerRef={scrollerRef} onRefresh={refresh}>
                     <Container className="py-3 mb-5">
@@ -115,7 +115,7 @@ function LeaderboardScreen() {
 
                 {/* Spacer so fixed BottomNav doesn’t overlap content */}
                 <div style={{ height: "var(--bottom-nav-height, 72px)" }} />
-            </ScreenScroll>
+         
 
             {/* Bottom navigation bar */}
             <BottomNav />

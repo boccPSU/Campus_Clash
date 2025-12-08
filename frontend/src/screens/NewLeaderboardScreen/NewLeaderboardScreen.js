@@ -224,7 +224,7 @@ function NewLeaderboardScreen() {
 
     return (
         <>
-            <ScreenScroll ref={scrollerRef}>
+            
                 <PullToRefresh scrollerRef={scrollerRef} onRefresh={refresh}>
                     <Container className="mainContainer">
                         {/* XP Header */}
@@ -373,7 +373,7 @@ function NewLeaderboardScreen() {
 
                 {/* Spacer so fixed BottomNav doesn’t overlap content */}
                 <div style={{ height: "var(--bottom-nav-height, 72px)" }} />
-            </ScreenScroll>
+            
 
             {/* Bottom navigation bar */}
             <BottomNav />

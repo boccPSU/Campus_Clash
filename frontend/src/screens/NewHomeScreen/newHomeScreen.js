@@ -211,7 +211,7 @@ function NewHomeScreen() {
 
     return (
         <>
-            <ScreenScroll ref={scrollerRef}>
+            
                 <PullToRefresh scrollerRef={scrollerRef} onRefresh={refresh}>
                     <Container className="mainContainer">
                         {/* Level Up Popup (should be on each screen) */}
@@ -394,10 +394,17 @@ function NewHomeScreen() {
 
                         {alertsLoading && (
                             <InfoTile>
-                                <AlertCard
-                                    alertTitle="Loading alerts…"
-                                    alertInfo="Fetching upcoming items"
-                                />
+                                <div
+                                    className="d-flex align-items-center gap-2 py-2"
+                                    aria-live="polite"
+                                >
+                                    <Spinner
+                                        animation="border"
+                                        role="status"
+                                        size="sm"
+                                    />
+                                    <span>Loading alerts…</span>
+                                </div>
                             </InfoTile>
                         )}
 
@@ -448,7 +455,7 @@ function NewHomeScreen() {
                 </PullToRefresh>
 
                 <div style={{ height: "var(--bottom-nav-height, 72px)" }} />
-            </ScreenScroll>
+           
 
             <BottomNavBar />
         </>
