@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from "react";
+import React, {useState, useEffect, useRef} from "react";
 import {Button, ProgressBar, Spinner} from "react-bootstrap";
 import {PersonCircle, Plus, Dash, LightningFill, QuestionCircle} from "react-bootstrap-icons";
 
@@ -10,10 +10,9 @@ function BattleScreen() {
 
     const {token, studentData, battleFound, battleData} = useAuth();
     const [isLoading, setLoading] = useState(false);
+    const [wagerAmount, setWagerAmount] = useState(0);
 
-    const [opponentData, setOpponentData] = useState({});
-    const [rewardData, setRewardData] = useState(0);
-    const [timer, setTimer] = useState(0);
+    const battleFoundRef = useRef(battleFound);
 
     useEffect(() => {
         if (isLoading) {
@@ -74,9 +73,10 @@ function BattleScreen() {
             const data = await res.json();
             if (!res.ok)
                 throw new Error("[BATTLE] Error", {cause: data.error});
-            console.log(battleFound);
-            if (!battleFound)
+            if (!battleFoundRef.current) {
+                console.log("Opponent not found.");
                 setPage("looking");
+            }
         } catch (err) {
             console.error(err);
             setPage("search");
@@ -110,8 +110,29 @@ function BattleScreen() {
         }
     }
 
+    const addWager = async () => {
+        try {
+            const res = await fetch("http://localhost:5000/api/add-wager", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "jwt-token": token
+                },
+                body: JSON.stringify({gems: wagerAmount})
+            });
+            if (res.status === 500) 
+                throw new Error("[BATTLE] Error", {cause: "Could not connect."});
+            const data = await res.json();
+            if (!res.ok)
+                throw new Error("[BATTLE] Error", {cause: data.error});
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
     useEffect(() => {
         console.log("Battle Found Changed Values: ", battleFound);
+        battleFoundRef.current = battleFound;
         if (battleFound) {
             setPage("found");
         }
@@ -190,7 +211,7 @@ function BattleScreen() {
                 <div className="battle-container">
                 <div className="battle-header">
                     <h1 className="title">Battle</h1>
-                    <h1 className="timer">{"00:01:58"}</h1>
+                    <h1 className="timer">Ends on: {battleData?.end_date}</h1>
                 </div>
                 <div className="participants-container">
                     <div className="profile-container">
@@ -219,35 +240,46 @@ function BattleScreen() {
                 <div className="compare-xp-container">
                     <ProgressBar
                         className="compare-xp-progress-bar"
-                        now={50}
+                        now={(100 * battleData?.xp_gained_p1) / (battleData?.xp_gained_p1 + battleData?.xp_gained_p2)}
                     />
                 </div>
                 <div className="rewards-container">
                     <h1 className="title">Rewards</h1>
-                    <h1 className="amount">1000 Gems</h1>
+                    <h1 className="amount">{battleData?.reward} Gems</h1>
                     <div className="wager-container">
-                        <h1 className="payout">+ {0} Gems</h1>
+                        <h1 className="payout">+ {2 * wagerAmount} Gems</h1>
                         <div className="selectGems">
                             <div className="btn-switch-container">
                                 <Button
                                     className="btn-switch"
+                                    onClick={() => {
+                                        newWager(wagerAmount - 50);
+                                    }}
                                 >
                                     <Dash/>
                                 </Button>
                                 <div className="switch-gap"></div>
                             </div>
-                            <h1 className="gemAmount">{0}</h1>
+                            <h1 className="gemAmount">{wagerAmount}</h1>
                             <div className="btn-switch-container">
                                 <div className="switch-gap"></div>
                                 <Button
                                     className="btn-switch"
+                                    onClick={() => {
+                                        newWager(wagerAmount + 50);
+                                    }}
                                 >
                                     <Plus/>
                                 </Button>
                             </div>
                         </div>
                         <Button
-
+                            onClick={() => {
+                                if (wagerAmount > 0) {
+                                    addWager();
+                                    setWagerAmount(0);
+                                }
+                            }}
                         >
                             Confirm
                         </Button>
@@ -310,6 +342,11 @@ function BattleScreen() {
                 </div>
             );
         }
+    }
+
+    const newWager = (newAmount) => {
+        //Sets Wager to minimum of 0 or maximum of the gems in account
+        setWagerAmount(newAmount >= 0 ? newAmount <= studentData.gems ? newAmount : studentData.gems : 0);
     }
 
     return (

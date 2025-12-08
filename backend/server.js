@@ -683,7 +683,46 @@ app.get("/api/load-battle", async (req, res) => {
   } catch (err) {
     return res.status(500).json({error: err});
   }
-})
+});
+
+app.post("/api/add-wager", async (req, res) => {
+    const token = req.headers["jwt-token"];
+  if (!token) {
+    return res.status(401).json({ error: "Unauthorized: missing token" });
+  }
+  const {pid} = decryptToken(token);
+
+  const {
+    gems
+  } = req.body;
+
+  const bid = battles.get(pid);
+  if (!bid) {
+    return res.status(401).json({error: "Not in battle"});
+  }
+
+  try {
+    await pool.query(`
+      UPDATE students
+      SET gems = gems - ?
+      WHERE pid = ?
+      `, [gems, pid]);
+
+    await pool.query(`
+      UPDATE active_battles
+      SET reward = reward + ?
+      WHERE bid = ?
+      `, [gems * 2, bid]);
+
+      sendToRoom(bid, "reload-battle");
+
+      sendToUser(pid, "reload-student");
+
+      return res.status(200).json({successful: true});
+  } catch (err) {
+    return res.status(500).json({error: err});
+  }
+});
 
 // POST /api/auth
 app.post("/api/auth", (req, res) => {
