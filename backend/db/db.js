@@ -187,8 +187,6 @@ async function initDb() {
         pid2 INT NOT NULL,
         username1 VARCHAR(32) NOT NULL,
         username2 VARCHAR(32) NOT NULL,
-        starting_xp_p1 INT NOT NULL DEFAULT 0,
-        starting_xp_p2 INT NOT NULL DEFAULT 0,
         xp_gained_p1 INT NOT NULL DEFAULT 0,
         xp_gained_p2 INT NOT NULL DEFAULT 0,
         reward INT NOT NULL DEFAULT 1000,

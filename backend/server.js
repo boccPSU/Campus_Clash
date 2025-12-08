@@ -453,6 +453,23 @@ app.post("/api/receive-xp", async (req, res) => {
       [reward, studentRow.pid]
     );
 
+    const bid = battles.get(studentRow.pid);
+    if (bid) {
+      await pool.query(
+        `UPDATE active_battles
+          SET xp_gained_p1 = xp_gained_p1 + ?
+          WHERE pid1 = ?`,
+        [reward, studentRow.pid]
+      );
+
+      await pool.query(
+        `UPDATE active_battles
+          SET xp_gained_p2 = xp_gained_p2 + ?
+          WHERE pid2 = ?`,
+        [reward, studentRow.pid]
+      );
+      sendToRoom(bid, "reload-battle");
+  }
     console.log(
       "[BACKEND] Added",
       reward,
@@ -565,9 +582,9 @@ app.get("/api/find-battle", async (req, res) => {
     }
     
     await pool.query(
-      `INSERT INTO active_battles (pid1, username1, starting_xp_p1, pid2, username2, starting_xp_p2)
-        VALUES (?, ?, ?, ?, ?, ?)`,
-        [pid, selfData.username, selfData.xp, oppPid, oppData.username, oppData.xp]
+      `INSERT INTO active_battles (pid1, username1, pid2, username2)
+        VALUES (?, ?, ?, ?)`,
+        [pid, selfData.username, oppPid, oppData.username]
     );
 
     await pool.query(

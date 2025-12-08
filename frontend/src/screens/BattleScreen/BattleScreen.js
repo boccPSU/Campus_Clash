@@ -74,6 +74,7 @@ function BattleScreen() {
             const data = await res.json();
             if (!res.ok)
                 throw new Error("[BATTLE] Error", {cause: data.error});
+            console.log(battleFound);
             if (!battleFound)
                 setPage("looking");
         } catch (err) {
@@ -112,7 +113,6 @@ function BattleScreen() {
     useEffect(() => {
         console.log("Battle Found Changed Values: ", battleFound);
         if (battleFound) {
-            console.log(battleData);
             setPage("found");
         }
     }, [battleFound]);
@@ -201,7 +201,7 @@ function BattleScreen() {
                         <h1 className="username">{battleData?.username1 || "Scholar"}</h1>
                         <div className="xp-container">
                             <h1 className="xp-gained">XP Gained:</h1>
-                            <h1 className="xp-gained">{"0"}</h1>
+                            <h1 className="xp-gained">{battleData?.xp_gained_p1 || 0}</h1>
                         </div>
                     </div>
                     <h1>vs.</h1>
@@ -212,7 +212,7 @@ function BattleScreen() {
                         <h1 className="username">{battleData?.username2 || "Opponent"}</h1>
                         <div className="xp-container">
                             <h1 className="xp-gained">XP Gained:</h1>
-                            <h1 className="xp-gained">{"0"}</h1>
+                            <h1 className="xp-gained">{battleData?.xp_gained_p2 || 0}</h1>
                         </div>
                     </div>
                 </div>

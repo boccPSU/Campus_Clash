@@ -371,6 +371,16 @@ export function AuthProvider({ children }) {
             setBattleFound(true);
         });
 
+        socketRef.current.on("reload-battle", () => {
+            fetch("http://localhost:5000/api/load-battle", {
+                method: "get",
+                headers: {
+                    "Content-Type": "application/json",
+                    "jwt-token": token,
+                }
+            });
+        });
+
         return () => {
             socketRef.current?.disconnect();
             socketRef.current = null;
