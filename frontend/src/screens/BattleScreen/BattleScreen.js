@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from "react";
+import React, {useState, useEffect, useRef} from "react";
 import {Button, ProgressBar, Spinner} from "react-bootstrap";
 import {PersonCircle, Plus, Dash, LightningFill, QuestionCircle} from "react-bootstrap-icons";
 
@@ -11,9 +11,8 @@ function BattleScreen() {
     const {token, studentData, battleFound, battleData} = useAuth();
     const [isLoading, setLoading] = useState(false);
 
-    const [opponentData, setOpponentData] = useState({});
-    const [rewardData, setRewardData] = useState(0);
-    const [timer, setTimer] = useState(0);
+    const battleFoundRef = useRef(battleFound);
+
 
     useEffect(() => {
         if (isLoading) {
@@ -74,9 +73,10 @@ function BattleScreen() {
             const data = await res.json();
             if (!res.ok)
                 throw new Error("[BATTLE] Error", {cause: data.error});
-            console.log(battleFound);
-            if (!battleFound)
+            if (!battleFoundRef.current) {
+                console.log("Opponent not found.");
                 setPage("looking");
+            }
         } catch (err) {
             console.error(err);
             setPage("search");
@@ -112,6 +112,7 @@ function BattleScreen() {
 
     useEffect(() => {
         console.log("Battle Found Changed Values: ", battleFound);
+        battleFoundRef.current = battleFound;
         if (battleFound) {
             setPage("found");
         }
@@ -190,7 +191,7 @@ function BattleScreen() {
                 <div className="battle-container">
                 <div className="battle-header">
                     <h1 className="title">Battle</h1>
-                    <h1 className="timer">{"00:01:58"}</h1>
+                    <h1 className="timer">Ends on: {battleData?.end_date}</h1>
                 </div>
                 <div className="participants-container">
                     <div className="profile-container">
