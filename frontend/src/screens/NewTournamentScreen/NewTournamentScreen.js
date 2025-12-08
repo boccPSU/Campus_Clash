@@ -12,7 +12,8 @@ import { Gem } from "react-bootstrap-icons";
 import { useAuth } from "../../api/AuthContext";
 
 function NewTournamentScreen() {
-    const { token, studentData, loadBasicStudentData, setStudentData } = useAuth();
+    const { token, studentData, loadBasicStudentData, setStudentData } =
+        useAuth();
     // Leveling constraints (same as XpHeaderBar)
     const BASE_XP_PER_LEVEL = 200;
     const XP_INCREMENT_PER_LEVEL = 100;
@@ -113,7 +114,7 @@ function NewTournamentScreen() {
         await new Promise((r) => setTimeout(r, 700));
     };
 
-    // 🔹 Helper: refresh student data once per second for 5 seconds
+    // refresh student data once per second for 5 seconds
     function startStudentDataRefreshBurst() {
         // Avoid overlapping bursts
         if (studentRefreshIntervalRef.current) {
@@ -384,14 +385,17 @@ function NewTournamentScreen() {
 
             console.log("[Tournament] Forcing tournaments to end in 10s...");
 
-            const activeDaily = dailyTournament[0];
-            const activeWeekly = weeklyTournament[0];
+            const activeDaily = false;
+            const activeWeekly = false;
+
+            //const activeDaily = dailyTournament[0];
+            //const activeWeekly = weeklyTournament[0];
             const activeRanked = rankedTournament[0];
 
             (async () => {
                 const ops = [];
 
-                if (!dailyInBetween && activeDaily?.id) {
+                if (!dailyInBetween && activeDaily) {
                     ops.push(
                         (async () => {
                             await forceEndTournament(activeDaily.id);
@@ -399,7 +403,7 @@ function NewTournamentScreen() {
                         })()
                     );
                 }
-                if (!weeklyInBetween && activeWeekly?.id) {
+                if (!weeklyInBetween && activeWeekly) {
                     ops.push(
                         (async () => {
                             await forceEndTournament(activeWeekly.id);
@@ -708,6 +712,11 @@ function NewTournamentScreen() {
                 }
 
                 // Mark on the *new* tournament whether it's a brand new bracket (no previous winners carrying in)
+                console.log(
+                    "[Ranked] Setting new ranked tournament's newTournament to",
+                    isFinalRound
+                );
+
                 newTournamentObj.newTournament = isFinalRound;
 
                 if (isUpcoming) {
@@ -977,27 +986,25 @@ function NewTournamentScreen() {
 
     return (
         <>
+            <MainPopup
+                open={showLevelUpPopup}
+                title="Congrats, you leveled up!"
+                type="levelUp"
+                onClose={() => setShowLevelUpPopup(false)}
+            >
+                <p className="mainPopup-message">
+                    You earned{" "}
+                    <span className="levelUpGems">
+                        {levelUpGemsAwarded} <Gem className="levelUpGemIcon" />
+                    </span>{" "}
+                    for reaching Level {justLeveledTo}.
+                </p>
+            </MainPopup>
             <ScreenScroll ref={scrollerRef}>
                 <PullToRefresh scrollerRef={scrollerRef} onRefresh={refresh}>
                     <Container className="mainContainer">
                         {/* Progress bar */}
                         <XpHeaderBar />
-
-                        <MainPopup
-                            open={showLevelUpPopup}
-                            title="Congrats, you leveled up!"
-                            type="levelUp"
-                            onClose={() => setShowLevelUpPopup(false)}
-                        >
-                            <p className="mainPopup-message">
-                                You earned{" "}
-                                <span className="levelUpGems">
-                                    {levelUpGemsAwarded}{" "}
-                                    <Gem className="levelUpGemIcon" />
-                                </span>{" "}
-                                for reaching Level {justLeveledTo}.
-                            </p>
-                        </MainPopup>
 
                         {/* Tournament Screen Header */}
                         <div

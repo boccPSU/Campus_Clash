@@ -394,10 +394,17 @@ function NewHomeScreen() {
 
                         {alertsLoading && (
                             <InfoTile>
-                                <AlertCard
-                                    alertTitle="Loading alerts…"
-                                    alertInfo="Fetching upcoming items"
-                                />
+                                <div
+                                    className="d-flex align-items-center gap-2 py-2"
+                                    aria-live="polite"
+                                >
+                                    <Spinner
+                                        animation="border"
+                                        role="status"
+                                        size="sm"
+                                    />
+                                    <span>Loading alerts…</span>
+                                </div>
                             </InfoTile>
                         )}
 

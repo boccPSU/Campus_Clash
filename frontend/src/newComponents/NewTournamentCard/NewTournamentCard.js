@@ -68,10 +68,10 @@ function NewTournamentCard({
         async function initForTid() {
             // If tournament is already over, don't allow joining
             if (tournamentOver) {
-                //console.log("[NewTournamentCard] Tournament is over, disabling join for",title);
+                console.log("[NewTournamentCard] Tournament is over, disabling join for",title);
                 setCanJoin(false);
             } else {
-                //console.log("[NewTournamentCard] Tournament not over, enabling join for",title);
+                console.log("[NewTournamentCard] Tournament not over, enabling join for",title);
                 setCanJoin(true);
             }
 
@@ -83,7 +83,7 @@ function NewTournamentCard({
             // Check if user is already in tournament
             const tokenString = sessionStorage.getItem("token");
             if (!tokenString) {
-                //console.log("[NewTournamentCard] No token, disabling join button");
+                console.log("[NewTournamentCard] No token, disabling join button");
                 setCanJoin(false);
             } else {
                 let tokenValue = "";
@@ -107,22 +107,23 @@ function NewTournamentCard({
                         }
                     );
 
-                    const hasJoined = await resHasJoined
+                    const hasPlayed = await resHasJoined
                         .json()
                         .catch(() => false);
 
-                    if (hasJoined) {
-                        //console.log(
-                        //    "[NewTournamentCard] User already joined tid =",
-                        //    tid
-                        //);
+                    console.log("[NewTournamentCard] has-joined response for tid =", tid, ":", hasPlayed);
+                    if (hasPlayed) {
+                        console.log(
+                            "[NewTournamentCard] User already joined tid =",
+                            tid
+                        );
                         setCanJoin(false);
                     }
                 } catch (e) {
-                    //console.log(
-                    //"[NewTournamentCard] Failed has-joined check. Error:",
-                    //e
-                    //);
+                    console.log(
+                    "[NewTournamentCard] Failed has-joined check. Error:",
+                    e
+                    );
                 }
             }
 

@@ -30,8 +30,8 @@ const server = http.createServer(app);
 const io = socketIO(server, {
   cors: {
     origin: "*",
-    methods: ["GET", "POST"]
-  }
+    methods: ["GET", "POST"],
+  },
 });
 
 const users = new Map();
@@ -41,7 +41,7 @@ io.use((socket, next) => {
   const token = socket.handshake.auth.token;
 
   try {
-    const {pid} = decryptToken(token);
+    const { pid } = decryptToken(token);
     socket.user = pid;
     users.set(pid, socket.id);
     console.log(`User ${pid} authenticated on ${socket.id}`);
@@ -58,7 +58,7 @@ io.on("connection", async (socket) => {
     const [battleResults] = await pool.query(
       `SELECT * FROM active_battles
       WHERE bid = ?`,
-        [bid]
+      [bid]
     );
 
     battleData = battleResults[0];
@@ -76,12 +76,10 @@ io.on("connection", async (socket) => {
       }
     }
   });
-})
-
-
+});
 
 server.listen(PORT, () => {
-  console.log(`Web Socket Server listening on http://localhost:${PORT}`)
+  console.log(`Web Socket Server listening on http://localhost:${PORT}`);
 });
 
 // Start Server
@@ -156,7 +154,10 @@ app.get(/^\/api\/v1\/.*/, async (req, res) => {
 
     const pid = decryptToken(token)?.pid;
 
-    const [result] = await pool.query(`SELECT canvasToken FROM students WHERE pid = ?`, [pid]);
+    const [result] = await pool.query(
+      `SELECT canvasToken FROM students WHERE pid = ?`,
+      [pid]
+    );
 
     const canvasToken = result[0]?.canvasToken;
 
@@ -243,7 +244,7 @@ app.post("/api/register", async (req, res) => {
       canvasToken ?? null,
     ]);
 
-    let pid = result[0][0]['LAST_INSERT_ID()'];
+    let pid = result[0][0]["LAST_INSERT_ID()"];
 
     // Generate token for user
     const token = auth.generateToken(username, pid);
@@ -321,7 +322,7 @@ app.get("/api/profile", async (req, res) => {
       major: student.major,
       xp: student.xp,
       gems: student.gems,
-      canvasToken: student.canvasToken
+      canvasToken: student.canvasToken,
     });
   } catch (e) {
     console.error("[BACKEND] Profile Error: ", e);
@@ -338,14 +339,8 @@ app.post("/api/change-user-info", async (req, res) => {
   const pid = decryptToken(token)?.pid;
 
   try {
-    const {
-      firstName,
-      lastName,
-      username,
-      university,
-      major,
-      canvasToken
-    } = req.body;
+    const { firstName, lastName, username, university, major, canvasToken } =
+      req.body;
 
     const [results] = await pool.query(
       `UPDATE users, students
@@ -357,8 +352,8 @@ app.post("/api/change-user-info", async (req, res) => {
             students.canvasToken = ?
         WHERE
             users.pid = students.pid
-            AND users.pid = ?;`, 
-            [firstName, lastName, username, university, major, canvasToken, pid]
+            AND users.pid = ?;`,
+      [firstName, lastName, username, university, major, canvasToken, pid]
     );
 
     // Generate token for user
@@ -368,9 +363,9 @@ app.post("/api/change-user-info", async (req, res) => {
     return res.status(201).json({ successful: true, token });
   } catch (err) {
     console.error("[BACKEND] Change User Info Error: ", err);
-    return res.status(500).json({error: "/change-user-info error"});
+    return res.status(500).json({ error: "/change-user-info error" });
   }
-})
+});
 
 app.get("/api/load-prefs", async (req, res) => {
   const token = req.headers["jwt-token"];
@@ -378,26 +373,26 @@ app.get("/api/load-prefs", async (req, res) => {
     return res.status(401).json({ error: "Unauthorized: missing token" });
   }
 
-  const {pid} = decryptToken(token);
+  const { pid } = decryptToken(token);
 
   try {
     const [results] = await pool.query(
       `SELECT * FROM user_prefs
         WHERE pid = (?)`,
-        [pid]
+      [pid]
     );
 
     const userPrefs = results[0];
 
-    if(!userPrefs) 
+    if (!userPrefs)
       return res.status(401).json({ error: "Unauthorized Cannot Find User" });
 
-    res.status(201).json({darkMode: !!userPrefs.darkMode});
+    res.status(201).json({ darkMode: !!userPrefs.darkMode });
   } catch (err) {
     console.error("[BACKEND] Load Preferences Error: ", err);
     return res.status(500).json({ error: "/load-prefs error" });
   }
-})
+});
 
 app.post("/api/update-prefs", async (req, res) => {
   const token = req.headers["jwt-token"];
@@ -405,24 +400,22 @@ app.post("/api/update-prefs", async (req, res) => {
     return res.status(401).json({ error: "Unauthorized: missing token" });
   }
 
-  const {pid} = decryptToken(token);
+  const { pid } = decryptToken(token);
 
   try {
-    const {
-      darkMode
-    } = req.body;
+    const { darkMode } = req.body;
 
     const [results] = await pool.query(
       `UPDATE user_prefs
         SET darkMode = ?
         WHERE
-            pid = ?;`, 
-            [darkMode, pid]
-    )
+            pid = ?;`,
+      [darkMode, pid]
+    );
     return res.status(201).json({ successful: true });
   } catch (err) {
     console.error("[BACKEND] Update User Prefs Error: ", err);
-    return res.status(500).json({error: "/update-prefs error"});
+    return res.status(500).json({ error: "/update-prefs error" });
   }
 });
 
@@ -441,9 +434,7 @@ app.post("/api/receive-xp", async (req, res) => {
     const studentRow = rows[0]?.[0];
 
     if (!studentRow) {
-      return res
-        .status(404)
-        .json({ success: false, error: "User not found" });
+      return res.status(404).json({ success: false, error: "User not found" });
     }
 
     await pool.query(
@@ -469,7 +460,7 @@ app.post("/api/receive-xp", async (req, res) => {
         [reward, studentRow.pid]
       );
       sendToRoom(bid, "reload-battle");
-  }
+    }
     console.log(
       "[BACKEND] Added",
       reward,
@@ -494,7 +485,7 @@ app.get("/api/find-battle", async (req, res) => {
   if (!token) {
     return res.status(401).json({ error: "Unauthorized: missing token" });
   }
-  const {pid} = decryptToken(token);
+  const { pid } = decryptToken(token);
 
   try {
     const [results] = await pool.query(
@@ -506,10 +497,10 @@ app.get("/api/find-battle", async (req, res) => {
       await pool.query(
         `INSERT INTO looking_for_battle (pid)
           VALUES (?)`,
-          [pid]
+        [pid]
       );
       console.log("[Find-Battle] No Opponent Found.");
-      return res.status(201).json({logMessage: "No Opponent Found."});
+      return res.status(201).json({ logMessage: "No Opponent Found." });
     }
 
     var i = 0;
@@ -529,7 +520,7 @@ app.get("/api/find-battle", async (req, res) => {
       const [checkRows] = await pool.query(
         `SELECT * FROM active_battles
           WHERE pid1 = ? OR pid2 = ? OR pid1 = ? OR pid2 = ?`,
-            [pid, pid, oppPid, oppPid]
+        [pid, pid, oppPid, oppPid]
       );
 
       if (checkRows.length !== 0) {
@@ -544,10 +535,10 @@ app.get("/api/find-battle", async (req, res) => {
       await pool.query(
         `INSERT INTO looking_for_battle (pid)
           VALUES (?)`,
-          [pid]
+        [pid]
       );
       console.log("[Find-Battle] No Opponent Found.");
-      return res.status(201).json({logMessage: "No Opponent Found."});
+      return res.status(201).json({ logMessage: "No Opponent Found." });
     }
 
     const [selfResults] = await pool.query(
@@ -560,7 +551,7 @@ app.get("/api/find-battle", async (req, res) => {
 
     const selfData = selfResults[0];
     if (!selfData) {
-      return res.status(401).json({error: "Cannot find own data."});
+      return res.status(401).json({ error: "Cannot find own data." });
     }
 
     const [oppResults] = await pool.query(
@@ -574,29 +565,29 @@ app.get("/api/find-battle", async (req, res) => {
     const oppData = oppResults[0];
     if (!oppData) {
       await pool.query(
-          `INSERT INTO looking_for_battle (pid)
+        `INSERT INTO looking_for_battle (pid)
             VALUES (?)`,
-            [pid]
-        );
-      return res.status(401).json({error: "Cannot find Opponent Data"});
+        [pid]
+      );
+      return res.status(401).json({ error: "Cannot find Opponent Data" });
     }
-    
+
     await pool.query(
       `INSERT INTO active_battles (pid1, username1, pid2, username2)
         VALUES (?, ?, ?, ?)`,
-        [pid, selfData.username, oppPid, oppData.username]
+      [pid, selfData.username, oppPid, oppData.username]
     );
 
     await pool.query(
       `DELETE FROM looking_for_battle
         WHERE pid = ? OR pid = ?`,
-        [pid, oppPid]
+      [pid, oppPid]
     );
 
     const [battleResults] = await pool.query(
       `SELECT * FROM active_battles
       WHERE pid1 = ? OR pid2 = ?`,
-        [pid, pid]
+      [pid, pid]
     );
 
     battleData = battleResults[0];
@@ -608,11 +599,10 @@ app.get("/api/find-battle", async (req, res) => {
 
     sendToRoom(battleData.bid, "battle-data", battleData);
 
-    return res.status(201).json({successful: true});
-
+    return res.status(201).json({ successful: true });
   } catch (err) {
     console.log("[Find-Battle] Error: ", err);
-    return res.status(500).json({error: err});
+    return res.status(500).json({ error: err });
   }
 });
 
@@ -621,7 +611,7 @@ app.get("/api/cancel-battle-request", async (req, res) => {
   if (!token) {
     return res.status(401).json({ error: "Unauthorized: missing token" });
   }
-  const {pid} = decryptToken(token);
+  const { pid } = decryptToken(token);
 
   try {
     const [lookingCheck] = await pool.query(
@@ -634,7 +624,8 @@ app.get("/api/cancel-battle-request", async (req, res) => {
       await pool.query(
         `DELETE FROM looking_for_battle
         WHERE pid = ?;`,
-      [pid]);
+        [pid]
+      );
     }
 
     const [activeCheck] = await pool.query(
@@ -644,13 +635,13 @@ app.get("/api/cancel-battle-request", async (req, res) => {
     );
 
     if (activeCheck.length !== 0) {
-      return res.status(201).json({successful: false});
+      return res.status(201).json({ successful: false });
     }
 
-    return res.status(201).json({successful: true});
+    return res.status(201).json({ successful: true });
   } catch (err) {
     console.log("[Cancel-Battle] Error: ", err);
-    res.status(500).json({error: err});
+    res.status(500).json({ error: err });
   }
 });
 
@@ -659,16 +650,18 @@ app.get("/api/load-battle", async (req, res) => {
   if (!token) {
     return res.status(401).json({ error: "Unauthorized: missing token" });
   }
-  const {pid} = decryptToken(token);
+  const { pid } = decryptToken(token);
 
   try {
-    const [results] = await pool.query(`
+    const [results] = await pool.query(
+      `
       SELECT * FROM active_battles
-      WHERE pid1 = ? OR pid2 = ?;`
-    , [pid, pid]);
+      WHERE pid1 = ? OR pid2 = ?;`,
+      [pid, pid]
+    );
 
     if (results.length === 0) {
-      return res.status(201).json({successful: false});
+      return res.status(201).json({ successful: false });
     }
 
     const battleData = results[0];
@@ -679,48 +672,52 @@ app.get("/api/load-battle", async (req, res) => {
 
     sendToRoom(battleData.bid, "battle-data", battleData);
 
-    return res.status(201).json({successful: true});
+    return res.status(201).json({ successful: true });
   } catch (err) {
-    return res.status(500).json({error: err});
+    return res.status(500).json({ error: err });
   }
 });
 
 app.post("/api/add-wager", async (req, res) => {
-    const token = req.headers["jwt-token"];
+  const token = req.headers["jwt-token"];
   if (!token) {
     return res.status(401).json({ error: "Unauthorized: missing token" });
   }
-  const {pid} = decryptToken(token);
+  const { pid } = decryptToken(token);
 
-  const {
-    gems
-  } = req.body;
+  const { gems } = req.body;
 
   const bid = battles.get(pid);
   if (!bid) {
-    return res.status(401).json({error: "Not in battle"});
+    return res.status(401).json({ error: "Not in battle" });
   }
 
   try {
-    await pool.query(`
+    await pool.query(
+      `
       UPDATE students
       SET gems = gems - ?
       WHERE pid = ?
-      `, [gems, pid]);
+      `,
+      [gems, pid]
+    );
 
-    await pool.query(`
+    await pool.query(
+      `
       UPDATE active_battles
       SET reward = reward + ?
       WHERE bid = ?
-      `, [gems * 2, bid]);
+      `,
+      [gems * 2, bid]
+    );
 
-      sendToRoom(bid, "reload-battle");
+    sendToRoom(bid, "reload-battle");
 
-      sendToUser(pid, "reload-student");
+    sendToUser(pid, "reload-student");
 
-      return res.status(200).json({successful: true});
+    return res.status(200).json({ successful: true });
   } catch (err) {
-    return res.status(500).json({error: err});
+    return res.status(500).json({ error: err });
   }
 });
 
@@ -945,7 +942,6 @@ app.post("/api/create-tournament", async (req, res) => {
     studentMajor,
   } = req.body || {};
 
-  
   // Basic validation
   if (!title || !topics || reward == null || !tournamentType) {
     return res
@@ -969,29 +965,53 @@ app.post("/api/create-tournament", async (req, res) => {
 
     // If found existing tournament, check to make sure it matches the students major
     if (existingRows.length > 0) {
-		console.log("Found existing tournament(s):", existingRows.length, " for title ", title);
-		// Check each existing tournament for major match
-		for (const tournament of existingRows) {
-      		console.log("Found existing tournament:", tournament.tid, " of type", tournamentType, "checking major match " + studentMajor);
-      		const majorMatch = await checkTournamentMajorMatch(
-        	tournament.topics,
-        	studentMajor
+      console.log(
+        "Found existing tournament(s):",
+        existingRows.length,
+        " for title ",
+        title
       );
-      if (majorMatch == true) {
-        const existing = tournament;
-        console.log("Major matches, reusing tournament:", existing.tid, " of type ", tournamentType, "and topics " + topics);
-        return res.json({
-          successful: true,
-          tid: existing.tid,
-          startTime: existing.startTime,
-          endDate: existing.endDate,
+      // Check each existing tournament for major match
+      for (const tournament of existingRows) {
+        console.log(
+          "Found existing tournament:",
+          tournament.tid,
+          " of type",
           tournamentType,
-		  topics: existing.topics,
-        });
-      }}
+          "checking major match " + studentMajor
+        );
+        const majorMatch = await checkTournamentMajorMatch(
+          tournament.topics,
+          studentMajor
+        );
+        if (majorMatch == true) {
+          const existing = tournament;
+          console.log(
+            "Major matches, reusing tournament:",
+            existing.tid,
+            " of type ",
+            tournamentType,
+            "and topics " + topics
+          );
+          return res.json({
+            successful: true,
+            tid: existing.tid,
+            startTime: existing.startTime,
+            endDate: existing.endDate,
+            tournamentType,
+            topics: existing.topics,
+          });
+        }
+      }
     }
 
-	console.log("No existing tournament found for major", studentMajor, ", creating new tournament of type ", tournamentType, " with topics " + topics);
+    console.log(
+      "No existing tournament found for major",
+      studentMajor,
+      ", creating new tournament of type ",
+      tournamentType,
+      " with topics " + topics
+    );
 
     // Create end date and start time
     let endDate;
@@ -1130,7 +1150,7 @@ app.post("/api/create-tournament", async (req, res) => {
       startDate,
       endDate,
       tournamentType,
-	  topics,
+      topics,
     });
   } catch (err) {
     console.error("[BACKEND] create-tournament error:", err);
@@ -1147,7 +1167,7 @@ app.get("/api/current-user", async (req, res) => {
   if (!token) {
     return res.status(401).json({ error: "Unauthorized no token" });
   }
-  const {username} = decryptToken(token);
+  const { username } = decryptToken(token);
   //console.log("Decrypted username in current user:", username);
   if (!username) {
     return res.status(401).json({ error: "Unauthorized no username" });
@@ -1202,9 +1222,6 @@ app.post("/api/join-tournament", async (req, res) => {
     const token = req.headers["jwt-token"];
     const { tid } = req.body || {};
 
-    //console.log("[join-tournament] Token:", token);
-    //console.log("[join-tournament] TID:", tid);
-
     if (!token) {
       return res.status(401).json({ error: "Missing token" });
     }
@@ -1213,8 +1230,7 @@ app.post("/api/join-tournament", async (req, res) => {
       return res.status(400).json({ error: "Missing tournament tid" });
     }
 
-    const {username} = decryptToken(token);
-    //console.log("[join-tournament] Decrypted username:", username);
+    const { username } = decryptToken(token);
     if (!username) {
       return res.status(401).json({ error: "Invalid token" });
     }
@@ -1230,24 +1246,35 @@ app.post("/api/join-tournament", async (req, res) => {
     }
     const pid = user.pid;
 
-    // Check if already joined
+    // 1) Check if user is already in this tournament
     const [existingRows] = await pool.query(
-      "SELECT 1 FROM tournament_participants WHERE tid = ? AND pid = ? LIMIT 1",
+      `
+        SELECT 1
+        FROM tournament_participants
+        WHERE tid = ? AND pid = ?
+        LIMIT 1
+      `,
       [tid, pid]
     );
 
     if (existingRows.length > 0) {
-      // already in this tournament
-      return res.json(false);
+      // Already joined treat as success
+      return res.json(true);
     }
 
-    // Not joined yet
+    // 2) Not joined yet  call stored procedure to join
     await pool.query("CALL join_tournament(?, ?)", [tid, pid]);
 
-    // joined successfully
+    // Joined successfully
     return res.json(true);
   } catch (err) {
     console.error("[BACKEND] join-tournament error:", err);
+
+    // Optional safety: if SP throws duplicate key, still return true
+    if (err && err.code === "ER_DUP_ENTRY") {
+      return res.json(true);
+    }
+
     return res.status(500).json({ error: "Failed to join tournament" });
   }
 });
@@ -1394,27 +1421,14 @@ app.post("/api/tournament/update-score", async (req, res) => {
         .json({ successful: false, error: "Missing or invalid tid/score" });
     }
 
-    // Get username from token, then pid from users table
-    const {username, pid} = decryptToken(token);
+    // Get username and pid from token
+    const { username, pid } = decryptToken(token);
 
-    // const [userRows] = await pool.query(
-    //   "SELECT pid FROM users WHERE username = ?",
-    //   [username]
-    // );
-
-    // if (userRows.length === 0) {
-    //   return res
-    //     .status(404)
-    //     .json({ successful: false, error: "User not found" });
-    // }
-
-    //const pid = userRows[0].pid;
-
-    // Update the participant's score in this tournament
+    // Update the participant's score in this tournament and mark as played
     const [result] = await pool.query(
       `
         UPDATE tournament_participants
-        SET score = ?
+        SET score = ?, hasPlayed = 1
         WHERE tid = ? AND pid = ?
       `,
       [score, tid, pid]
@@ -1433,6 +1447,7 @@ app.post("/api/tournament/update-score", async (req, res) => {
       username,
       pid,
       score,
+      hasPlayed: true,
     });
   } catch (err) {
     console.error("[API] update-score error:", err);
@@ -1661,7 +1676,7 @@ const generateTopics = async (req) => {
   }
 };
 
-// Checks to see if user has joined a tournament
+// Checks to see if user has joined a tournament AND not yet played
 app.post("/api/tournament/has-joined", async (req, res) => {
   try {
     // Get user token
@@ -1678,9 +1693,10 @@ app.post("/api/tournament/has-joined", async (req, res) => {
       return res.status(400).json({ error: "Missing tournament tid" });
     }
 
-    // Get username, and pid
-    const {username, pid} = decryptToken(token);
+    // Get username and pid from token
+    const { username, pid } = decryptToken(token);
 
+    //  still verify the user exists 
     const [userRows] = await pool.query(
       "SELECT pid FROM users WHERE username = ?",
       [username]
@@ -1690,20 +1706,29 @@ app.post("/api/tournament/has-joined", async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    const user = userRows[0];
-    //const pid = user.pid;
-
-    // Check to see if both exist in table
+    // Check to see if they are in the tournament and whether they've played
     const [existingRows] = await pool.query(
-      "SELECT 1 FROM tournament_participants WHERE tid = ? AND pid = ? LIMIT 1",
+      `
+        SELECT hasPlayed
+        FROM tournament_participants
+        WHERE tid = ? AND pid = ?
+        LIMIT 1
+      `,
       [tid, pid]
     );
 
-    if (existingRows.length > 0) {
-      return res.json(true);
-    } else {
+    if (existingRows.length === 0) {
+      // Not in this tournament at all
+      console.log("[has-joined] User not in tournament:", username, "tid:", tid);
       return res.json(false);
     }
+
+    const hasPlayed =
+      existingRows[0].hasPlayed === 1 || existingRows[0].hasPlayed === true;
+
+    // Return true ONLY if they joined and have NOT played yet
+    console.log("[has-joined] User has joined but not played:", username, "tid:", tid, "hasPlayed:", hasPlayed);
+    return res.json(hasPlayed);
   } catch (e) {
     console.log("Error checking if user has joined Error: " + e);
     return res.status(500).json({ error: "Internal server error" });
@@ -1731,7 +1756,7 @@ app.post("/api/tournament/update-score", async (req, res) => {
     }
 
     // Get username & pid
-    const {username, pid} = decryptToken(token);
+    const { username, pid } = decryptToken(token);
 
     // const [userRows] = await pool.query(
     //   "SELECT pid FROM users WHERE username = ?",
@@ -1803,7 +1828,7 @@ app.post("/api/tournament/generate-topics", async (req, res) => {
       //console.log("Major already has topics, exiting endpoint");
       return res.json({
         successful: true,
-		topicsGenerated: false,
+        topicsGenerated: false,
         skipped: true,
         message: "Topics already exist for this major",
       });
@@ -1838,7 +1863,7 @@ app.post("/api/tournament/generate-topics", async (req, res) => {
 
     return res.json({
       successful: true,
-	  topicsGenerated: true,
+      topicsGenerated: true,
       major,
       topics,
     });
@@ -2199,7 +2224,7 @@ app.post("/api/tournament/update-ranked-leaderboard", async (req, res) => {
       });
     }
 
-    const alreadyProcessed = !!tournamentRows[0].xpAwarded;
+    /*const alreadyProcessed = !!tournamentRows[0].xpAwarded;
 
     if (alreadyProcessed) {
       console.log(
@@ -2215,9 +2240,9 @@ app.post("/api/tournament/update-ranked-leaderboard", async (req, res) => {
         totalParticipants: total,
         winners: total <= 3 ? rows : [],
       });
-    }
+    }*/
 
-    // ===== FINAL TOURNAMENT CASE (<= 3 players) → PAY XP & MARK PROCESSED =====
+    //FINAL TOURNAMENT CASE (<= 3 players)  PAY XP & MARK PROCESSED
     if (total <= 3) {
       console.log(
         "[Ranked Leaderboard] 3 or fewer players remain, ending tournament & awarding XP."
@@ -2314,7 +2339,7 @@ app.post("/api/tournament/update-ranked-leaderboard", async (req, res) => {
       eliminatedParticipants,
     });
   } catch (err) {
-    console.error("[API] update-ranked-leaderboard error:", err);
+    console.error("[Ranked Leaderboard] update-ranked-leaderboard error:", err);
     return res.status(500).json({
       successful: false,
       error: "Failed to update ranked leaderboard",
@@ -2379,7 +2404,7 @@ app.get("/api/student-major", async (req, res) => {
 
     // Decode token into username
     //   Adjust this line depending on how you named it in authentication.js
-    const {username} = decryptToken(token);
+    const { username } = decryptToken(token);
 
     if (!username) {
       return res.status(401).json({
@@ -2512,7 +2537,6 @@ app.post("/api/gems/add", async (req, res) => {
   }
 });
 
-
 // Remove gems endpoint
 app.post("/api/gems/remove", async (req, res) => {
   try {
@@ -2541,7 +2565,12 @@ app.post("/api/gems/remove", async (req, res) => {
       [username]
     );
 
-    console.log("[GEMS] User lookup result for username", username, "=>", userRows);
+    console.log(
+      "[GEMS] User lookup result for username",
+      username,
+      "=>",
+      userRows
+    );
 
     if (!userRows || userRows.length === 0) {
       console.log("[GEMS] No user found for username:", username);
@@ -2572,10 +2601,7 @@ app.post("/api/gems/remove", async (req, res) => {
     );
 
     if (updateResult.affectedRows === 0) {
-      console.log(
-        "[GEMS] Not enough gems (or no student row) for pid:",
-        pid
-      );
+      console.log("[GEMS] Not enough gems (or no student row) for pid:", pid);
       return res.status(200).json({
         successful: false,
         notEnoughGems: true,
@@ -2637,8 +2663,8 @@ function sendToUser(userId, eventName, payload) {
 async function joinUserRoom(userId, roomId) {
   const targetSocketId = users.get(userId);
   const sockets = await io.fetchSockets();
-  const targetSocket = sockets.find(s => s.id === targetSocketId);
-  
+  const targetSocket = sockets.find((s) => s.id === targetSocketId);
+
   if (targetSocket) {
     battles.set(userId, roomId);
     targetSocket.join(roomId);
@@ -2678,10 +2704,10 @@ app.post("/api/tournament/change-endtime", async (req, res) => {
     }
 
     // endDate is DATETIME, so pass a JS Date object
-    await pool.query(
-      "UPDATE tournaments SET endDate = ? WHERE tid = ?",
-      [newEndDate, tid]
-    );
+    await pool.query("UPDATE tournaments SET endDate = ? WHERE tid = ?", [
+      newEndDate,
+      tid,
+    ]);
 
     return res.json({ successful: true });
   } catch (err) {
