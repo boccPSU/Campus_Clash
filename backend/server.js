@@ -718,6 +718,29 @@ app.post("/api/add-wager", async (req, res) => {
   }
 });
 
+app.post("/api/see-battle", async (req, res) => {
+  const token = req.headers["jwt-token"];
+  if (!token) {
+    return res.status(401).json({ error: "Unauthorized: missing token" });
+  }
+  const {pid} = decryptToken(token);
+
+  const {bhid} = req.body;
+
+  try {
+    await pool.query(`
+      UPDATE battle_history
+      SET seen_popup = TRUE
+      WHERE bhid = ?`
+    , [bhid]);
+
+    return res.status(201).json({successful: true});
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({error: "/see-battle error"})
+  }
+}) 
+
 app.get("/api/load-battle-history", async (req, res) => {
   const token = req.headers["jwt-token"];
   if (!token) {
@@ -728,7 +751,8 @@ app.get("/api/load-battle-history", async (req, res) => {
   try {
     const [results] = await pool.query(`
       SELECT * FROM battle_history
-      WHERE pid = ?`
+      WHERE pid = ?
+      ORDER BY bhid DESC`
     ,[pid]);
 
     return res.status(201).json({battleHistory: results});
@@ -2774,10 +2798,14 @@ async function endBattle(bid) {
 
   var result_p1;
   var result_p2;
+  var reward_p1;
+  var reward_p2;
 
   if (xp_gained_p1 > xp_gained_p2) {
     result_p1 = "Won";
     result_p2 = "Lost";
+    reward_p1 = reward;
+    reward_p2 = 0;
 
     await pool.query(
       `
@@ -2790,6 +2818,8 @@ async function endBattle(bid) {
   } else if (xp_gained_p2 > xp_gained_p1) {
     result_p1 = "Lost";
     result_p2 = "Won";
+    reward_p1 = 0;
+    reward_p2 = reward;
 
     await pool.query(
       `
@@ -2802,6 +2832,8 @@ async function endBattle(bid) {
   } else {
     result_p1 = "Tied";
     result_p2 = "Tied";
+    reward_p1 = reward / 2;
+    reward_p2 = reward / 2;
 
     await pool.query(
       `
@@ -2809,7 +2841,7 @@ async function endBattle(bid) {
       SET gems = gems + ?
       WHERE pid = ?
       `,
-      [reward / 2, pid1]
+      [reward_p1, pid1]
     );
 
     await pool.query(
@@ -2818,20 +2850,20 @@ async function endBattle(bid) {
       SET gems = gems + ?
       WHERE pid = ?
       `,
-      [reward / 2, pid2]
+      [reward_p2, pid2]
     );
   }
 
   await pool.query(`
     INSERT INTO battle_history (pid, opponent_username, victory, reward, end_date)
     VALUES (?, ?, ?, ?, ?)`
-      , [pid1, username2, result_p1, reward, end_date]
+      , [pid1, username2, result_p1, reward_p1, end_date]
   );
 
   await pool.query(`
     INSERT INTO battle_history (pid, opponent_username, victory, reward, end_date)
     VALUES (?, ?, ?, ?, ?)`
-      , [pid2, username1, result_p2, reward, end_date]
+      , [pid2, username1, result_p2, reward_p2, end_date]
   );
 
   await pool.query(`

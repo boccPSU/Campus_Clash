@@ -14,7 +14,7 @@ import {useAuth} from "../../api/AuthContext.js";
 
 function BaseScreen({children}) {
     
-    const {loadStudentData, canvasError} = useAuth();
+    const {loadStudentData, canvasError, showBattlePopup, setShowBattlePopup, battlePopup} = useAuth();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -63,27 +63,17 @@ function BaseScreen({children}) {
                             <SettingsEditWindow state={5} onClose={() => {}}/>
                         </MainPopup>
 
-                        {/* Quest Popup */}
+                        {/* Battle Results Popup (should be on each screen) */}
                         <MainPopup
-                            open={false}
-                            title="Quests"
-                            message="Claim a quest to earn gems"
-                            buttonLabel1="Leave"
-                            buttonLabel2="Stay"
-                            onButton1={"handleLeave"}
-                            onButton2={"handleStay"}
-                            type={"quest"}
+                            open={showBattlePopup}
+                            title={battlePopup?.title}
+                            // message is optional now; we’ll use children instead
+                            buttonLabel1="Close"
+                            onClose={() => setShowBattlePopup(false)}
                         >
-                            <button> Refresh Quest 50 gems</button>
-                            <InfoTile>
-                                Quest 1: Complete 3 assignments this week - 100 gems
-                            </InfoTile>
-                            <InfoTile>
-                                Quest 2: Study for 5 hours this week - 75 gems
-                            </InfoTile>
-                            <InfoTile>
-                                Quest 3: Participate in 2 battles this week - 150 gems
-                            </InfoTile>
+                            <p className="mainPopup-message">
+                                {battlePopup?.message}
+                            </p>
                         </MainPopup>
 
                         <XpHeaderBar

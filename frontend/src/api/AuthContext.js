@@ -347,7 +347,7 @@ export function AuthProvider({ children }) {
 
     const [battleHistory, setBattleHistory] = useState([]);
     const [bHistoryLoading, setBHistoryLoading] = useState(false);
-    const [seenBattle, setSeenBattle] = useState(true);
+    const [showBattlePopup, setShowBattlePopup] = useState(false);
     const [battlePopup, setBattlePopup] = useState({});
 
     const loadBattleHistory = async () => {
@@ -363,10 +363,26 @@ export function AuthProvider({ children }) {
                 throw new Error("[B-History] Error", {
                     cause: "Could not Connect.",
                 });
-            const bHistoryData =
+            const bHistoryRes =
                 await res.json();
-            if (!res.ok) throw new Error("[B-History] Error", { cause: bHistoryData.error });
-            setBattleHistory(bHistoryData.battleHistory);
+            if (!res.ok) throw new Error("[B-History] Error", { cause: bHistoryRes.error });
+            const bHistoryData = bHistoryRes.battleHistory;
+            setBattleHistory(bHistoryData);
+            if (bHistoryData.length > 0 && !bHistoryData[0].seen_popup) {
+                fetch("http://localhost:5000/api/see-battle", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "jwt-token" : token
+                    },
+                    body: JSON.stringify({bhid: bHistoryData[0].bhid})
+                });
+                setShowBattlePopup(true);
+                setBattlePopup({
+                    title: `You ${bHistoryData[0].victory} your last battle!`,
+                    message: bHistoryData[0].reward > 0 ? `You were rewarded ${bHistoryData[0].reward} gems!` : "Better luck next time!",
+                });
+            }
             setBHistoryLoading(false);
         } catch (err) {
             console.log(err);
@@ -460,7 +476,8 @@ export function AuthProvider({ children }) {
                 bHistoryLoading,
                 battleFound,
                 battleData,
-                seenBattle,
+                showBattlePopup,
+                setShowBattlePopup,
                 battlePopup,
             }}
         >

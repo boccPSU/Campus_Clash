@@ -53,9 +53,9 @@ function MainPopup({
                 <div className="mainPopup-iconWrapper">
                     {type === "levelUp" ? (
                         <StarFill className="starIcon" />
-                    ) : (
+                    ) : type === "alert" ? (
                         <ExclamationTriangleFill className="mainPopup-icon" />
-                    )}
+                    ) : <></>}
                 </div>
 
                 {title && <h2 className="mainPopup-title">{title}</h2>}

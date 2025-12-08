@@ -209,12 +209,14 @@ async function initDb() {
 
   await pool.query(`
       CREATE TABLE IF NOT EXISTS battle_history (
+        bhid INT NOT NULL AUTO_INCREMENT,
         pid INT NOT NULL,
         opponent_username VARCHAR(32) NOT NULL,
         victory VARCHAR(8) NOT NULL DEFAULT "Lost",
         reward INT NOT NULL DEFAULT 1000,
         end_date DATE NOT NULL DEFAULT (CURRENT_DATE()),
         seen_popup BOOLEAN NOT NULL DEFAULT FALSE,
+        PRIMARY KEY (bhid),
         KEY (pid),
         CONSTRAINT fk_btl_hist_pid FOREIGN KEY (pid) REFERENCES users (pid) ON DELETE CASCADE
       )`);

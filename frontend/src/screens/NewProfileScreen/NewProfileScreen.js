@@ -21,7 +21,7 @@ function NewProfileScreen() {
 
     const visibleHistory = history.slice(0, 3);
 
-    console.log(history);
+    console.log(battleHistory);
 
     return (
         <>
@@ -56,7 +56,7 @@ function NewProfileScreen() {
                             {!bHistoryLoading &&
                             !error &&
                             visibleHistory.map((c, i) => (
-                                <InfoTile key={i}>
+                                <InfoTile key={c.bhid}>
                                     <HistoryCard {...c} />
                                 </InfoTile>
                             ))}
