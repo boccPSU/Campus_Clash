@@ -11,6 +11,7 @@ const pool = mysql.createPool({
   database: process.env.DB_NAME,
   port: Number(process.env.DB_PORT || 3306),
   waitForConnections: true,
+  dateStrings: true,
 });
 
 // Initializes database when server is started
@@ -210,7 +211,7 @@ async function initDb() {
       CREATE TABLE IF NOT EXISTS battle_history (
         pid INT NOT NULL,
         opponent_username VARCHAR(32) NOT NULL,
-        victory BOOLEAN NOT NULL,
+        victory VARCHAR(8) NOT NULL DEFAULT "Lost",
         reward INT NOT NULL DEFAULT 1000,
         end_date DATE NOT NULL DEFAULT (CURRENT_DATE()),
         seen_popup BOOLEAN NOT NULL DEFAULT FALSE,

@@ -27,6 +27,7 @@ import NewQuestionScreen from "./screens/NewQuestionScreen/NewQuestionScreen";
 import NewLeaderboardScreen from "./screens/NewLeaderboardScreen/NewLeaderboardScreen";
 import NewProfileScreen from "./screens/NewProfileScreen/NewProfileScreen";
 import BattleScreen from "./screens/BattleScreen/BattleScreen";
+import HistoryScreen from "./screens/HistoryScreen/HistoryScreen";
 
 function App() {
 
@@ -95,6 +96,12 @@ function App() {
                         <NewProfileScreen />
                     </PrivateRoute>
                     } />
+
+                <Route path="/history" element={
+                    <PrivateRoute>
+                        <HistoryScreen />
+                    </PrivateRoute>
+                } />
 
                 <Route path="/test" element = {
                     <PrivateRoute>

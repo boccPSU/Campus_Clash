@@ -7,10 +7,6 @@ function HistoryCard({ opponent_username, victory, reward }) {
     // Loading state
     const [loading, setLoading] = useState(false);
 
-    // sets the color based on current grade
-    const variant =
-        victory ? "history-won" : "history-lost";
-
     // If loading data, show spinner
     if (loading) {
         return (
@@ -38,7 +34,7 @@ function HistoryCard({ opponent_username, victory, reward }) {
         <div className="historyCard" tabIndex={0}>
             <Trophy/>
             <h1 className="history-text">{opponent_username}</h1>
-            <h1 className="history-text" variant={variant}>{!!victory ? "Won" : "Lost"}</h1>
+            <h1 className="history-text">{victory}</h1>
             <h1 className="history-text">{reward} Gems</h1>
         </div>
     );

@@ -2772,16 +2772,66 @@ async function endBattle(bid) {
   } = battleData
   console.log(`Battle ${bid} has ended.`);
 
+  var result_p1;
+  var result_p2;
+
+  if (xp_gained_p1 > xp_gained_p2) {
+    result_p1 = "Won";
+    result_p2 = "Lost";
+
+    await pool.query(
+      `
+      UPDATE students
+      SET gems = gems + ?
+      WHERE pid = ?
+      `,
+      [reward, pid1]
+    );
+  } else if (xp_gained_p2 > xp_gained_p1) {
+    result_p1 = "Lost";
+    result_p2 = "Won";
+
+    await pool.query(
+      `
+      UPDATE students
+      SET gems = gems + ?
+      WHERE pid = ?
+      `,
+      [reward, pid2]
+    );
+  } else {
+    result_p1 = "Tied";
+    result_p2 = "Tied";
+
+    await pool.query(
+      `
+      UPDATE students
+      SET gems = gems + ?
+      WHERE pid = ?
+      `,
+      [reward / 2, pid1]
+    );
+
+    await pool.query(
+      `
+      UPDATE students
+      SET gems = gems + ?
+      WHERE pid = ?
+      `,
+      [reward / 2, pid2]
+    );
+  }
+
   await pool.query(`
     INSERT INTO battle_history (pid, opponent_username, victory, reward, end_date)
     VALUES (?, ?, ?, ?, ?)`
-      , [pid1, username2, xp_gained_p1 > xp_gained_p2, reward, end_date]
+      , [pid1, username2, result_p1, reward, end_date]
   );
 
   await pool.query(`
     INSERT INTO battle_history (pid, opponent_username, victory, reward, end_date)
     VALUES (?, ?, ?, ?, ?)`
-      , [pid2, username1, xp_gained_p2 > xp_gained_p1, reward, end_date]
+      , [pid2, username1, result_p2, reward, end_date]
   );
 
   await pool.query(`
@@ -2798,5 +2848,7 @@ async function endBattle(bid) {
   }
 
   sendToUser(pid1, "battle-complete");
+  sendToUser(pid1, "reload-student");
   sendToUser(pid2, "battle-complete");
+  sendToUser(pid2, "reload-student");
 }

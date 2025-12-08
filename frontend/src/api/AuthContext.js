@@ -347,6 +347,8 @@ export function AuthProvider({ children }) {
 
     const [battleHistory, setBattleHistory] = useState([]);
     const [bHistoryLoading, setBHistoryLoading] = useState(false);
+    const [seenBattle, setSeenBattle] = useState(true);
+    const [battlePopup, setBattlePopup] = useState({});
 
     const loadBattleHistory = async () => {
         setBHistoryLoading(true);
@@ -381,8 +383,6 @@ export function AuthProvider({ children }) {
 
     const [battleFound, setBattleFound] = useState(false);
     const [battleData, setBattleData] = useState({});
-    const [seenBattle, setSeenBattle] = useState(false);
-    const [battlePopup, setBattlePopup] = useState({});
 
     const socketRef = useRef(null);
 

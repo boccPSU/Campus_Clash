@@ -14,6 +14,7 @@ import ProfileSettings from "../../newComponents/ProfileSettings/ProfileSettings
 
 function NewProfileScreen() {
     const {studentData, battleHistory, bHistoryLoading} = useAuth();
+    const navigate = useNavigate();
     const {error, setError} = useState("");
 
     const history = battleHistory ?? [];
@@ -45,6 +46,7 @@ function NewProfileScreen() {
                     <div className="profileSection">
                         <Button
                             className="btn-label"
+                            onClick={() => {navigate("/history")}}
                             >
                             <h1 className="profileSectionText">Recent Activity</h1>
                             <ChevronRight/>

@@ -1,0 +1,33 @@
+.history-ctnr {
+    height: 90%;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+}
+
+.history-header {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: row;
+    gap: 0.5rem;
+}
+
+.btn.btn-history-back {
+    color: inherit;
+    background-color: inherit;
+    border: none;
+}
+
+.history-title {
+    font-size: xx-large;
+}
+
+.history-list {
+    width: 100%;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+}
