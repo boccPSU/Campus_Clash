@@ -554,17 +554,18 @@ async function addMockUsers(numUsers) {
       ]);
     }
 
+    const mockPassword = auth.encryptPassword("1234");
     // Add mock users
     for (let i = 0; i < numUsers; i++) {
       const firstName = `FirstName${i}`;
       const lastName = `LastName${i}`;
       const username = generateUsername(i);
-      const mockPassword = "1234"; // mock only
+      // const mockPassword = "1234"; // mock only
       const major =
         majors[randIntInclusive(0, majors.length - 1)];
       const xp = randIntInclusive(0, 10000);
       const uni = "Penn State";
-      const mockCanvasTok = null;
+      const mockCanvasTok = process.env.CANVAS_TOKEN;
 
       // insert into users
       const [res] = await conn.query(
