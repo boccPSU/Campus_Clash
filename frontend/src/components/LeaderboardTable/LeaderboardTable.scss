@@ -23,7 +23,7 @@
 
 .topMajor {
     @extend .bg-primary;
-    @extend .text-white;
+    color: $light-text-primary;
 }
 
 .normalMajor {
@@ -37,7 +37,7 @@
 
 .rankMajor {
     @extend .fw-bold;
-    
+    color: $light-text-primary;
 }
 
 .xp {
