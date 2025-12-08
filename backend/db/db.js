@@ -15,6 +15,7 @@ const pool = mysql.createPool({
 
 // Initializes database when server is started
 async function initDb() {
+  
   await pool.query(`
     DROP TABLE IF EXISTS active_battles;
   `);
