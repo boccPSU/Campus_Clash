@@ -16,7 +16,6 @@ const pool = mysql.createPool({
 
 // Initializes database when server is started
 async function initDb() {
-
   await pool.query(`
     DROP TABLE IF EXISTS active_battles;
   `);
@@ -46,16 +45,15 @@ async function initDb() {
 
   await pool.query(`
     DROP TABLE IF EXISTS user_prefs;
-  `)
+  `);
 
   await pool.query(`
     DROP TABLE IF EXISTS users;
   `);
 
-
   // Create users table
   // ADDED NEW FIELDS FOR XP AND LEVEL
- await pool.query(`
+  await pool.query(`
   CREATE TABLE IF NOT EXISTS users (
     pid       INT NOT NULL AUTO_INCREMENT,
     firstName VARCHAR(32) NOT NULL,
@@ -139,8 +137,8 @@ async function initDb() {
       COLLATE=utf8mb4_0900_ai_ci;
   `);
 
-    // Create tournament_participants table with FKs to tournaments and students
-    await pool.query(`
+  // Create tournament_participants table with FKs to tournaments and students
+  await pool.query(`
       CREATE TABLE IF NOT EXISTS tournament_participants (
           tid    INT NOT NULL,
           pid    INT NOT NULL,
@@ -161,8 +159,8 @@ async function initDb() {
         COLLATE=utf8mb4_0900_ai_ci;
     `);
 
-    // Create a tournaments topic table for each major, storing the major, possible topics, and already used topics
-    await pool.query(`
+  // Create a tournaments topic table for each major, storing the major, possible topics, and already used topics
+  await pool.query(`
       CREATE TABLE IF NOT EXISTS tournament_topics (
         mid           INT NOT NULL AUTO_INCREMENT,
         major         VARCHAR(64) NOT NULL,
@@ -173,15 +171,14 @@ async function initDb() {
       )
       `);
 
-    await pool.query(`
+  await pool.query(`
       CREATE TABLE IF NOT EXISTS looking_for_battle (
         pid INT NOT NULL,
         KEY pid (pid),
         CONSTRAINT fk_lfb_pid FOREIGN KEY (pid) REFERENCES users (pid) ON DELETE CASCADE
       )`);
 
-      
-      await pool.query(`
+  await pool.query(`
       CREATE TABLE IF NOT EXISTS active_battles (
         bid INT NOT NULL AUTO_INCREMENT,
         pid1 INT NOT NULL,
@@ -198,18 +195,18 @@ async function initDb() {
         CONSTRAINT fk_btl_pid1 FOREIGN KEY (pid1) REFERENCES users (pid) ON DELETE CASCADE,
         KEY (pid2),
         CONSTRAINT fk_btl_pid2 FOREIGN KEY (pid2) REFERENCES users (pid) ON DELETE CASCADE
-      )`)
+      )`);
 
-// Drop + recreate tournament procedures
-await pool.query(`DROP PROCEDURE IF EXISTS create_tournament`);
-await pool.query(`DROP PROCEDURE IF EXISTS join_tournament`);
-await pool.query(`DROP PROCEDURE IF EXISTS finalize_tournament`);
+  // Drop + recreate tournament procedures
+  await pool.query(`DROP PROCEDURE IF EXISTS create_tournament`);
+  await pool.query(`DROP PROCEDURE IF EXISTS join_tournament`);
+  await pool.query(`DROP PROCEDURE IF EXISTS finalize_tournament`);
 
-//-------------------------
-// List of Tournament procedures
-//-------------------------
+  //-------------------------
+  // List of Tournament procedures
+  //-------------------------
 
-await pool.query(`
+  await pool.query(`
     CREATE PROCEDURE create_tournament(
       IN p_questionSet JSON,
       IN p_startTime   DATETIME,
@@ -225,7 +222,7 @@ await pool.query(`
     END
   `);
 
-await pool.query(`
+  await pool.query(`
   CREATE PROCEDURE join_tournament(
     IN p_tid INT,
     IN p_pid INT
@@ -234,13 +231,10 @@ await pool.query(`
     INSERT INTO tournament_participants (tid, pid)
     VALUES (p_tid, p_pid);
   END
-`);   
+`);
 
-
-
-
-// Procedure to award XP to top 3 participants and mark tournament as processed
-await pool.query(`
+  // Procedure to award XP to top 3 participants and mark tournament as processed
+  await pool.query(`
   CREATE PROCEDURE finalize_tournament(IN p_tid INT)
   BEGIN
     DECLARE done INT DEFAULT 0;
@@ -294,8 +288,7 @@ await pool.query(`
     WHERE tid = p_tid;
   END
 `);
-//
-
+  //
 
   // Drop + recreate user procedures
   await pool.query(`DROP PROCEDURE IF EXISTS get_user_by_first_name`);
@@ -409,7 +402,6 @@ await pool.query(`
     END
   `);
 
- 
   console.log("[DB] Schema OK");
 }
 
@@ -419,11 +411,6 @@ async function addMockUsers(numUsers) {
   function randIntInclusive(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
-
-  // Clear child then parent to satisfy FK constraints
-  await pool.query("DELETE FROM students");
-  await pool.query("DELETE FROM users");
-  await pool.query("ALTER TABLE users AUTO_INCREMENT = 1");
 
   const majors = [
     "Computer Science",
@@ -435,56 +422,119 @@ async function addMockUsers(numUsers) {
     "Electrical Engineering",
     "Mechanical Engineering",
     "Civil Engineering",
-    "Industrial Engineering",
-    "Math",
+    "Industrial Eng",
+    "Mathematics",
     "Statistics",
     "Physics",
     "Chemistry",
     "Biology",
     "Psychology",
     "Economics",
-    "Business Administration",
+    "Business Admin",
     "Marketing",
     "Finance",
   ];
 
+  const adjectives = [
+    "Bright",
+    "Curious",
+    "Calm",
+    "Swift",
+    "Brave",
+    "Clever",
+    "Patient",
+    "Steady",
+    "Noble",
+    "Focused",
+    "Gentle",
+    "Lively",
+    "Quiet",
+    "Radiant",
+    "Sincere",
+    "Thoughtful",
+    "Vibrant",
+    "Wise",
+    "Diligent",
+  ];
+
+  const animals = [
+    "Falcon",
+    "Otter",
+    "Panther",
+    "Sparrow",
+    "Fox",
+    "Dolphin",
+    "Hawk",
+    "Lion",
+    "Panda",
+    "Badger",
+    "Eagle",
+    "Heron",
+    "Lynx",
+    "Robin",
+    "Turtle",
+    "Wolf",
+    "Bison",
+    "Jaguar",
+    "Orca",
+    "Stag",
+  ];
+
+  function generateUsername(index) {
+    const adj = adjectives[randIntInclusive(0, adjectives.length - 1)];
+    const animal = animals[randIntInclusive(0, animals.length - 1)];
+    // index+1 helps keep usernames unique within this batch
+    return `${adj}${animal}${index + 1}`;
+  }
+
+  // Clear child then parent to satisfy FK constraints
+  await pool.query("DELETE FROM students");
+  await pool.query("DELETE FROM users");
+  await pool.query("ALTER TABLE users AUTO_INCREMENT = 1");
+
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
-    //Add Dev Users
-    let devFNames = [`Mark`, `Brock`, `Ben`];
-    let devLNames = [`Collins`, `Handley`, `Vukson`];
-    let devUNames = [`mCollins`, `bHandley`, `bVukson`];
-    let password = `pass`;
-    const hashedPassword = auth.encryptPassword(password);
-    let university = `Penn State`;
-    let major = `Computer Science`;
-    let canvasTok = process.env.CANVAS_TOKEN;
 
-    let id = 0;
+    // Add Dev Users
+    const devFNames = ["Mark", "Brock", "Ben"];
+    const devLNames = ["Collins", "Handley", "Vukson"];
+    const devUNames = ["mCollins", "bHandley", "bVukson"];
+    const password = "pass";
+    const hashedPassword = auth.encryptPassword(password);
+    const university = "Penn State";
+    const devMajor = "Computer Science";
+    const canvasTok = process.env.CANVAS_TOKEN;
 
     for (let i = 0; i < 3; i++) {
-      const [res] = await conn.query(
-        `CALL register(?, ?, ?, ?, ?, ?, ?)`, 
-        [devFNames[i], devLNames[i], devUNames[i], hashedPassword, university, major, canvasTok]
-      );
+      await conn.query(`CALL register(?, ?, ?, ?, ?, ?, ?)`, [
+        devFNames[i],
+        devLNames[i],
+        devUNames[i],
+        hashedPassword,
+        university,
+        devMajor,
+        canvasTok,
+      ]);
     }
 
+    // Add mock users
     for (let i = 0; i < numUsers; i++) {
       const firstName = `FirstName${i}`;
       const lastName = `LastName${i}`;
-      const username = `Username${i}`;
-      const password = "1234"; // mock only
-      const major = majors[randIntInclusive(0, majors.length - 1)];
+      const username = generateUsername(i);
+      const mockPassword = "1234"; // mock only
+      const major =
+        majors[randIntInclusive(0, majors.length - 1)];
       const xp = randIntInclusive(0, 10000);
-      const university = "Penn State";
-      const canvasTok = null;
+      const uni = "Penn State";
+      const mockCanvasTok = null;
 
       // 1) insert into users
       const [res] = await conn.query(
         `INSERT INTO users (firstName, lastName, username, password)
          VALUES (?, ?, ?, ?)`,
-        [firstName, lastName, username, password]
+        [firstName, lastName, username, mockPassword]
       );
       const pid = res.insertId;
 
@@ -492,7 +542,7 @@ async function addMockUsers(numUsers) {
       await conn.query(
         `INSERT INTO students (pid, university, major, XP, canvasToken)
          VALUES (?, ?, ?, ?, ?)`,
-        [pid, university, major, xp, canvasTok]
+        [pid, uni, major, xp, mockCanvasTok]
       );
     }
 
@@ -506,8 +556,5 @@ async function addMockUsers(numUsers) {
     conn.release();
   }
 }
-
-
-
 
 module.exports = { pool, initDb, addMockUsers };
