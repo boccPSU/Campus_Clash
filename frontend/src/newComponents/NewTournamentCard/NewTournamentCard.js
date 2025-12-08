@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import InfoTile from "../InfoTile/InfoTile";
 import { ChevronDown, ChevronUp, Check, X } from "react-bootstrap-icons";
 
-import {useAuth} from "../../api/AuthContext";
+import { useAuth } from "../../api/AuthContext";
 
 // Const values
 const LEADERBOARD_PREVIEW_COUNT = 3; // How many users on leaderboard are shown before expanding
@@ -30,7 +30,7 @@ function NewTournamentCard({
     tournamentOver = false,
     newTournament = false, // ranked only: true if this finished tournament is the FINAL one (no more rounds)
 }) {
-    const {token} = useAuth();
+    const { token } = useAuth();
 
     const navigate = useNavigate();
 
@@ -119,9 +119,9 @@ function NewTournamentCard({
                         setCanJoin(false);
                     }
                 } catch (e) {
-                        //console.log(
-                        //"[NewTournamentCard] Failed has-joined check. Error:",
-                        //e
+                    //console.log(
+                    //"[NewTournamentCard] Failed has-joined check. Error:",
+                    //e
                     //);
                 }
             }
@@ -142,7 +142,10 @@ function NewTournamentCard({
 
                 const data = await res.json().catch(() => null);
 
-                console.log("[NewTournamentCard] Leaderboard response data:", data);
+                console.log(
+                    "[NewTournamentCard] Leaderboard response data:",
+                    data
+                );
 
                 if (!res.ok || !data?.successful) {
                     //console.log(
@@ -180,10 +183,8 @@ function NewTournamentCard({
     const baseKeepCount = computeKeepCount(totalParticipants);
 
     // FINAL ranked tournament? (tournament ended, ranked, flagged as final)
-    const isFinalRankedTournament =
-        isRanked && tournamentOver && newTournament;
+    const isFinalRankedTournament = isRanked && tournamentOver && newTournament;
 
-    
     let keepCountForStatus = 0;
 
     if (isRanked) {
@@ -275,8 +276,10 @@ function NewTournamentCard({
                     body: JSON.stringify({ tid }),
                 }
             );
-            console.log("[NewTournamentCard] join-tournament response status:", res.status);
-            
+            console.log(
+                "[NewTournamentCard] join-tournament response status:",
+                res.status
+            );
 
             if (!res.ok) {
                 console.error(
@@ -319,10 +322,9 @@ function NewTournamentCard({
             <div className="infoContainer">
                 {/* Tournament topics */}
                 <div className="tournamentInfo">
-                    <span className="tLabel">Topics: </span>
+                    <span className="tLabel">Topics:</span>
                     <span className="tournamentTopics">
-                        {" "}
-                        {topics || "Loading..."}{" "}
+                        &nbsp;{topics || "Loading..."}
                     </span>
                 </div>
 
@@ -399,8 +401,7 @@ function NewTournamentCard({
                         </div>
 
                         {leaderboard &&
-                            leaderboard.length >
-                                LEADERBOARD_PREVIEW_COUNT && (
+                            leaderboard.length > LEADERBOARD_PREVIEW_COUNT && (
                                 <button
                                     type="button"
                                     className="leaderboardToggle"

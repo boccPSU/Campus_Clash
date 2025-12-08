@@ -7,11 +7,17 @@ import ScreenScroll from "../../components/ScreenScroll/ScreenScroll.js";
 import BottomNavBar from "../../newComponents/BottomNavBar/BottomNavBar.js";
 import NewTournamentCard from "../../newComponents/NewTournamentCard/NewTournamentCard.js";
 import XpHeaderBar from "../../newComponents/XpHeaderBar/XpHeaderBar.js";
-
+import MainPopup from "../../newComponents/MainPopup/MainPopup.js";
+import { Gem } from "react-bootstrap-icons";
 import { useAuth } from "../../api/AuthContext";
 
 function NewTournamentScreen() {
-    const { token, studentData, loadBasicStudentData } = useAuth();
+    const { token, studentData, loadBasicStudentData, setStudentData } = useAuth();
+    // Leveling constraints (same as XpHeaderBar)
+    const BASE_XP_PER_LEVEL = 200;
+    const XP_INCREMENT_PER_LEVEL = 100;
+    const GEMS_PER_LEVEL = 50;
+
     // Time variables for tournament refresh
 
     const dailyRefreshTime = 24 * 60 * 60 * 1000;
@@ -38,6 +44,11 @@ function NewTournamentScreen() {
     // Loading a tournament
     const [loadingTournament, setLoadingTournament] = useState(false);
 
+    // Level up info
+    const [lastLevel, setLastLevel] = useState(null);
+    const [showLevelUpPopup, setShowLevelUpPopup] = useState(false);
+    const [justLeveledTo, setJustLeveledTo] = useState(null);
+    const [levelUpGemsAwarded, setLevelUpGemsAwarded] = useState(0);
     // Current tournaments (what cards are showing)
     const [dailyTournament, setDailyTournament] = useState([
         {
@@ -130,13 +141,34 @@ function NewTournamentScreen() {
             }
 
             console.log(
-                `[NewTournamentScreen] Student data refresh burst tick ${count + 1}`
+                `[NewTournamentScreen] Student data refresh burst tick ${
+                    count + 1
+                }`
             );
             loadBasicStudentData();
             count++;
         }, 1000);
 
         studentRefreshIntervalRef.current = id;
+    }
+
+    // Helper function to compute level info based on total xp
+    function computeLevelInfo(totalXp) {
+        let level = 1;
+        let xpRemaining = totalXp;
+        let costForNextLevel = BASE_XP_PER_LEVEL;
+
+        while (xpRemaining >= costForNextLevel) {
+            xpRemaining -= costForNextLevel;
+            level += 1;
+            costForNextLevel += XP_INCREMENT_PER_LEVEL;
+        }
+
+        return {
+            level,
+            currentXp: xpRemaining,
+            xpForNextLevel: costForNextLevel,
+        };
     }
 
     // cleanup burst interval on unmount
@@ -147,6 +179,89 @@ function NewTournamentScreen() {
             }
         };
     }, []);
+
+    // Detect level up when studentData.xp changes
+    useEffect(() => {
+        if (!studentData || typeof studentData.xp !== "number") {
+            return;
+        }
+
+        const totalXp = studentData.xp;
+        const { level } = computeLevelInfo(totalXp);
+
+        const levelKey = studentData.username
+            ? `lastLevel_${studentData.username}`
+            : "lastLevel";
+
+        if (lastLevel === null) {
+            const stored = sessionStorage.getItem(levelKey);
+            const initialLevel = stored ? parseInt(stored, 10) : level;
+            setLastLevel(initialLevel);
+            if (!stored) {
+                sessionStorage.setItem(levelKey, String(initialLevel));
+            }
+            return;
+        }
+
+        if (level <= lastLevel) {
+            return;
+        }
+
+        const levelsGained = level - lastLevel;
+        const gemsToAward = levelsGained * GEMS_PER_LEVEL;
+
+        console.log(
+            `[SCREEN] Level up detected: lastLevel=${lastLevel}, newLevel=${level}, levelsGained=${levelsGained}, gemsToAward=${gemsToAward}`
+        );
+
+        setJustLeveledTo(level);
+        setLevelUpGemsAwarded(gemsToAward);
+        setShowLevelUpPopup(true);
+
+        setLastLevel(level);
+        sessionStorage.setItem(levelKey, String(level));
+
+        (async () => {
+            try {
+                const username = studentData.username;
+                if (!username) {
+                    console.warn("[SCREEN] No username for gem award.");
+                    return;
+                }
+
+                const res = await fetch("http://localhost:5000/api/gems/add", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        username,
+                        amount: gemsToAward,
+                    }),
+                });
+
+                if (!res.ok) {
+                    console.error(
+                        "[SCREEN] Failed to award gems on level up:",
+                        res.status,
+                        res.statusText
+                    );
+                    return;
+                }
+
+                const data = await res.json().catch(() => ({}));
+                console.log("[SCREEN] Gems awarded on level up:", data);
+
+                const prevGems = Number(studentData.gems) || 0;
+                setStudentData({
+                    ...studentData,
+                    gems: prevGems + gemsToAward,
+                });
+            } catch (err) {
+                console.error("[SCREEN] Error awarding gems on level up:", err);
+            }
+        })();
+    }, [studentData, lastLevel, setStudentData]);
 
     // Forces tournament to end early by changing its endTime to now + 10s
     async function forceEndTournament(tid) {
@@ -626,7 +741,7 @@ function NewTournamentScreen() {
                     await createTournamentForType(major, "ranked");
                 }
             } catch (e) {
-            console.log("Failed to create tournaments. Error:", e);
+                console.log("Failed to create tournaments. Error:", e);
             }
         }
 
@@ -867,6 +982,22 @@ function NewTournamentScreen() {
                     <Container className="mainContainer">
                         {/* Progress bar */}
                         <XpHeaderBar />
+
+                        <MainPopup
+                            open={showLevelUpPopup}
+                            title="Congrats, you leveled up!"
+                            type="levelUp"
+                            onClose={() => setShowLevelUpPopup(false)}
+                        >
+                            <p className="mainPopup-message">
+                                You earned{" "}
+                                <span className="levelUpGems">
+                                    {levelUpGemsAwarded}{" "}
+                                    <Gem className="levelUpGemIcon" />
+                                </span>{" "}
+                                for reaching Level {justLeveledTo}.
+                            </p>
+                        </MainPopup>
 
                         {/* Tournament Screen Header */}
                         <div
