@@ -345,8 +345,44 @@ export function AuthProvider({ children }) {
         }
     }, [token]);
 
+    const [battleHistory, setBattleHistory] = useState([]);
+    const [bHistoryLoading, setBHistoryLoading] = useState(false);
+
+    const loadBattleHistory = async () => {
+        setBHistoryLoading(true);
+        try {   
+            const res = await fetch("http://localhost:5000/api/load-battle-history", {
+                headers: {
+                    "Content-Type": "application/json",
+                    "jwt-token": token
+                }, 
+            });
+            if (res.status === 500)
+                throw new Error("[B-History] Error", {
+                    cause: "Could not Connect.",
+                });
+            const bHistoryData =
+                await res.json();
+            if (!res.ok) throw new Error("[B-History] Error", { cause: bHistoryData.error });
+            setBattleHistory(bHistoryData.battleHistory);
+            setBHistoryLoading(false);
+        } catch (err) {
+            console.log(err);
+            setBHistoryLoading(false);
+            return err;
+        }
+    }
+
+    useEffect(() => {
+        if (!token || bHistoryLoading)
+            return;
+        loadBattleHistory();
+    }, [token]);
+
     const [battleFound, setBattleFound] = useState(false);
     const [battleData, setBattleData] = useState({});
+    const [seenBattle, setSeenBattle] = useState(false);
+    const [battlePopup, setBattlePopup] = useState({});
 
     const socketRef = useRef(null);
 
@@ -379,6 +415,12 @@ export function AuthProvider({ children }) {
                     "jwt-token": token,
                 }
             });
+        });
+
+        socketRef.current.on("battle-complete", () => {
+            setBattleFound(false);
+            setBattleData({});
+            loadBattleHistory();
         });
 
         socketRef.current.on("reload-student", () => {
@@ -414,8 +456,12 @@ export function AuthProvider({ children }) {
                 coursesLoading,
                 alertsLoading,
                 canvasError,
+                battleHistory,
+                bHistoryLoading,
                 battleFound,
                 battleData,
+                seenBattle,
+                battlePopup,
             }}
         >
             {children}

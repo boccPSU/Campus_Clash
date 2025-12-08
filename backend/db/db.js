@@ -17,6 +17,14 @@ const pool = mysql.createPool({
 // Initializes database when server is started
 async function initDb() {
   await pool.query(`
+    DROP TABLE IF EXISTS battle_history
+  `);
+
+  await pool.query(`
+    DROP TABLE IF EXISTS tournament_history
+  `);
+
+  await pool.query(`
     DROP TABLE IF EXISTS active_battles;
   `);
 
@@ -195,6 +203,30 @@ async function initDb() {
         CONSTRAINT fk_btl_pid1 FOREIGN KEY (pid1) REFERENCES users (pid) ON DELETE CASCADE,
         KEY (pid2),
         CONSTRAINT fk_btl_pid2 FOREIGN KEY (pid2) REFERENCES users (pid) ON DELETE CASCADE
+      )`);
+
+  await pool.query(`
+      CREATE TABLE IF NOT EXISTS battle_history (
+        pid INT NOT NULL,
+        opponent_username VARCHAR(32) NOT NULL,
+        victory BOOLEAN NOT NULL,
+        reward INT NOT NULL DEFAULT 1000,
+        end_date DATE NOT NULL DEFAULT (CURRENT_DATE()),
+        seen_popup BOOLEAN NOT NULL DEFAULT FALSE,
+        KEY (pid),
+        CONSTRAINT fk_btl_hist_pid FOREIGN KEY (pid) REFERENCES users (pid) ON DELETE CASCADE
+      )`);
+
+  await pool.query(`
+      CREATE TABLE IF NOT EXISTS tournament_history (
+        pid INT NOT NULL,
+        tournament_name VARCHAR(128) NOT NULL,
+        placement INT NOT NULL,
+        reward INT NOT NULL DEFAULT 1000,
+        end_date DATE NOT NULL DEFAULT (CURRENT_DATE()),
+        seen_popup BOOLEAN NOT NULL DEFAULT FALSE,
+        KEY (pid),
+        CONSTRAINT fk_tmt_hist_pid FOREIGN KEY (pid) REFERENCES users (pid) ON DELETE CASCADE
       )`);
 
   // Drop + recreate tournament procedures

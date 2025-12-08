@@ -55,15 +55,8 @@ io.on("connection", async (socket) => {
   const bid = battles.get(socket.user);
   if (bid) {
     await joinUserRoom(socket.user, bid);
-    const [battleResults] = await pool.query(
-      `SELECT * FROM active_battles
-      WHERE bid = ?`,
-        [bid]
-    );
 
-    battleData = battleResults[0];
-
-    sendToRoom(bid, "battle-data", battleData);
+    sendToRoom(bid, "reload-battle");
   }
 
   io.on("disconnect", () => {
@@ -673,7 +666,13 @@ app.get("/api/load-battle", async (req, res) => {
 
     const battleData = results[0];
 
-    joinUserRoom(pid, battleData.bid);
+    const {end_date} = battleData;
+    if (Date(end_date) < Date.now()) {
+
+      return res.status(201).json({successful: true});
+    }
+
+    await joinUserRoom(pid, battleData.bid);
 
     sendToRoom(battleData.bid, "battle-data", battleData);
 
@@ -721,6 +720,40 @@ app.post("/api/add-wager", async (req, res) => {
     return res.status(500).json({error: err});
   }
 });
+
+app.get("/api/load-battle-history", async (req, res) => {
+  const token = req.headers["jwt-token"];
+  if (!token) {
+    return res.status(401).json({ error: "Unauthorized: missing token" });
+  }
+  const {pid} = decryptToken(token);
+
+  try {
+    const [results] = await pool.query(`
+      SELECT * FROM battle_history
+      WHERE pid = ?`
+    ,[pid]);
+
+    return res.status(201).json({battleHistory: results});
+  } catch (err) {
+    return res.status(500).json({error: "/load-battle-history error"});
+  }
+});
+
+app.get("/api/force-end-battle", async (req, res) => {
+  const token = req.headers["jwt-token"];
+  if (!token) {
+    return res.status(401).json({ error: "Unauthorized: missing token" });
+  }
+  const {pid} = decryptToken(token);
+
+  const bid = battles.get(pid);
+  if (bid) {
+    await endBattle(bid);
+  }
+
+  return res.status(201).json({successful: true});
+})
 
 // POST /api/auth
 app.post("/api/auth", (req, res) => {
@@ -2689,3 +2722,55 @@ app.post("/api/tournament/change-endtime", async (req, res) => {
       .json({ successful: false, error: "Internal server error" });
   }
 });
+
+async function endBattle(bid) {
+  const [results] = await pool.query(`
+      SELECT * FROM active_battles
+      WHERE bid = ?;`
+    , [bid]);
+
+  if (results.length === 0) 
+    return;
+
+  const battleData = results[0];
+
+  const {
+    pid1,
+    pid2,
+    username1,
+    username2,
+    xp_gained_p1,
+    xp_gained_p2,
+    reward,
+    end_date
+  } = battleData
+  console.log(`Battle ${bid} has ended.`);
+
+  await pool.query(`
+    INSERT INTO battle_history (pid, opponent_username, victory, reward, end_date)
+    VALUES (?, ?, ?, ?, ?)`
+      , [pid1, username2, xp_gained_p1 > xp_gained_p2, reward, end_date]
+  );
+
+  await pool.query(`
+    INSERT INTO battle_history (pid, opponent_username, victory, reward, end_date)
+    VALUES (?, ?, ?, ?, ?)`
+      , [pid2, username1, xp_gained_p2 > xp_gained_p1, reward, end_date]
+  );
+
+  await pool.query(`
+    DELETE FROM active_battles
+    WHERE bid = ?`
+      , [bid]
+  );
+
+  for (const [userId, bid] of battles.entries()) {
+    if (bid === bid) {
+      battles.delete(userId);
+      break;
+    }
+  }
+
+  sendToUser(pid1, "battle-complete");
+  sendToUser(pid2, "battle-complete");
+}

@@ -8,11 +8,28 @@ import { useAuth } from "../../api/AuthContext";
 
 function BattleScreen() {
 
-    const {token, studentData, battleFound, battleData} = useAuth();
+    const {token, studentData, battleFound, battleData, socketRef} = useAuth();
     const [isLoading, setLoading] = useState(false);
     const [wagerAmount, setWagerAmount] = useState(0);
 
     const battleFoundRef = useRef(battleFound);
+
+    const  handleKeyDown = (b) => {
+        console.log("B Key");
+        if (battleFound)
+            console.log("Ending Battle");
+            fetch("http://localhost:5000/api/force-end-battle", {
+                headers: {
+                    "Content-Type": "applcation/json",
+                    "jwt-token": token
+                }
+            });
+    };
+
+    useEffect(() => {
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [])
 
     useEffect(() => {
         if (isLoading) {
@@ -42,6 +59,7 @@ function BattleScreen() {
             } = data;
 
             if (!successful) {
+                setPage("search");
                 return;
             }
 
@@ -135,6 +153,8 @@ function BattleScreen() {
         battleFoundRef.current = battleFound;
         if (battleFound) {
             setPage("found");
+        } else {
+            initialLoad();
         }
     }, [battleFound]);
 

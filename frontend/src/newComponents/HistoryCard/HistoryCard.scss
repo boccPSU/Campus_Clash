@@ -1,0 +1,44 @@
+@use "../../css/tokens.scss" as *;
+
+.historyCard {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+
+    background-color: $light-secondary;
+
+    .history-text {
+        font-size: small;
+        color: $light-text-primary;
+
+    }
+    &--won {
+        color: $secondary;
+    }
+    &--lost {
+        color: $red;
+    }
+}
+
+// Dark Mode
+body.dark-mode .historyCard {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+
+    background-color: $dark-secondary;
+
+    .history-text {
+        font-size: small;
+        color: $dark-text-primary;
+
+    }
+    .history_won {
+        font-size: small;
+        color: $secondary;
+    }
+    .history_lost {
+        font-size: small;
+        color: $red;
+    }
+}

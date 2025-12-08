@@ -3,6 +3,7 @@ import {Button, Spinner } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 
 import InfoTile from "../../newComponents/InfoTile/InfoTile.js";
+import HistoryCard from "../../newComponents/HistoryCard/HistoryCard.js";
 
 import { PersonCircle, ChevronRight} from "react-bootstrap-icons";
 import BaseScreen from "../BaseScreen/BaseScreen.js";
@@ -12,7 +13,14 @@ import LogoutButton from "../../components/LogoutButton/LogoutButton.js";
 import ProfileSettings from "../../newComponents/ProfileSettings/ProfileSettings.js";
 
 function NewProfileScreen() {
-    const {studentData} = useAuth();
+    const {studentData, battleHistory, bHistoryLoading} = useAuth();
+    const {error, setError} = useState("");
+
+    const history = battleHistory ?? [];
+
+    const visibleHistory = history.slice(0, 3);
+
+    console.log(history);
 
     return (
         <>
@@ -43,9 +51,13 @@ function NewProfileScreen() {
                         </Button>
 
                         <div className="profileRecentActivity">
-                            <InfoTile>
-
-                            </InfoTile>
+                            {!bHistoryLoading &&
+                            !error &&
+                            visibleHistory.map((c, i) => (
+                                <InfoTile key={i}>
+                                    <HistoryCard {...c} />
+                                </InfoTile>
+                            ))}
                         </div>
                     </div>
                     <div className="profileSection">
