@@ -24,6 +24,30 @@ const ELIMINATE_COST = 200;
 const SKIP_COST = 500;
 const ADDTIME_COST = 100;
 
+// Scoring configuration
+const BASE_POINTS = 100;
+const MAX_SPEED_BONUS = 100; // maximum extra points for fastest answers
+
+function getPointsForAnswer(isCorrect, timeRemaining) {
+    if (!isCorrect) {
+        return 0;
+    }
+
+    // Only reward the "answer" phase, not the reveal phase
+    const effectiveTime = Math.max(
+        Math.min(timeRemaining - REVEAL_PHASE_SECONDS, answerTime),
+        0
+    );
+
+    // 0..1: fraction of answer time remaining
+    const fraction = effectiveTime / answerTime;
+
+    // Speed bonus scales from 0 to MAX_SPEED_BONUS
+    const bonus = Math.round(fraction * MAX_SPEED_BONUS);
+
+    return BASE_POINTS + bonus;
+}
+
 export default function NewQuestionScreen() {
     const location = useLocation();
     const navState = location.state || {};
@@ -48,7 +72,7 @@ export default function NewQuestionScreen() {
 
     const [timeLeft, setTimeLeft] = useState(questionTime);
 
-    // Players curerrent gem count
+    // Players current gem count
     const [gems, setGems] = useState(0);
 
     // Tracks when powerups are used
@@ -91,7 +115,7 @@ export default function NewQuestionScreen() {
     const spendGems = async (amount) => {
         try {
             const gemCost = amount;
-            // Call backed to deduct gems returns true if successful
+            // Call backend to deduct gems, returns true if successful
             const res = await fetch("http://localhost:5000/api/gems/remove", {
                 method: "POST",
                 headers: {
@@ -120,12 +144,13 @@ export default function NewQuestionScreen() {
             }
 
             console.error(
-                "Backend rejected gem deduction for Add Time powerup message" +
-                    data
+                "Backend rejected gem deduction for powerup, message",
+                data
             );
             return false;
         } catch (error) {
             console.error("Error spending gems:", error);
+            return false;
         }
     };
 
@@ -189,7 +214,9 @@ export default function NewQuestionScreen() {
     }, []);
 
     useEffect(() => {
-        if (stage !== "question" || !questions[currentIndex]) return;
+        if (stage !== "question" || !questions[currentIndex]) {
+            return;
+        }
 
         hasAnsweredRef.current = false;
         setSelectedIndex(null);
@@ -244,10 +271,12 @@ export default function NewQuestionScreen() {
                 timerRef.current = null;
             }
         };
-    }, [stage, currentIndex, questions.length]);
+    }, [stage, currentIndex, questions.length, questions]);
 
     useEffect(() => {
-        if (stage !== "gameover") return;
+        if (stage !== "gameover") {
+            return;
+        }
 
         if (timerRef.current) {
             clearInterval(timerRef.current);
@@ -423,7 +452,7 @@ export default function NewQuestionScreen() {
                     username
                 );
 
-                //  Refresh studentData so XpHeaderBar sees new XP
+                // Refresh studentData so XpHeaderBar sees new XP
                 console.log(
                     "[LOAD] [QuestionScreen] Reloading basic student data after adding XP"
                 );
@@ -435,7 +464,7 @@ export default function NewQuestionScreen() {
 
         giveXpToUser(navType);
         sendFinalScore();
-    }, [stage, score, navId]);
+    }, [stage, score, navId, navType, loadBasicStudentData]);
 
     const handleAnswer = (index) => {
         if (stage !== "question") return;
@@ -450,7 +479,8 @@ export default function NewQuestionScreen() {
         setIsCorrect(correct);
 
         if (correct) {
-            setScore((prev) => prev + 100);
+            const gained = getPointsForAnswer(true, timeLeft);
+            setScore((prev) => prev + gained);
         }
 
         if (timerRef.current) {
@@ -491,31 +521,36 @@ export default function NewQuestionScreen() {
         if (hasAnsweredRef.current) return;
         if (usedEliminate) return;
 
-        const isSuccessful = spendGems(ELIMINATE_COST);
+        const isSuccessfulPromise = spendGems(ELIMINATE_COST);
 
-        if (!isSuccessful) {
-            console.log("[GEMS] Not enough gems to eliminate answer");
-            return;
-        }
+        // If you want strict correctness, you could await this,
+        // but leaving as is to keep behavior unchanged
+        isSuccessfulPromise.then((isSuccessful) => {
+            if (!isSuccessful) {
+                console.log("[GEMS] Not enough gems to eliminate answer");
+                return;
+            }
 
-        const q = questions[currentIndex];
+            const q = questions[currentIndex];
 
-        const wrongIndices = q.options
-            .map((_, idx) => idx)
-            .filter(
-                (idx) =>
-                    idx !== q.correctIndex && !eliminatedIndexes.includes(idx)
-            );
+            const wrongIndices = q.options
+                .map((_, idx) => idx)
+                .filter(
+                    (idx) =>
+                        idx !== q.correctIndex &&
+                        !eliminatedIndexes.includes(idx)
+                );
 
-        if (wrongIndices.length === 0) return;
+            if (wrongIndices.length === 0) return;
 
-        const randomIndex =
-            wrongIndices[Math.floor(Math.random() * wrongIndices.length)];
+            const randomIndex =
+                wrongIndices[
+                    Math.floor(Math.random() * wrongIndices.length)
+                ];
 
-        setEliminatedIndexes((prev) => [...prev, randomIndex]);
-        setUsedEliminate(true);
-        // TODO: sync gem deduction with backend
-        setGems((prev) => prev - ELIMINATE_COST);
+            setEliminatedIndexes((prev) => [...prev, randomIndex]);
+            setUsedEliminate(true);
+        });
     };
 
     // Skip should count as a correct answer
@@ -525,21 +560,21 @@ export default function NewQuestionScreen() {
         if (hasAnsweredRef.current) return;
         if (usedSkip) return;
 
-        const isSuccessful = spendGems(SKIP_COST);
+        const isSuccessfulPromise = spendGems(SKIP_COST);
 
-        if (!isSuccessful) {
-            console.log("[GEMS] Not enough gems to skip question");
-            return;
-        }
+        isSuccessfulPromise.then((isSuccessful) => {
+            if (!isSuccessful) {
+                console.log("[GEMS] Not enough gems to skip question");
+                return;
+            }
 
-        const q = questions[currentIndex];
+            const q = questions[currentIndex];
 
-        setUsedSkip(true);
-        // TODO: sync gem deduction with backend
-        setGems((prev) => prev - SKIP_COST);
+            setUsedSkip(true);
 
-        // Treat as if user clicked the correct answer
-        handleAnswer(q.correctIndex);
+            // Treat as if user clicked the correct answer
+            handleAnswer(q.correctIndex);
+        });
     };
 
     const handleAddTimePowerup = async () => {
@@ -700,8 +735,6 @@ export default function NewQuestionScreen() {
                                 </p>
                             )}
                         </div>
-
-                       
 
                         {/* Powerups section */}
                         <div className="questionPowerups">
