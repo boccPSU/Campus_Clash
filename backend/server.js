@@ -35,6 +35,7 @@ const io = socketIO(server, {
 });
 
 const users = new Map();
+const battles = new Map();
 
 io.use((socket, next) => {
   const token = socket.handshake.auth.token;
@@ -50,16 +51,23 @@ io.use((socket, next) => {
   }
 });
 
-io.on("connection", (socket) => {
+io.on("connection", async (socket) => {
+  const bid = battles.get(socket.user);
+  if (bid) {
+    await joinUserRoom(socket.user, bid);
+    const [battleResults] = await pool.query(
+      `SELECT * FROM active_battles
+      WHERE bid = ?`,
+        [bid]
+    );
 
+    battleData = battleResults[0];
 
-  io.on("join-battle", (bid) => {
-    socket.join(bid);
-    console.log(`User ${username} joined battle room ${bid}`);
-  })
+    sendToRoom(bid, "battle-data", battleData);
+  }
 
   io.on("disconnect", () => {
-    console.log(`User ${pid} authenticated on ${socket.id}`);
+    console.log(`User ${socket.user} authenticated on ${socket.id}`);
 
     for (const [userId, socketId] of users.entries()) {
       if (socketId === socket.id) {
@@ -445,6 +453,23 @@ app.post("/api/receive-xp", async (req, res) => {
       [reward, studentRow.pid]
     );
 
+    const bid = battles.get(studentRow.pid);
+    if (bid) {
+      await pool.query(
+        `UPDATE active_battles
+          SET xp_gained_p1 = xp_gained_p1 + ?
+          WHERE pid1 = ?`,
+        [reward, studentRow.pid]
+      );
+
+      await pool.query(
+        `UPDATE active_battles
+          SET xp_gained_p2 = xp_gained_p2 + ?
+          WHERE pid2 = ?`,
+        [reward, studentRow.pid]
+      );
+      sendToRoom(bid, "reload-battle");
+  }
     console.log(
       "[BACKEND] Added",
       reward,
@@ -557,9 +582,9 @@ app.get("/api/find-battle", async (req, res) => {
     }
     
     await pool.query(
-      `INSERT INTO active_battles (pid1, starting_xp_p1, pid2, starting_xp_p2)
+      `INSERT INTO active_battles (pid1, username1, pid2, username2)
         VALUES (?, ?, ?, ?)`,
-        [pid, selfData.xp, oppPid, oppData.xp]
+        [pid, selfData.username, oppPid, oppData.username]
     );
 
     await pool.query(
@@ -568,10 +593,22 @@ app.get("/api/find-battle", async (req, res) => {
         [pid, oppPid]
     );
 
-    //Notify Players
-    sendToUser(oppPid, "battle-found", {username: selfData.username, xp: selfData.xp});
+    const [battleResults] = await pool.query(
+      `SELECT * FROM active_battles
+      WHERE pid1 = ? OR pid2 = ?`,
+        [pid, pid]
+    );
 
-    return res.status(201).json({opponent: oppData});
+    battleData = battleResults[0];
+
+    // //Notify Players
+
+    await joinUserRoom(pid, battleData.bid);
+    await joinUserRoom(oppPid, battleData.bid);
+
+    sendToRoom(battleData.bid, "battle-data", battleData);
+
+    return res.status(201).json({successful: true});
 
   } catch (err) {
     console.log("[Find-Battle] Error: ", err);
@@ -636,7 +673,13 @@ app.get("/api/load-battle", async (req, res) => {
 
     const battleData = results[0];
 
-    return res.status(201).json({battleData});
+    console.log(battleData);
+
+    joinUserRoom(pid, battleData.bid);
+
+    sendToRoom(battleData.bid, "battle-data", battleData);
+
+    return res.status(201).json({successful: true});
   } catch (err) {
     return res.status(500).json({error: err});
   }
@@ -2550,6 +2593,24 @@ function sendToUser(userId, eventName, payload) {
   } else {
     console.log(`User ${userId} is not connected.`);
   }
+}
+
+async function joinUserRoom(userId, roomId) {
+  const targetSocketId = users.get(userId);
+  const sockets = await io.fetchSockets();
+  const targetSocket = sockets.find(s => s.id === targetSocketId);
+  
+  if (targetSocket) {
+    battles.set(userId, roomId);
+    targetSocket.join(roomId);
+    console.log(`User ${userId} joined room ${roomId}`);
+  } else {
+    console.log(`User ${userId} is not connected.`);
+  }
+}
+
+function sendToRoom(roomId, eventName, payload) {
+  io.to(roomId).emit(eventName, payload);
 }
 // Endpoint to change the endtime of a tournament
 app.post("/api/tournament/change-endtime", async (req, res) => {

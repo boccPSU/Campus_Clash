@@ -8,10 +8,12 @@ import { useAuth } from "../../api/AuthContext";
 
 function BattleScreen() {
 
-    const {token, studentData, oppFound, oppData} = useAuth();
+    const {token, studentData, battleFound, battleData} = useAuth();
     const [isLoading, setLoading] = useState(false);
 
     const [opponentData, setOpponentData] = useState({});
+    const [rewardData, setRewardData] = useState(0);
+    const [timer, setTimer] = useState(0);
 
     useEffect(() => {
         if (isLoading) {
@@ -21,8 +23,7 @@ function BattleScreen() {
     //States are loading, search, looking, found, results
     const [page, setPage] = useState("search");
 
-    const initalLoad = async () => {
-        setLoading(true);
+    const initialLoad = async () => {
         try {
             const res = await fetch("http://localhost:5000/api/load-battle", {
                 method: "get",
@@ -39,22 +40,26 @@ function BattleScreen() {
 
             const {
                 successful,
-                pid1,
-                pid2,
-                starting_xp_p1,
-                starting_xp_p2,
-                start_time,
-                end_time,
-                reward,
             } = data;
+
+            if (!successful) {
+                return;
+            }
 
         } catch (err) {
 
         }
     }
 
+    useEffect(() => {
+        if (!battleFound) {
+            initialLoad();
+        } else {
+            setPage("found");
+        }
+    }, []);
+
     const beginSearch = async () => {
-        setLoading(true);
         try {
             const res = await fetch("http://localhost:5000/api/find-battle", {
                 method: "get",
@@ -69,20 +74,12 @@ function BattleScreen() {
             const data = await res.json();
             if (!res.ok)
                 throw new Error("[BATTLE] Error", {cause: data.error});
-            if (data.opponent) {
-                setOpponentData(data.opponent);
-                setPage("found");
-                setLoading(false);
-                return;
-            } else {
+            console.log(battleFound);
+            if (!battleFound)
                 setPage("looking");
-                setLoading(false);
-                return;
-            }
         } catch (err) {
             console.error(err);
             setPage("search");
-            setLoading(false);
         }
     }
 
@@ -114,17 +111,11 @@ function BattleScreen() {
     }
 
     useEffect(() => {
-        console.log("OppFound Changed Values: ", oppFound);
-        if (oppFound) {
-            setOpponentData(oppData);
-            console.log(opponentData);
+        console.log("Battle Found Changed Values: ", battleFound);
+        if (battleFound) {
             setPage("found");
         }
-    }, [oppFound]);
-
-    const loadOpponent = async (username) => {
-
-    }
+    }, [battleFound]);
 
     const renderPage = () => {
         if (page === "loading") {
@@ -207,10 +198,10 @@ function BattleScreen() {
                             <PersonCircle/>
                         </div>
                         
-                        <h1 className="username">{studentData?.username || "Scholar"}</h1>
+                        <h1 className="username">{battleData?.username1 || "Scholar"}</h1>
                         <div className="xp-container">
                             <h1 className="xp-gained">XP Gained:</h1>
-                            <h1 className="xp-gained">{"0"}</h1>
+                            <h1 className="xp-gained">{battleData?.xp_gained_p1 || 0}</h1>
                         </div>
                     </div>
                     <h1>vs.</h1>
@@ -218,10 +209,10 @@ function BattleScreen() {
                         <div className="icon">
                             <PersonCircle/>
                         </div>
-                        <h1 className="username">{opponentData?.username || "Opponent"}</h1>
+                        <h1 className="username">{battleData?.username2 || "Opponent"}</h1>
                         <div className="xp-container">
                             <h1 className="xp-gained">XP Gained:</h1>
-                            <h1 className="xp-gained">{"0"}</h1>
+                            <h1 className="xp-gained">{battleData?.xp_gained_p2 || 0}</h1>
                         </div>
                     </div>
                 </div>

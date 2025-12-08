@@ -295,22 +295,7 @@ export function AuthProvider({ children }) {
         }
     };
 
-    useEffect(() => {
-        if (token && !studentDataLoading && !isStudentDataFilled()) {
-            console.log(
-                "[AUTH] Token changed or student data missing, loading student data."
-            );
-            loadStudentData();
-        }
-        if (token && !isLoadingUserPrefs) {
-            console.log(
-                "[AUTH] Missing User Prefs. Starting load."
-            );
-            loadUserPrefs();
-        }
-    }, [token]);
-
-    const isStudentDataFilled = () => {
+        const isStudentDataFilled = () => {
         const requiredKeys = [
             "firstName",
             "lastName",
@@ -345,8 +330,23 @@ export function AuthProvider({ children }) {
         return true;
     };
 
-    const [oppFound, setOppFound] = useState(false);
-    const [oppData, setOppData] = useState({});
+    useEffect(() => {
+        if (token && !studentDataLoading && !isStudentDataFilled()) {
+            console.log(
+                "[AUTH] Token changed or student data missing, loading student data."
+            );
+            loadStudentData();
+        }
+        if (token && !isLoadingUserPrefs) {
+            console.log(
+                "[AUTH] Missing User Prefs. Starting load."
+            );
+            loadUserPrefs();
+        }
+    }, [token]);
+
+    const [battleFound, setBattleFound] = useState(false);
+    const [battleData, setBattleData] = useState({});
 
     const socketRef = useRef(null);
 
@@ -363,11 +363,22 @@ export function AuthProvider({ children }) {
             console.log("Connected to Socket");
         });
 
-        socketRef.current.on("battle-found", (payload) => {
+        socketRef.current.on("battle-data", (payload) => {
             console.log("Battle found!");
-            console.log("Opponent: ", payload);
-            setOppData(payload);
-            setOppFound(true);
+            console.log("Battle: ", payload);
+
+            setBattleData(payload);
+            setBattleFound(true);
+        });
+
+        socketRef.current.on("reload-battle", () => {
+            fetch("http://localhost:5000/api/load-battle", {
+                method: "get",
+                headers: {
+                    "Content-Type": "application/json",
+                    "jwt-token": token,
+                }
+            });
         });
 
         return () => {
@@ -399,8 +410,8 @@ export function AuthProvider({ children }) {
                 coursesLoading,
                 alertsLoading,
                 canvasError,
-                oppFound,
-                oppData,
+                battleFound,
+                battleData,
             }}
         >
             {children}
