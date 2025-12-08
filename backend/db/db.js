@@ -411,11 +411,6 @@ async function addMockUsers(numUsers) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
 
-  // Clear child then parent to satisfy FK constraints
-  await pool.query("DELETE FROM students");
-  await pool.query("DELETE FROM users");
-  await pool.query("ALTER TABLE users AUTO_INCREMENT = 1");
-
   const majors = [
     "Computer Science",
     "Software Engineering",
@@ -439,48 +434,106 @@ async function addMockUsers(numUsers) {
     "Finance",
   ];
 
+  const adjectives = [
+    "Bright",
+    "Curious",
+    "Calm",
+    "Swift",
+    "Brave",
+    "Clever",
+    "Patient",
+    "Steady",
+    "Noble",
+    "Focused",
+    "Gentle",
+    "Lively",
+    "Quiet",
+    "Radiant",
+    "Sincere",
+    "Thoughtful",
+    "Vibrant",
+    "Wise",
+    "Diligent",
+  ];
+
+  const animals = [
+    "Falcon",
+    "Otter",
+    "Panther",
+    "Sparrow",
+    "Fox",
+    "Dolphin",
+    "Hawk",
+    "Lion",
+    "Panda",
+    "Badger",
+    "Eagle",
+    "Heron",
+    "Lynx",
+    "Robin",
+    "Turtle",
+    "Wolf",
+    "Bison",
+    "Jaguar",
+    "Orca",
+    "Stag",
+  ];
+
+  function generateUsername(index) {
+    const adj = adjectives[randIntInclusive(0, adjectives.length - 1)];
+    const animal = animals[randIntInclusive(0, animals.length - 1)];
+    // index+1 helps keep usernames unique within this batch
+    return `${adj}${animal}${index + 1}`;
+  }
+
+  // Clear child then parent to satisfy FK constraints
+  await pool.query("DELETE FROM students");
+  await pool.query("DELETE FROM users");
+  await pool.query("ALTER TABLE users AUTO_INCREMENT = 1");
+
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
-    //Add Dev Users
-    let devFNames = [`Mark`, `Brock`, `Ben`];
-    let devLNames = [`Collins`, `Handley`, `Vukson`];
-    let devUNames = [`mCollins`, `bHandley`, `bVukson`];
-    let password = `pass`;
-    const hashedPassword = auth.encryptPassword(password);
-    let university = `Penn State`;
-    let major = `Computer Science`;
-    let canvasTok = process.env.CANVAS_TOKEN;
 
-    let id = 0;
+    // Add Dev Users
+    const devFNames = ["Mark", "Brock", "Ben"];
+    const devLNames = ["Collins", "Handley", "Vukson"];
+    const devUNames = ["mCollins", "bHandley", "bVukson"];
+    const password = "pass";
+    const hashedPassword = auth.encryptPassword(password);
+    const university = "Penn State";
+    const devMajor = "Computer Science";
+    const canvasTok = process.env.CANVAS_TOKEN;
 
     for (let i = 0; i < 3; i++) {
-      const [res] = await conn.query(`CALL register(?, ?, ?, ?, ?, ?, ?)`, [
+      await conn.query(`CALL register(?, ?, ?, ?, ?, ?, ?)`, [
         devFNames[i],
         devLNames[i],
         devUNames[i],
         hashedPassword,
         university,
-        major,
+        devMajor,
         canvasTok,
       ]);
     }
 
+    // Add mock users
     for (let i = 0; i < numUsers; i++) {
       const firstName = `FirstName${i}`;
       const lastName = `LastName${i}`;
-      const username = `Username${i}`;
-      const password = "1234"; // mock only
-      const major = majors[randIntInclusive(0, majors.length - 1)];
+      const username = generateUsername(i);
+      const mockPassword = "1234"; // mock only
+      const major =
+        majors[randIntInclusive(0, majors.length - 1)];
       const xp = randIntInclusive(0, 10000);
-      const university = "Penn State";
-      const canvasTok = null;
+      const uni = "Penn State";
+      const mockCanvasTok = null;
 
       // 1) insert into users
       const [res] = await conn.query(
         `INSERT INTO users (firstName, lastName, username, password)
          VALUES (?, ?, ?, ?)`,
-        [firstName, lastName, username, password]
+        [firstName, lastName, username, mockPassword]
       );
       const pid = res.insertId;
 
@@ -488,7 +541,7 @@ async function addMockUsers(numUsers) {
       await conn.query(
         `INSERT INTO students (pid, university, major, XP, canvasToken)
          VALUES (?, ?, ?, ?, ?)`,
-        [pid, university, major, xp, canvasTok]
+        [pid, uni, major, xp, mockCanvasTok]
       );
     }
 
