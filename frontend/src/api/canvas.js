@@ -1,6 +1,5 @@
 import { computeGPAEqualCredits, percentToLetter } from "../utils/gpa";
 
-
 // Hardcoded semester start (edit this date as needed)
 const SEMESTER_START = new Date("2025-01-10T00:00:00Z"); // Fall 2025
 
@@ -31,47 +30,46 @@ function toQuery(params) {
 }
 
 export async function loadCourses(token) {
-          try {
-              global.token = token;
+    try {
+        global.token = token;
 
-              // 1) Fetch filtered + deduped courses for THIS semester that HAVE grades.
-              //    Shape: [{ id, name, percent(number|null), grade(string|null), created_at }, ...]
-              const raw = await getMySemesterCoursesWithGrades();
-  
-              // 2) Compute GPA from RAW values (use precise percent if present)
-              const nextGpa = computeGPAEqualCredits(
-                  raw.map((c) => ({ grade: c.grade, percent: c.percent }))
-              );
-  
-              // 3) Normalize for display:
-              //    - Round percent only for the bar label (keep undefined if missing)
-              //    - Always show a letter: Canvas letter OR derived from percent; if neither → "—"
-              const normalizedForUI = raw.map((c) => {
-                  const rawPercent =
-                      typeof c.percent === "number" ? c.percent : null;
-                  const roundedPercent =
-                      rawPercent !== null ? Math.round(rawPercent) : undefined;
-                  const letter = c.grade || percentToLetter(rawPercent) || "—";
-                  return {
-                      id: c.id,
-                      name: c.name ?? `Course ${c.id}`,
-                      percent: roundedPercent, // integer for the bar
-                      grade: letter,
-                  };
-              });
+        // 1) Fetch filtered + deduped courses for THIS semester that HAVE grades.
+        //    Shape: [{ id, name, percent(number|null), grade(string|null), created_at }, ...]
+        const raw = await getMySemesterCoursesWithGrades();
 
-              const courseData = {
-                gpa: nextGpa,
-                courses: normalizedForUI
-              }
+        // 2) Compute GPA from RAW values (use precise percent if present)
+        const nextGpa = computeGPAEqualCredits(
+            raw.map((c) => ({ grade: c.grade, percent: c.percent }))
+        );
 
-              console.log("[CANVAS] Course Data Post-Course Load: ", courseData);
+        // 3) Normalize for display:
+        //    - Round percent only for the bar label (keep undefined if missing)
+        //    - Always show a letter: Canvas letter OR derived from percent; if neither → "—"
+        const normalizedForUI = raw.map((c) => {
+            const rawPercent = typeof c.percent === "number" ? c.percent : null;
+            const roundedPercent =
+                rawPercent !== null ? Math.round(rawPercent) : undefined;
+            const letter = c.grade || percentToLetter(rawPercent) || "—";
+            return {
+                id: c.id,
+                name: c.name ?? `Course ${c.id}`,
+                percent: roundedPercent, // integer for the bar
+                grade: letter,
+            };
+        });
 
-              return courseData;
-          } catch (e) {
-              console.error("[CANVAS] Failed to load Canvas data:", e);
-              return {courseError: e};
-          }
+        const courseData = {
+            gpa: nextGpa,
+            courses: normalizedForUI,
+        };
+
+        console.log("[CANVAS] Course Data Post-Course Load: ", courseData);
+
+        return courseData;
+    } catch (e) {
+        console.error("[CANVAS] Failed to load Canvas data:", e);
+        return { courseError: e };
+    }
 }
 
 export async function loadAlerts(token) {
@@ -81,17 +79,17 @@ export async function loadAlerts(token) {
             daysAhead: 14,
         });
         const alertData = {
-          alerts: upcoming
-        }
+            alerts: upcoming,
+        };
 
         console.log("[CANVAS] Alert Data Post-Alerts Load: ", alertData);
 
         return alertData;
     } catch (e) {
         console.error("Failed to load upcoming assignments:", e);
-        return {alertsError: e};
+        return { alertsError: e };
     }
-};
+}
 
 /*
 // checks for recent submissions within the past seven days
@@ -176,16 +174,16 @@ export async function checkRecentSubmissions(token) {
 };*/
 
 export async function validateCanvasToken(token) {
-  try {
-    global.token = token;
+    try {
+        global.token = token;
 
-    const res = await canvasGet("/v1/users/self/profile");
+        const res = await canvasGet("/v1/users/self/profile");
 
-    return true;
-  } catch (err) {
-    return false;
-  }
-};
+        return true;
+    } catch (err) {
+        return false;
+    }
+}
 
 // Basic GET function through backend
 export async function canvasGet(path, params) {
@@ -199,8 +197,8 @@ export async function canvasGet(path, params) {
     const res = await fetch(url, {
         method: "GET",
         headers: {
-          "Content-Type": "application/json",
-          "jwt-token": global.token
+            "Content-Type": "application/json",
+            "jwt-token": global.token,
         },
         credentials: "omit", // don't send browser cookies
     });
@@ -220,10 +218,10 @@ export async function canvasGet(path, params) {
 // Returns a Date or null if input is missing/invalid.
 // ------------------------------------------------------------
 function parseIsoDate(iso) {
-  // Guard against undefined/null/empty strings.
-  if (!iso) return null;
-  const t = Date.parse(iso); // Date.parse returns ms timestamp or NaN.
-  return Number.isFinite(t) ? new Date(t) : null; // Convert to Date if valid.
+    // Guard against undefined/null/empty strings.
+    if (!iso) return null;
+    const t = Date.parse(iso); // Date.parse returns ms timestamp or NaN.
+    return Number.isFinite(t) ? new Date(t) : null; // Convert to Date if valid.
 }
 
 // ------------------------------------------------------------
@@ -231,19 +229,19 @@ function parseIsoDate(iso) {
 // We accept either a numeric score or a letter grade as "has a grade".
 // ------------------------------------------------------------
 function hasAnyGrade(enrollment) {
-  // Canvas enrollments often carry both "current_*" and "final_*".
-  const g = enrollment?.grades || {};
-  const percent = g.current_score ?? g.final_score; // Prefer current_score, fallback to final_score.
-  const letter = g.current_grade ?? g.final_grade;  // Prefer current_grade, fallback to final_grade.
+    // Canvas enrollments often carry both "current_*" and "final_*".
+    const g = enrollment?.grades || {};
+    const percent = g.current_score ?? g.final_score; // Prefer current_score, fallback to final_score.
+    const letter = g.current_grade ?? g.final_grade; // Prefer current_grade, fallback to final_grade.
 
-  if(letter == null && percent == 0){
-    return false;
-  }
-  //if(letter == null) return false;
-  // If either is present, we treat it as graded.
-  const hasPercent = typeof percent === "number" && Number.isFinite(percent);
-  const hasLetter = letter != null && String(letter).trim().length > 0;
-  return hasPercent || hasLetter;
+    if (letter == null && percent == 0) {
+        return false;
+    }
+    //if(letter == null) return false;
+    // If either is present, we treat it as graded.
+    const hasPercent = typeof percent === "number" && Number.isFinite(percent);
+    const hasLetter = letter != null && String(letter).trim().length > 0;
+    return hasPercent || hasLetter;
 }
 
 // ------------------------------------------------------------
@@ -252,170 +250,238 @@ function hasAnyGrade(enrollment) {
 // ------------------------------------------------------------
 
 function pickSimpleCourseName(course, fallbackId) {
-  // Try common Canvas name fields in order.
-  const raw =
-    course?.name ??
-    course?.course_code ??
-    course?.short_name ??
-    course?.sis_course_id ??
-    null;
+    // Try common Canvas name fields in order.
+    const raw =
+        course?.name ??
+        course?.course_code ??
+        course?.short_name ??
+        course?.sis_course_id ??
+        null;
 
-  // If nothing usable, fallback to "Course {id}".
-  const s = raw != null ? String(raw).trim() : "";
-  return s.length > 0 ? s : `Course ${fallbackId}`;
+    // If nothing usable, fallback to "Course {id}".
+    const s = raw != null ? String(raw).trim() : "";
+    return s.length > 0 ? s : `Course ${fallbackId}`;
 }
 
+// Turn a Canvas course name into something like "PHYS 212", "CMPSC 475", "STAT 318"
+function normalizeCourseName(rawName) {
+    if (!rawName || typeof rawName !== "string") return "";
+
+    // Strip off sections / long titles after ":" or "("
+    let cleaned = rawName.split(":")[0];
+    cleaned = cleaned.split("(")[0];
+
+    const tokens = cleaned.split(/\s+/).filter(Boolean);
+    if (tokens.length === 0) return "";
+
+    // Find first token that has a digit -> course number token
+    const numIndex = tokens.findIndex((t) => /\d/.test(t));
+    if (numIndex <= 0) {
+        // No obvious number; fall back to trimmed cleaned name
+        return cleaned.trim();
+    }
+
+    // Dept = token before the number; strip non-letters and uppercase
+    let dept = tokens[numIndex - 1].replace(/[^A-Za-z]/g, "").toUpperCase();
+
+    // Map some common full names/variants to abbreviations
+    const deptMap = {
+        PHYSICS: "PHYS",
+        PHYS: "PHYS",
+        STAT: "STAT",
+    };
+
+    if (deptMap[dept]) {
+        dept = deptMap[dept];
+    } else {
+        // For things like CMPSC, SWENG, etc., just keep as-is (or truncate if super long)
+        if (dept.length > 6) {
+            dept = dept.slice(0, 6);
+        }
+    }
+
+    // Extract just the digits from the number token (e.g., "475," -> "475")
+    const numMatch = tokens[numIndex].match(/\d+/);
+    const num = numMatch ? numMatch[0] : "";
+
+    if (!dept || !num) {
+        return cleaned.trim();
+    }
+
+    return `${dept} ${num}`;
+}
 // Fetch a single course by id when include[]=course is missing.
 async function fetchCourseById(courseId) {
-  try {
-    const c = await canvasGet(`/v1/courses/${courseId}`);
-    return c ?? null;
-  } catch {
-    return null;
-  }
+    try {
+        const c = await canvasGet(`/v1/courses/${courseId}`);
+        return c ?? null;
+    } catch {
+        return null;
+    }
 }
 
 export async function getMySemesterCoursesWithGrades() {
-  const params = {
-    "type[]": "StudentEnrollment",
-    "state[]": "active",
-    "include[]": "course",
-    per_page: 100,
-  };
+    const params = {
+        "type[]": "StudentEnrollment",
+        "state[]": "active",
+        "include[]": "course",
+        per_page: 100,
+    };
 
-  const enrollments = await canvasGet("/v1/users/self/enrollments", params);
-  const total = Array.isArray(enrollments) ? enrollments.length : 0;
+    const enrollments = await canvasGet("/v1/users/self/enrollments", params);
+    const total = Array.isArray(enrollments) ? enrollments.length : 0;
 
-  const seenCourseIds = new Set();
-  const metrics = {
-    total,
-    accepted: 0,
-    duplicateCourse: 0,
-    noCourseId: 0,
-    noCourseObj: 0,
-    tooOld: 0,
-    noGrade: 0,
-  };
+    const seenCourseIds = new Set();
+    const metrics = {
+        total,
+        accepted: 0,
+        duplicateCourse: 0,
+        noCourseId: 0,
+        noCourseObj: 0,
+        tooOld: 0,
+        noGrade: 0,
+    };
 
-  const cards = [];
+    const cards = [];
 
-  for (const e of Array.isArray(enrollments) ? enrollments : []) {
-    const courseId = e?.course_id;
-    if (typeof courseId !== "number") {
-      metrics.noCourseId++;
-      console.log(`[courses] reject: noCourseId`);
-      continue;
+    for (const e of Array.isArray(enrollments) ? enrollments : []) {
+        const courseId = e?.course_id;
+        if (typeof courseId !== "number") {
+            metrics.noCourseId++;
+            console.log(`[courses] reject: noCourseId`);
+            continue;
+        }
+
+        if (seenCourseIds.has(courseId)) {
+            metrics.duplicateCourse++;
+            console.log(`[courses] reject: duplicate course_id=${courseId}`);
+            continue;
+        }
+
+        // Ensure we have a course object; if missing, fetch it.
+        let course = e?.course ?? null;
+        if (!course) {
+            course = await fetchCourseById(courseId);
+        }
+        if (!course) {
+            metrics.noCourseObj++;
+            console.log(
+                `[courses] reject: course_id=${courseId} reason=noCourseObj`
+            );
+            continue;
+        }
+
+        // Created-at filter.
+        const created = parseIsoDate(course.created_at);
+        if (!created || created < SEMESTER_START) {
+            metrics.tooOld++;
+            const ca = course.created_at ?? "null";
+            console.log(
+                `[courses] reject: course_id=${courseId} name="${pickSimpleCourseName(
+                    course,
+                    courseId
+                )}" created_at=${ca} reason=tooOld`
+            );
+            continue;
+        }
+
+        // Grade filter.
+        if (!hasAnyGrade(e)) {
+            metrics.noGrade++;
+            console.log(
+                `[courses] reject: course_id=${courseId} name="${pickSimpleCourseName(
+                    course,
+                    courseId
+                )}" reason=noGrade`
+            );
+            continue;
+        }
+
+        // Passed all filters → accept.
+        seenCourseIds.add(courseId);
+        metrics.accepted++;
+
+        const g = e.grades || {};
+        const rawPercent = g.current_score ?? g.final_score ?? null;
+        const percent =
+            typeof rawPercent === "number" && Number.isFinite(rawPercent)
+                ? rawPercent
+                : null;
+        const letter = g.current_grade ?? g.final_grade ?? null;
+
+        const simpleName = pickSimpleCourseName(course, courseId);
+        const shortName = normalizeCourseName(simpleName);
+
+        cards.push({
+            id: courseId,
+            name: shortName, // what the UI will see: "PHYS 212", "CMPSC 475", ...
+            fullName: simpleName, // keep original-ish name around if you ever need it
+            percent,
+            grade: letter ?? null,
+            created_at: course.created_at,
+        });
+
+        console.log(
+            `[courses] accept: course_id=${courseId} name="${shortName}" fullName="${simpleName}" created_at=${
+                course.created_at
+            } percent=${percent ?? "null"} grade=${letter ?? "null"}`
+        );
     }
-
-    if (seenCourseIds.has(courseId)) {
-      metrics.duplicateCourse++;
-      console.log(`[courses] reject: duplicate course_id=${courseId}`);
-      continue;
-    }
-
-    // Ensure we have a course object; if missing, fetch it.
-    let course = e?.course ?? null;
-    if (!course) {
-      course = await fetchCourseById(courseId);
-    }
-    if (!course) {
-      metrics.noCourseObj++;
-      console.log(`[courses] reject: course_id=${courseId} reason=noCourseObj`);
-      continue;
-    }
-
-    // Created-at filter.
-    const created = parseIsoDate(course.created_at);
-    if (!created || created < SEMESTER_START) {
-      metrics.tooOld++;
-      const ca = course.created_at ?? "null";
-      console.log(
-        `[courses] reject: course_id=${courseId} name="${pickSimpleCourseName(course, courseId)}" created_at=${ca} reason=tooOld`
-      );
-      continue;
-    }
-
-    // Grade filter.
-    if (!hasAnyGrade(e)) {
-      metrics.noGrade++;
-      console.log(
-        `[courses] reject: course_id=${courseId} name="${pickSimpleCourseName(course, courseId)}" reason=noGrade`
-      );
-      continue;
-    }
-
-    // Passed all filters → accept.
-    seenCourseIds.add(courseId);
-    metrics.accepted++;
-
-    const g = e.grades || {};
-    const rawPercent = g.current_score ?? g.final_score ?? null;
-    const percent =
-      typeof rawPercent === "number" && Number.isFinite(rawPercent)
-        ? rawPercent
-        : null;
-    const letter = g.current_grade ?? g.final_grade ?? null;
-    const name = pickSimpleCourseName(course, courseId);
-
-    cards.push({
-      id: courseId,
-      name,
-      percent,
-      grade: letter ?? null,
-      created_at: course.created_at,
-    });
 
     console.log(
-      `[courses] accept: course_id=${courseId} name="${name}" created_at=${course.created_at} percent=${percent ?? "null"} grade=${letter ?? "null"}`
+        `[courses] summary: total=${metrics.total} accepted=${metrics.accepted} dup=${metrics.duplicateCourse} noCourseId=${metrics.noCourseId} noCourseObj=${metrics.noCourseObj} tooOld=${metrics.tooOld} noGrade=${metrics.noGrade}`
     );
-  }
 
-  console.log(
-    `[courses] summary: total=${metrics.total} accepted=${metrics.accepted} dup=${metrics.duplicateCourse} noCourseId=${metrics.noCourseId} noCourseObj=${metrics.noCourseObj} tooOld=${metrics.tooOld} noGrade=${metrics.noGrade}`
-  );
-
-  return cards;
+    return cards;
 }
 // Format a due date for display (local timezone).
 function formatDueLocal(iso) {
-  if (!iso) return "No due date";
-  const d = new Date(iso);
-  // Example: Thu, Oct 30, 2025, 11:59 PM
-  return d.toLocaleString(undefined, {
-    weekday: "short",
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+    if (!iso) return "No due date";
+    const d = new Date(iso);
+    // Example: Thu, Oct 30, 2025, 11:59 PM
+    return d.toLocaleString(undefined, {
+        weekday: "short",
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+        hour: "numeric",
+        minute: "2-digit",
+    });
 }
 
 // Reuse the classifier you already added earlier:
 function classifyAssignmentType(a) {
-  if (a?.is_quiz_assignment || a?.quiz_id != null) return "Quiz";
-  if (Array.isArray(a?.submission_types) && a.submission_types.includes("discussion_topic")) {
-    return "Discussion";
-  }
-  return "Assignment";
+    if (a?.is_quiz_assignment || a?.quiz_id != null) return "Quiz";
+    if (
+        Array.isArray(a?.submission_types) &&
+        a.submission_types.includes("discussion_topic")
+    ) {
+        return "Discussion";
+    }
+    return "Assignment";
 }
 
 // Fetch assignments for one course and client-filter by due date range.
-async function fetchAssignmentsForCourse(courseId, { dueAfter, dueBefore } = {}) {
-  const params = {
-    per_page: 100,
-    order_by: "due_at",
-    "include[]": "submission",
-  };
-  const list = await canvasGet(`/v1/courses/${courseId}/assignments`, params);
-  return Array.isArray(list) ? list.filter((a) => {
-    const due = parseIsoDate(a?.due_at);
-    if (!due) return false;                 // only items with a real due date
-    if (dueAfter && due < dueAfter) return false;
-    if (dueBefore && due > dueBefore) return false;
-    if (a?.published === false) return false;
-    return true;
-  }) : [];
+async function fetchAssignmentsForCourse(
+    courseId,
+    { dueAfter, dueBefore } = {}
+) {
+    const params = {
+        per_page: 100,
+        order_by: "due_at",
+        "include[]": "submission",
+    };
+    const list = await canvasGet(`/v1/courses/${courseId}/assignments`, params);
+    return Array.isArray(list)
+        ? list.filter((a) => {
+              const due = parseIsoDate(a?.due_at);
+              if (!due) return false; // only items with a real due date
+              if (dueAfter && due < dueAfter) return false;
+              if (dueBefore && due > dueBefore) return false;
+              if (a?.published === false) return false;
+              return true;
+          })
+        : [];
 }
 
 /**
@@ -424,35 +490,41 @@ async function fetchAssignmentsForCourse(courseId, { dueAfter, dueBefore } = {})
  * - Returns array of { id, courseId, courseName, title, type, dueAtISO, dueLabel }.
  * - Configure via daysAhead (default 14) and startAt (default now).
  */
-export async function getUpcomingAssignmentAlerts({ daysAhead = 14, startAt = new Date() } = {}) {
-  const start = new Date(startAt);
-  const end = new Date(start.getTime() + daysAhead * 86400000);
+export async function getUpcomingAssignmentAlerts({
+    daysAhead = 14,
+    startAt = new Date(),
+} = {}) {
+    const start = new Date(startAt);
+    const end = new Date(start.getTime() + daysAhead * 86400000);
 
-  // Selected courses (active, created after SEMESTER_START, with non-null letter grade).
-  const selected = await getMySemesterCoursesWithGrades();
+    // Selected courses (active, created after SEMESTER_START, with non-null letter grade).
+    const selected = await getMySemesterCoursesWithGrades();
 
-  const alerts = [];
-  for (const c of selected) {
-    const items = await fetchAssignmentsForCourse(c.id, { dueAfter: start, dueBefore: end });
-    for (const a of items) {
-      const type = classifyAssignmentType(a);
-      const dueAtISO = a?.due_at ?? null;
-      alerts.push({
-        id: `${c.id}:${a.id}`,               // stable key for React
-        courseId: c.id,
-        courseName: c.name ?? `Course ${c.id}`,
-        title: a?.name ?? "(untitled)",
-        type,
-        dueAtISO,
-        dueLabel: formatDueLocal(dueAtISO),
-      });
+    const alerts = [];
+    for (const c of selected) {
+        const items = await fetchAssignmentsForCourse(c.id, {
+            dueAfter: start,
+            dueBefore: end,
+        });
+        for (const a of items) {
+            const type = classifyAssignmentType(a);
+            const dueAtISO = a?.due_at ?? null;
+            alerts.push({
+                id: `${c.id}:${a.id}`, // stable key for React
+                courseId: c.id,
+                courseName: c.name ?? `Course ${c.id}`,
+                title: a?.name ?? "(untitled)",
+                type,
+                dueAtISO,
+                dueLabel: formatDueLocal(dueAtISO),
+            });
+        }
     }
-  }
 
-  // Sort ascending by due date so soonest appears first.
-  alerts.sort((x, y) => (new Date(x.dueAtISO)) - (new Date(y.dueAtISO)));
+    // Sort ascending by due date so soonest appears first.
+    alerts.sort((x, y) => new Date(x.dueAtISO) - new Date(y.dueAtISO));
 
-  return alerts;
+    return alerts;
 }
 
 /**
@@ -461,38 +533,48 @@ export async function getUpcomingAssignmentAlerts({ daysAhead = 14, startAt = ne
  * - Configurable window: daysAhead (default 14). You can also pass a custom "startAt".
  * - Logs: assignment name, assignment type, due date (ISO).
  */
-export async function logUpcomingAssignmentsForSelectedCourses({ daysAhead = 14, startAt = new Date() } = {}) {
-  const start = new Date(startAt);                      // window start (usually now)
-  const end = new Date(start.getTime() + daysAhead * 86400000); // window end
+export async function logUpcomingAssignmentsForSelectedCourses({
+    daysAhead = 14,
+    startAt = new Date(),
+} = {}) {
+    const start = new Date(startAt); // window start (usually now)
+    const end = new Date(start.getTime() + daysAhead * 86400000); // window end
 
-  // Get filtered courses (active, created after SEMESTER_START, with non-null letter grade).
-  const selected = await getMySemesterCoursesWithGrades();
-  const courseIds = selected.map((c) => c.id);
+    // Get filtered courses (active, created after SEMESTER_START, with non-null letter grade).
+    const selected = await getMySemesterCoursesWithGrades();
+    const courseIds = selected.map((c) => c.id);
 
-  console.log(`[assignments] window start=${start.toISOString()} end=${end.toISOString()} daysAhead=${daysAhead}`);
-  console.log(`[assignments] course_ids=${courseIds.join(", ") || "(none)"}`);
+    console.log(
+        `[assignments] window start=${start.toISOString()} end=${end.toISOString()} daysAhead=${daysAhead}`
+    );
+    console.log(`[assignments] course_ids=${courseIds.join(", ") || "(none)"}`);
 
-  let total = 0;
+    let total = 0;
 
-  for (const c of selected) {
-    const courseId = c.id;
-    // Fetch and client-filter assignments for this course.
-    const items = await fetchAssignmentsForCourse(courseId, { dueAfter: start, dueBefore: end });
+    for (const c of selected) {
+        const courseId = c.id;
+        // Fetch and client-filter assignments for this course.
+        const items = await fetchAssignmentsForCourse(courseId, {
+            dueAfter: start,
+            dueBefore: end,
+        });
 
-    // Log each assignment: name, type, due date.
-    for (const a of items) {
-      const t = classifyAssignmentType(a);
-      const dueIso = a?.due_at ?? "null";
-      const name = a?.name ?? "(untitled)";
-      console.log(`[assignments] course_id=${courseId} name="${name}" type=${t} due=${dueIso}`);
-      total++;
+        // Log each assignment: name, type, due date.
+        for (const a of items) {
+            const t = classifyAssignmentType(a);
+            const dueIso = a?.due_at ?? "null";
+            const name = a?.name ?? "(untitled)";
+            console.log(
+                `[assignments] course_id=${courseId} name="${name}" type=${t} due=${dueIso}`
+            );
+            total++;
+        }
     }
-  }
 
-  console.log(`[assignments] summary: courses=${courseIds.length} assignments_logged=${total}`);
+    console.log(
+        `[assignments] summary: courses=${courseIds.length} assignments_logged=${total}`
+    );
 }
-
-
 
 // ------------------------------------------------------------
 // Weekly Progress (Canvas-driven)
@@ -500,26 +582,32 @@ export async function logUpcomingAssignmentsForSelectedCourses({ daysAhead = 14,
 
 /** Internal: compute Sun..Sat window around "now" */
 function _weekWindow(now = new Date()) {
-  const start = new Date(now);
-  start.setDate(now.getDate() - now.getDay());
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setDate(start.getDate() + 6);
-  end.setHours(23, 59, 59, 999);
-  return { start, end };
+    const start = new Date(now);
+    start.setDate(now.getDate() - now.getDay());
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    end.setHours(23, 59, 59, 999);
+    return { start, end };
 }
 
 /** Internal: format M/D (e.g., 9/14) */
 function _md(d) {
-  return d.toLocaleDateString(undefined, { month: "numeric", day: "numeric" });
+    return d.toLocaleDateString(undefined, {
+        month: "numeric",
+        day: "numeric",
+    });
 }
 
 /** Internal: safe percent from a submission (score/points_possible) */
 function _submissionPercent(sub) {
-  const score = typeof sub?.score === "number" ? sub.score : null;
-  const pts = typeof sub?.assignment?.points_possible === "number" ? sub.assignment.points_possible : null;
-  if (score == null || pts == null || pts <= 0) return null;
-  return (score / pts) * 100;
+    const score = typeof sub?.score === "number" ? sub.score : null;
+    const pts =
+        typeof sub?.assignment?.points_possible === "number"
+            ? sub.assignment.points_possible
+            : null;
+    if (score == null || pts == null || pts <= 0) return null;
+    return (score / pts) * 100;
 }
 
 /**

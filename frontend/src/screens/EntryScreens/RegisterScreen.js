@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import RegisterUserPage from "../../components/RegisterUserPage.js";
 import RegisterStudentPage from "../../components/RegisterStudentPage";
-import { useNavigate, Link} from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { Spinner } from "react-bootstrap";              
 
-import {useAuth} from "../../api/AuthContext.js";
+import { useAuth } from "../../api/AuthContext.js";
 
 function RegisterScreen() {
-
     const [step, setStep] = useState(1);
     const [formData, setFormData] = useState({
         firstName: "",
@@ -23,7 +23,7 @@ function RegisterScreen() {
 
     const navigate = useNavigate();
 
-  const { setToken, token, isStudentDataFilled, studentDataLoading } = useAuth();
+    const { setToken, token, isStudentDataFilled, studentDataLoading } = useAuth();
 
     useEffect(() => {
         if (isLoading) {
@@ -35,10 +35,8 @@ function RegisterScreen() {
 
     // Navigate to home if registration is complete
     useEffect(() => {
-        // Only care after we have a token
         if (!token) return;
 
-        // When we are NOT loading and studentData is fully filled in, then it's safe to go to the home screen.
         if (!studentDataLoading && isStudentDataFilled()) {
             navigate("/home");
         }
@@ -53,12 +51,16 @@ function RegisterScreen() {
                 },
                 body: JSON.stringify(formData),
             });
-            if (res.status === 500) throw new Error("[REGISTER] Error", {cause: "Unable to Connect."});
+            if (res.status === 500)
+                throw new Error("[REGISTER] Error", { cause: "Unable to Connect." });
+
             const data = await res.json();
-            if (!res.ok) throw new Error("[Register] Error", {cause: data.error});
+            if (!res.ok)
+                throw new Error("[Register] Error", { cause: data.error });
+
             if (data.successful) {
-                setToken({"token": data.token});
-                // No longer navigate right to home
+                setToken({ token: data.token });
+                // Now AuthContext will start loading student data
             } else {
                 setError(data.error);
             }
@@ -66,33 +68,65 @@ function RegisterScreen() {
             console.log(e);
             setError(e.cause);
         }
-    }
+    };
 
     const renderStep = () => {
         switch (step) {
             case 1:
-                return <RegisterUserPage formData={formData} setFormData={setFormData} setStep={setStep} isLoading={isLoading} setLoading={setLoading}></RegisterUserPage>
+                return (
+                    <RegisterUserPage
+                        formData={formData}
+                        setFormData={setFormData}
+                        setStep={setStep}
+                        isLoading={isLoading}
+                        setLoading={setLoading}
+                    />
+                );
             case 2:
-                return <RegisterStudentPage formData={formData} setFormData={setFormData} setStep={setStep} isLoading={isLoading} setLoading={setLoading}></RegisterStudentPage>
+                return (
+                    <RegisterStudentPage
+                        formData={formData}
+                        setFormData={setFormData}
+                        setStep={setStep}
+                        isLoading={isLoading}
+                        setLoading={setLoading}
+                    />
+                );
             default:
-                return <RegisterUserPage formData={formData} setFormData={setFormData}></RegisterUserPage>
+                return (
+                    <RegisterUserPage
+                        formData={formData}
+                        setFormData={setFormData}
+                    />
+                );
         }
+    };
+
+    //If we have a token and the student data is loading, show ONLY a spinner
+    if (token && studentDataLoading) {
+        return (
+            <div className="entry-bg">
+            <div className="entry-container">
+                <h1 className="loadingLabel">Loading</h1>
+                <Spinner className="loadingSpinner" animation="border" role="status">
+                    
+                </Spinner>
+            </div>
+        </div>
+        );
     }
 
     return (
-        <>
-            <div className="entry-bg">
-                <div className='entry-container'>
-                    {error && (
-                        <div className="text-danger">{error}</div>
-                    )}
-                    {renderStep()}
-                    <div>
-                        <a>Already have an account? </a><Link to="/login">Log In.</Link>
-                    </div>
+        <div className="entry-bg">
+            <div className="entry-container">
+                {error && <div className="text-danger">{error}</div>}
+                {renderStep()}
+                <div>
+                    <span>Already have an account? </span>
+                    <Link to="/login">Log In.</Link>
                 </div>
             </div>
-        </>
+        </div>
     );
 }
 
