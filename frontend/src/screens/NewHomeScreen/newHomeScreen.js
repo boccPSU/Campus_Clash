@@ -211,7 +211,7 @@ function NewHomeScreen() {
 
     return (
         <>
-            <ScreenScroll ref={scrollerRef}>
+            
                 <PullToRefresh scrollerRef={scrollerRef} onRefresh={refresh}>
                     <Container className="mainContainer">
                         {/* Level Up Popup (should be on each screen) */}
@@ -455,7 +455,7 @@ function NewHomeScreen() {
                 </PullToRefresh>
 
                 <div style={{ height: "var(--bottom-nav-height, 72px)" }} />
-            </ScreenScroll>
+           
 
             <BottomNavBar />
         </>

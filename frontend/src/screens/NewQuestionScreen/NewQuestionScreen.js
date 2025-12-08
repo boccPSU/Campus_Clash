@@ -796,7 +796,7 @@ export default function NewQuestionScreen() {
                 className={`headerSpacer ${collapsed ? "is-collapsed" : ""}`}
             />
 
-            <ScreenScroll ref={scrollerRef}>
+           
                 <PullToRefresh scrollerRef={scrollerRef} onRefresh={refresh}>
                     <Container className="mainContainer questionMain">
                         {stage === "loading" && renderLoadingOrError()}
@@ -806,7 +806,7 @@ export default function NewQuestionScreen() {
                         <div className="bottomNavSpacer" />
                     </Container>
                 </PullToRefresh>
-            </ScreenScroll>
+        
 
             <BottomNavBar onNavClick={handleBottomNavClick} />
 

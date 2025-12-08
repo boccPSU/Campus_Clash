@@ -1000,7 +1000,7 @@ function NewTournamentScreen() {
                     for reaching Level {justLeveledTo}.
                 </p>
             </MainPopup>
-            <ScreenScroll ref={scrollerRef}>
+          
                 <PullToRefresh scrollerRef={scrollerRef} onRefresh={refresh}>
                     <Container className="mainContainer">
                         {/* Progress bar */}
@@ -1142,7 +1142,7 @@ function NewTournamentScreen() {
                         <div className="bottomNavSpacer" />
                     </Container>
                 </PullToRefresh>
-            </ScreenScroll>
+        
 
             <BottomNavBar />
         </>
