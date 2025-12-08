@@ -343,7 +343,11 @@ function NewTournamentCard({
             {/* Leaderboard */}
             <div className="leaderboard">
                 <h3 className="leaderboardTitle">{leaderboardTitle}</h3>
-
+                <div className="leaderboardSubtitle">
+                    <span className="xpAmount">1st: 1000 XP </span>
+                    <span className="xpAmount">2nd: 500 XP </span>
+                    <span className="xpAmount">3rd: 250 XP</span>
+                </div>
                 {leaderboardLoading ? (
                     <div className="leaderboardLoading">
                         <Spinner
@@ -416,9 +420,9 @@ function NewTournamentCard({
                                     }
                                 >
                                     {showLeaderboard ? (
-                                        <ChevronUp />
+                                        <ChevronUp className="leaderboardChevron" />
                                     ) : (
-                                        <ChevronDown />
+                                        <ChevronDown className="leaderboardChevron" />
                                     )}
                                 </button>
                             )}

@@ -111,3 +111,27 @@
     padding-left: 15px;   
     padding-right: 15px;  
 }
+
+.leaderboardSubtitle {
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-bottom: 0.75rem;
+    color: $light-text-primary;
+    
+}
+
+.xpAmount {
+
+   padding-left: 10px;
+   padding-right:10px;
+}
+
+.leaderboardToggle{
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: $light-text-primary;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
