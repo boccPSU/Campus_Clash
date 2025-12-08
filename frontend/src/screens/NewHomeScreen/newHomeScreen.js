@@ -22,7 +22,7 @@ const ALERTS_PREVIEW_COUNT = 3;
 // Leveling constraints (same as XpHeaderBar)
 const BASE_XP_PER_LEVEL = 200;
 const XP_INCREMENT_PER_LEVEL = 100;
-const GEMS_PER_LEVEL = 50;
+const GEMS_PER_LEVEL = 100;
 
 // Helper function to compute level info based on total xp
 function computeLevelInfo(totalXp) {

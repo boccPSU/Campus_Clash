@@ -16,7 +16,7 @@ function NewTournamentScreen() {
     // Leveling constraints (same as XpHeaderBar)
     const BASE_XP_PER_LEVEL = 200;
     const XP_INCREMENT_PER_LEVEL = 100;
-    const GEMS_PER_LEVEL = 50;
+    const GEMS_PER_LEVEL = 100;
 
     // Time variables for tournament refresh
 
