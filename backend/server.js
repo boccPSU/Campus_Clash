@@ -666,8 +666,6 @@ app.get("/api/load-battle", async (req, res) => {
 
     const battleData = results[0];
 
-    console.log(battleData);
-
     joinUserRoom(pid, battleData.bid);
 
     sendToRoom(battleData.bid, "battle-data", battleData);
