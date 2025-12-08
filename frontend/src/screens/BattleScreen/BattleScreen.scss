@@ -201,29 +201,6 @@
         justify-content: center;
         flex-direction: column;
         gap: 0.375rem;
-
-        .selectGems {
-            background-color: $light-secondary;
-            color: $dark-secondary;
-            border-style: solid;
-            border-color: $dark-secondary;
-            border-width: 0.15rem;
-            border-radius: 0.375rem;
-            padding: 0;
-            width: 60%;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-direction: row;
-
-            .gemAmount {
-                margin: auto;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: inherit;
-            }
-        }
     }
 }
 
@@ -248,8 +225,45 @@
     align-items: center;
 }
 
+.selectGems {
+    background-color: $light-secondary;
+    color: $dark-secondary;
+    border-style: solid;
+    border-color: $dark-secondary;
+    border-width: 0.15rem;
+    border-radius: 0.375rem;
+    padding: 0;
+    width: 60%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-direction: row;
+
+    .gemAmount {
+        margin: auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: inherit;
+    }
+}
+
+body.dark-mode .selectGems {
+    background-color: $dark-secondary;
+    color: $dark-text-primary;
+    border-color: $light-secondary;
+}
+
 .switch-gap {
     height: 100%;
     width: 0.1rem;
+    background-color: $dark-secondary;
+}
+
+body.dark-mode .switch-gap {
+    background-color: $light-secondary;
+}
+
+body.dark-mode .profile-container {
     background-color: $dark-secondary;
 }

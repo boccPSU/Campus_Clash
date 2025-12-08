@@ -57,12 +57,36 @@ body.dark-mode .btn-edit {
     justify-content: center;
     align-items: start;
     flex-direction: column;
-    background-color: inherit;
+    background-color: $light-primary;
     border-radius: 5%;
     padding: 1rem;
 }
 
+.settings-input {
+    background-color: $light-primary;
+    color: $light-text-primary;
+}
+
+.settings-input::placeholder {
+    color: $light-text-primary;
+}
+
+body.dark-mode .settings-input {
+    background-color: $dark-primary;
+    color: $dark-text-primary;
+}
+
+body.dark-mode .settings-input::placeholder {
+    color: $dark-text-primary;
+}
+
+body.dark-mode .modalMain {
+    background-color: $dark-secondary;
+    color: $dark-text-primary;
+}
+
 .settingsEdit {
+    background-color: inherit;
 
     width: 100%;
     height: 70%;

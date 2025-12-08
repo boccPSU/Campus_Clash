@@ -199,7 +199,7 @@ function BattleScreen() {
                                 <PersonCircle/>
                             </div>
                             
-                            <h1 className="username">{"Scholar"}</h1>
+                            <h1 className="username">{"???"}</h1>
                             <div className="xp-container">
                                 <h1 className="xp-gained">XP Gained:</h1>
                                 <h1 className="xp-gained">{}</h1>
@@ -210,7 +210,7 @@ function BattleScreen() {
                             <div className="icon">
                                 <QuestionCircle/>
                             </div>
-                            <h1 className="username">{"Unknown"}</h1>
+                            <h1 className="username">{"???"}</h1>
                             <div className="xp-container">
                                 <h1 className="xp-gained">XP Gained: </h1>
                                 <h1 className="xp-gained">{}</h1>
@@ -260,7 +260,7 @@ function BattleScreen() {
                 <div className="compare-xp-container">
                     <ProgressBar
                         className="compare-xp-progress-bar"
-                        now={(100 * battleData?.xp_gained_p1) / (battleData?.xp_gained_p1 + battleData?.xp_gained_p2)}
+                        now={battleData?.xp_gained_p1 === 0 && battleData?.xp_gained_p2 === 0 ? 50 : (100 * battleData?.xp_gained_p1) / (battleData?.xp_gained_p1 + battleData?.xp_gained_p2)}
                     />
                 </div>
                 <div className="rewards-container">

@@ -113,6 +113,7 @@ function SettingsEditWindow({state, onClose}) {
                             <Form.Label>Change Your {label}</Form.Label>
                             {state === 4 && (
                                 <Form.Select 
+                                    className="settings-input"
                                     aria-label={label}
                                     name={schemaName}
                                     defaultValue={values[schemaName]}
@@ -136,6 +137,7 @@ function SettingsEditWindow({state, onClose}) {
                                 </Form.Select>
                             )}
                             {state !== 4 && (<Form.Control
+                                    className="settings-input"
                                     type="text"
                                     name={schemaName}
                                     value={values[schemaName]}
